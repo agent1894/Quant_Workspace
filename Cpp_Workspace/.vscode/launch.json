@@ -1,0 +1,36 @@
+{
+    "version": "0.2.0",
+    "configurations": [{
+        // 配置 VS Code 调试行为：
+        "name": "GDB Debug", // 设置在启动配置下拉菜单中显示调试配置的名称。
+        "preLaunchTask": "Compile", // 调试会话开始前要运行的任务。
+        "type": "cppdbg", // 设置要使用的基础调试器。使用 GDB 或 LLDB 时必须是 cppdbg 。
+        "request": "launch", // 设置启动程序还是附加到已经运行的实例。启动或附加 ( launch | attach ).
+        "program": "${fileDirname}/${fileBasenameNoExtension}.exe", // 调试器将启动或附加的可执行文件的完整路径。
+        "externalConsole": true, // 设置是否显示外部控制台。
+        "logging": { // 用于确定应该将哪些类型的消息记录到调试控制台。
+            "exceptions": true, // 是否应将异常消息记录到调试控制台。默认为真。
+            "moduleLoad": false, // 是否应将模块加载事件记录到调试控制台。默认为真。
+            "programOutput": true, // 是否应将程序输出记录到调试控制台的可选标志。默认为真。
+            "engineLogging": false, // 是否应将诊断引擎日志记录到调试控制台。默认为假。
+            "trace": false, // 是否将诊断适配器命令跟踪记录到调试控制台。默认为假。
+            "traceResponse": false // 是否将诊断适配器命令和响应跟踪记录到调试控制台。默认为假。
+        },
+        // 配置目标应用程序：
+        "args": [], // 设置调试时传递给程序的命令行参数。
+        "cwd": "${workspaceFolder}", // 设置调试器启动的应用程序的工作目录。
+        "environment": [], // 设置调试时添加到程序环境中的环境变量，例如: [ { "name": "squid", "value": "clam" } ]。
+        // 自定义 GDB 或者 LLDB：
+        "windows": {
+            "MIMode": "gdb", // 指定 VS Code 连接的调试器，必须为 gdb 或者 lldb。
+            "miDebuggerPath": "D:/MinGW/mingw64/bin/gdb.exe" // 调试器的路径，修改为你的安装路径
+        },
+        "miDebuggerArgs": "", // 传递给调试器的附加参数
+        "stopAtEntry": false, // 设置调试器是否停止在目标的入口（附加时忽略）。默认值为 false。
+        "setupCommands": [{ // 执行下面的命令数组以设置 GDB 或 LLDB
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing", // 鼠标悬停查看变量的值，需要启用 pretty-printing 。
+            "ignoreFailures": true // 忽略失败的命令，默认为 false 。
+        }]
+    }]
+}
