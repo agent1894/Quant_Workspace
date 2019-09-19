@@ -14,4 +14,7 @@
 
 # End of https://www.gitignore.io/api/jupyternotebooks
 
-/Cpp_Workspace/Windows/*.exe
+!*/.vscode/*
+!*.cpp
+!*.md
+/Cpp_Workspace/*/*
