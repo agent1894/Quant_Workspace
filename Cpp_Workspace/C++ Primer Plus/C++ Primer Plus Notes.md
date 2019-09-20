@@ -2,6 +2,8 @@
   - [Chapter2](#chapter2)
     - [Section 3](#section-3)
     - [Section 4](#section-4)
+  - [Chapter3](#chapter3)
+    - [Section1](#section1)
 
 # C++ Primer Plus (6th Edition) Notes
 ## Chapter2
@@ -17,3 +19,9 @@ cin和cin.get()等存在区别，cin.get()无法读取数字，如果使用cin.g
 
 - main() 函数中 return 0 的作用：
   - 计算机的操作系统可以看做调用程序，因此 main() 的返回值不是返回给程序中的其他部分，而是返回给操作系统。操作系统测试程序的返回值（通常被称为退出值），退出值为0则认为程序成功，非0则认为程序存在问题。
+
+## Chapter3
+### Section1
+- 对类型名使用sizeof运算符时，应将名称放在括号中，但是对变量名使用sizeof运算符则括号可加可不加。
+- \<climits\>中的符号常量，实际就是将如INT_MIN, INT_MAX用对应的数值替换，使用的是\#define，便于C和C++同时使用。
+- unsigned是无符号变体，可以增加变量能够储存的最大值，但是仅适用于非负数据。如short保存-32768到32767，但是unsigned short可以保存0-65535。
