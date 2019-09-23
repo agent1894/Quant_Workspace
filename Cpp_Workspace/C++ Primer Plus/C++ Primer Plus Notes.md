@@ -4,6 +4,11 @@
     - [Section 4](#section-4)
   - [Chapter3](#chapter3)
     - [Section1](#section1)
+    - [Section2](#section2)
+    - [Section3](#section3)
+  - [Chapter4](#chapter4)
+    - [Section1](#section1-1)
+    - [Section2](#section2-1)
 
 # C++ Primer Plus (6th Edition) Notes
 ## Chapter2
@@ -24,4 +29,17 @@ cin和cin.get()等存在区别，cin.get()无法读取数字，如果使用cin.g
 ### Section1
 - 对类型名使用sizeof运算符时，应将名称放在括号中，但是对变量名使用sizeof运算符则括号可加可不加。
 - \<climits\>中的符号常量，实际就是将如INT_MIN, INT_MAX用对应的数值替换，使用的是\#define，便于C和C++同时使用。
+- C++本身并不提供自动防止超出整型限制的功能，需要使用头文件\<climits\>。
 - unsigned是无符号变体，可以增加变量能够储存的最大值，但是仅适用于非负数据。如short保存-32768到32767，但是unsigned short可以保存0-65535。
+- C++中，单引号用于*字符*，双引号用于*字符串*。
+### Section2
+- const定义常量时，常量名推荐使用全部大写，同时不要使用\#define进行定义，因为const可以对常量作用域有更好的限制。
+### Section3
+- **float只保证6位精度，超过6位会导致精度丢失，浮点常量在默认情况下为double类型。**
+
+## Chapter4
+### Section1
+- 只有在定义数组时才能使用\{\}数组初始化，此后就不能使用，用时也不能将一个数组赋值给另一个数组。
+### Section2
+- cin的基础特性中，会识别输入的第一个单词，随后在结尾处加入空白。因此，后续输入的内容会被放入输入队列中，这会直接影响下一次输入时的状态。
+  - 在Chapter2 Section3中遇到的cin.get()的问题，在此得到解决。即不定义char array时，cin.get()仅会读取一个字符，而使用cin.get(name, ArSize)时，编译器会读取一个字符串放入数组中。
