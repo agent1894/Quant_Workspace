@@ -9,6 +9,7 @@
   - [Chapter4](#chapter4)
     - [Section1](#section1-1)
     - [Section2](#section2-1)
+    - [Section4](#section4)
 
 # C++ Primer Plus (6th Edition) Notes
 ## Chapter2
@@ -43,3 +44,5 @@ cin和cin.get()等存在区别，cin.get()无法读取数字，如果使用cin.g
 ### Section2
 - cin的基础特性中，会识别输入的第一个单词，随后在结尾处加入空白。因此，后续输入的内容会被放入输入队列中，这会直接影响下一次输入时的状态。
   - 在Chapter2 Section3中遇到的cin.get()的问题，在此得到解决。即不定义char array时，cin.get()仅会读取一个字符，而使用cin.get(name, ArSize)时，编译器会读取一个字符串放入数组中。
+- \<cstring\>头文件提供了标准C语言库的字符串函数，用来处理字符数组。而\<string\>头文件则定义了string类。
+### Section4
