@@ -59,3 +59,24 @@ cin和cin.get()等存在区别，cin.get()无法读取数字，如果使用cin.g
 - **指针！ 指针是一个变量，指向的是其储存值的地址！**
 - **一定要在对指针应用解除引用运算符\*之前，将指针初始化为一个确定的，适当的地址！**
 - 使用delete释放内存，但是不会删除指针本身。**一定要配对使用new和delete，否则将会发生内存泄漏**，也就是说被分配的内存再也无法使用。如果内存泄漏严重，则程序将由于不断寻找更多内存而终止。
+- 不要对delete过的内存再次delete，这样会导致不确定的后果。同时，不能用delete释放声明变量时获得的内存。
+```c++
+int * ps = new int; // ok
+delete ps; // ok
+delete ps; // not ok for now
+int jugs = 5; // ok
+int * pi = &jugs; // ok
+delete pi; // not allowed, memory not allocated by new
+```
+- 如果通过声明来创建数组，则程序被编译时会为数组分配内存。无论程序最终是否使用数组，都会占用已声明的内存。在编译时给数组分配内存被成为静态联编（static binding）。但使用new时，如果在运行阶段需要数组，则创建它，如果不需要，则不创建。还可在程序运行时选择数组的长度。这种方法为成为动态联编（dynamic binding）。
+- 使用new和delete时，应遵循以下规则：
+  1. 不要使用delete来释放不是new分配的内存
+  2. 不要使用delete释放同一个内存两次
+  3. 如果使用new\[\]为数组分配内存，则应使用delete\[\]来释放
+  4. 如果使用new为实体分配内存，则应使用delete来释放 
+  5. 对空指针使用delete是安全的
+- 数组名和指针间的根本差别在于：数组名的值是不能修改的，但是指针是一个变量，因此可以修改指针的值。
+```c++ 
+p3 = p3 + 1; // okay for pointers, wrong for array names
+```
+
