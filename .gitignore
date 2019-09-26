@@ -14,7 +14,8 @@
 
 # End of https://www.gitignore.io/api/jupyternotebooks
 
-**/.exe
+**/*.log
+**/*.exe
 !**/.vscode/*
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
 !**/*.cpp
