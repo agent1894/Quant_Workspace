@@ -14,7 +14,8 @@
     - [Section6](#section6)
     - [Section7](#section7)
     - [Section8](#section8)
-    - [Secton10](#secton10)
+    - [Section10](#section10)
+  - [Chapter5](#chapter5)
 
 # C++ Primer Plus (6th Edition) Notes
 ## Chapter2
@@ -61,14 +62,14 @@ cin和cin.get()等存在区别，cin.get()无法读取数字，如果使用cin.g
 - **一定要在对指针应用解除引用运算符\*之前，将指针初始化为一个确定的，适当的地址！**
 - 使用delete释放内存，但是不会删除指针本身。**一定要配对使用new和delete，否则将会发生内存泄漏**，也就是说被分配的内存再也无法使用。如果内存泄漏严重，则程序将由于不断寻找更多内存而终止。
 - 不要对delete过的内存再次delete，这样会导致不确定的后果。同时，不能用delete释放声明变量时获得的内存。
-```c++
-int * ps = new int; // ok
-delete ps; // ok
-delete ps; // not ok for now
-int jugs = 5; // ok
-int * pi = &jugs; // ok
-delete pi; // not allowed, memory not allocated by new
-```
+  ```c++
+  int * ps = new int; // ok
+  delete ps; // ok
+  delete ps; // not ok for now
+  int jugs = 5; // ok
+  int * pi = &jugs; // ok
+  delete pi; // not allowed, memory not allocated by new
+  ```
 - 如果通过声明来创建数组，则程序被编译时会为数组分配内存。无论程序最终是否使用数组，都会占用已声明的内存。在编译时给数组分配内存被成为静态联编（static binding）。但使用new时，如果在运行阶段需要数组，则创建它，如果不需要，则不创建。还可在程序运行时选择数组的长度。这种方法为成为动态联编（dynamic binding）。
 - 使用new和delete时，应遵循以下规则：
   1. 不要使用delete来释放不是new分配的内存
@@ -77,74 +78,94 @@ delete pi; // not allowed, memory not allocated by new
   4. 如果使用new为实体分配内存，则应使用delete来释放 
   5. 对空指针使用delete是安全的
 - 数组名和指针间的根本差别在于：数组名的值是不能修改的，但是指针是一个变量，因此可以修改指针的值。
-```c++ 
-p3 = p3 + 1; // okay for pointers, wrong for array names
-```
+  ```c++ 
+  p3 = p3 + 1; // okay for pointers, wrong for array names
+  ```
 ### Section8
 - 指针小结
   1. 声明指针
-  ```c++
-  typeName * pointerName; 
-  // for example:
-  double * pn; // pn can point to a double value
-  char * pc; // pc can point to a char value
-  ```
+    ```c++
+    typeName * pointerName; 
+    // for example:
+    double * pn; // pn can point to a double value
+    char * pc; // pc can point to a char value
+    ```
   2. 给指针赋值应将内存地址赋给指针，可以对变量名应用\&运算符，来获得被命名的内存的地址，new运算符返回未命名的内存地址
-  ```c++
-  double * pn; // pn can point to a double value
-  double * pa; // pa can point to a double value
-  char * pc; // pc can point to a char value
-  double bubble = 3.2;
-  pn = &bubble; // assign address of bubble to pn
-  pc = new char; // assign address of newly allocated char memory to pc
-  pa = new double[30]; // assign address of 1st element of array of 30 double to pa
-  ```
+    ```c++
+    double * pn; // pn can point to a double value
+    double * pa; // pa can point to a double value
+    char * pc; // pc can point to a char value
+    double bubble = 3.2;
+    pn = &bubble; // assign address of bubble to pn
+    pc = new char; // assign address of newly allocated char memory to pc
+    pa = new double[30]; // assign address of 1st element of array of 30 double to pa
+    ```
   3. 对指针解除引用意味着获得指针指向的值。对指针应用解除引用或间接值运算符\(\*\)来解除引用。因此，如果像上面的例子一样，pn是指向bubble的指针，则\*pn是指向的值。
-  ```c++
-  cout << *pn; // print the value of bubble
-  *pc = 'S'; // place 's' into the memory location whose address is pc
-  ```
+    ```c++
+    cout << *pn; // print the value of bubble
+    *pc = 'S'; // place 's' into the memory location whose address is pc
+    ```
   4. 区分指针和指针所指向的值。如果pt是指向int的指针，则\*pt不是指向int的指针，而是完全等同于一个int类型的变量。pt才是指针。
-  ```c++
-  int * pt = new int; // asssigns an address to the pointer pt
-  *pt = 5; // store the value 5 at that address
-  ```
+    ```c++
+    int * pt = new int; // asssigns an address to the pointer pt
+    *pt = 5; // store the value 5 at that address
+    ```
   5. 多数情况下，C++将数组名视为数组的第一个元素的地址。一种例外的情况是，将sizeof运算符用于数组名时，此时将返回整个数组的长度（单位为字节）。
-  ```c++
-  int tacos[10]; // now tacos is the same as &tacos[0]
-  ```
+    ```c++
+    int tacos[10]; // now tacos is the same as &tacos[0]
+    ```
   6. 指针算数。C++允许将指针和整数想家，加1的结果等于原来的地址值加上指向的对象占用的总字节数。还可以将一个指针减去另一个指针，获得两个指针的差。后一种运算将得到一个整数，仅当两个指针指向同一个数组（也可以指向超出结尾的一个位置）时，这种运算才有意义：这将得到两个元素的间隔。
-  ```c++
-  int tacos[10] = {5,2,8,4,1,2,2,3,6,8};
-  int * pt = tacos; // suppose pt and tacos are the address 3000
-  pt = pt + 1; // now pt is 3004 if a int is 4 bytes
-  int *pe = &tacos[9]; // pe is 3036 if an int is 4 bytes
-  pe = pe - 1; // now pe is 3032, the address of tacos[8]
-  int diff = pe - pt; // diff is 7, the separation betweent tacos[8] and tacos[1]
-  ```
+    ```c++
+    int tacos[10] = {5,2,8,4,1,2,2,3,6,8};
+    int * pt = tacos; // suppose pt and tacos are the address 3000
+    pt = pt + 1; // now pt is 3004 if a int is 4 bytes
+    int *pe = &tacos[9]; // pe is 3036 if an int is 4 bytes
+    pe = pe - 1; // now pe is 3032, the address of tacos[8]
+    int diff = pe - pt; // diff is 7, the separation betweent tacos[8] and tacos[1]
+    ```
   7. 数组的动态联编和静态联编。使用数组声明来创建数组时，将采用静态联编，即数组的长度在编译时设置；使用new\[\]运算符创建数组时，将采用动态联编（动态数组），即将在运行时为数组分配空间，其长度也将在运行时设置。使用完这种数组后，应使用delete\[\]释放其内存。
-  ```c++
-  int tacos[10]; // static binding ,size fixed at compile time
-  int size;
-  cin >> size; 
-  int * pz = new int [size]; // dynamic binding, size set at run time
-  ...
-  delete [] pz; // free memory when finished
-  ```
+    ```c++
+    int tacos[10]; // static binding ,size fixed at compile time
+    int size;
+    cin >> size; 
+    int * pz = new int [size]; // dynamic binding, size set at run time
+    ...
+    delete [] pz; // free memory when finished
+    ```
   8. 数组表示法和指针表示法。使用方括号数组表示法等同于对指针的解除引用。数组名和指针变量都是如此，因此对于指针和数组名，既可以使用指针表示法，也可以使用数组表示法。
-  ```c++
-  // tacos[0] means *tacos means the value at address tacos
-  // tacos[3] means *(tacos + 3) means the value at address tacos + 3
-  int * pt = new int [10]; // pt points to block of 10 ints
-  *pt = 5; // set element number 0 to 5
-  pt[0] = 6; // reset element number 0 to 6
-  pt[9] = 44; // set tenth element (element number 9) to 44
-  int coats[10];
-  *(coats + 4) = 12; // set coats[4] to 12
-  ```
+    ```c++
+    // tacos[0] means *tacos means the value at address tacos
+    // tacos[3] means *(tacos + 3) means the value at address tacos + 3
+    int * pt = new int [10]; // pt points to block of 10 ints
+    *pt = 5; // set element number 0 to 5
+    pt[0] = 6; // reset element number 0 to 6
+    pt[9] = 44; // set tenth element (element number 9) to 44
+    int coats[10];
+    *(coats + 4) = 12; // set coats[4] to 12
+    ```
 - *指针与字符串（未完全理解）*：
   1. 在将字符串读入程序时，应使用已分配的内存地址。该地址可以是数组名，也可以是使用new初始化过的指针。
   2. 应使用strcpy()或strncpy()，而不是使用赋值运算符来将字符串赋给数组。
 - 在运行时创建数组优于在编译时创建数组，对于结构也是如此
 - **如果结构标识符是结构名，则使用句点运算符，如果标识符是指向结构的指针，则使用箭头运算符。**
-### Secton10
+### Section10
+- vector
+  ```c++
+  #include <vector>
+  ...
+  using namespace std; // create a zero-size array of int
+  int n;
+  cin >> n;
+  vector<double> vd(n); // create an array of n doubles
+  // vector<typeName> vt(n_elem);
+  ```
+- array 
+  ```c++
+  #include<array>
+  ...
+  using namespace std;
+  array<int, 5> ai; // create array object of 5 ints
+  array<double ,4> ad = {1.2, 2.1, 3.43, 4.3};
+  // array<typeName, n_elem> arr;
+  ```
+## Chapter5
