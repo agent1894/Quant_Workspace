@@ -41,13 +41,12 @@ def checkout(order_time=dt.datetime.now()):
         time.sleep(0.001)
     browser.find_element_by_id("J_SelectAll2").click()
     # time.sleep(1)
-    while browser.find_element_by_class_name("submit-btn submit-btn-disabled"):
+    while not browser.find_element_by_class_name("submit-btn"):
         time.sleep(0.001)
     browser.find_element_by_link_text("结 算").click()
-    while not browser.find_element_by_link_text("提交订单"):
-        time.sleep(0.001)
-    browser.find_element_by_link_text("提交订单").click()
-
+    # while not browser.find_element_by_link_text("提交订单"):
+    #     time.sleep(0.001)
+    # browser.find_element_by_link_text("提交订单").click()
 
 if __name__ == "__main__":
     date_time = dt.datetime.now()
