@@ -24,6 +24,12 @@
     - [Section6 嵌套循环和二维数组](#section6-%e5%b5%8c%e5%a5%97%e5%be%aa%e7%8e%af%e5%92%8c%e4%ba%8c%e7%bb%b4%e6%95%b0%e7%bb%84)
   - [Chapter6 分支语句和逻辑运算符](#chapter6-%e5%88%86%e6%94%af%e8%af%ad%e5%8f%a5%e5%92%8c%e9%80%bb%e8%be%91%e8%bf%90%e7%ae%97%e7%ac%a6)
     - [Section1 if语句](#section1-if%e8%af%ad%e5%8f%a5)
+    - [Section2 逻辑表达式](#section2-%e9%80%bb%e8%be%91%e8%a1%a8%e8%be%be%e5%bc%8f)
+    - [Section3 字符函数库cctype](#section3-%e5%ad%97%e7%ac%a6%e5%87%bd%e6%95%b0%e5%ba%93cctype)
+    - [Section4 ?:运算符](#section4-%e8%bf%90%e7%ae%97%e7%ac%a6)
+    - [Section5 switch语句](#section5-switch%e8%af%ad%e5%8f%a5)
+    - [Section6 break和continue语句](#section6-break%e5%92%8ccontinue%e8%af%ad%e5%8f%a5)
+    - [Seciton7 读取数字的循环](#seciton7-%e8%af%bb%e5%8f%96%e6%95%b0%e5%ad%97%e7%9a%84%e5%be%aa%e7%8e%af)
 
 # C++ Primer Plus (6th Edition) Notes
 
@@ -279,3 +285,61 @@
 ## Chapter6 分支语句和逻辑运算符
 
 ### Section1 if语句
+- 从语法上看，整个if else结构被视为一条语句。
+- if else if else结构，看似是一种新的结构，实际上是由于C++的自由格式允许将这些元素排列成便于阅读的格式。它只是一个if else被包含在另一个if else中。 
+
+### Section2 逻辑表达式
+- 逻辑运算符：
+  1. OR: ||
+  2. AND: &&
+  3. NOT: !
+- C++规定，||和&&运算符是个顺序点（sequence point），也就是说，先修改左侧的值，再对右侧的值进行判定（C++11的说法是，运算符左边的子表达式先于右边的子表达式）。举例如下：
+  ```c++
+  i++ < 6||i == j
+  ```
+
+  假设原来的值为10，则在对i和j进行比较时，i的值将为11。
+- 取值范围测试的每一部分都使用AND运算符将两个完整的关系表达式组合起来，**不要使用数学符号** 
+  ```c++
+  if (age > 17 && age < 35) // OK
+  if (17 < age < 35) // Don't do this!
+  ```
+
+  **编译器不会捕获这种错误，因为这是有效的C++语法。**\<运算符从左向右结合，因此上述表达式的含义为：
+  ```c++
+  if ( (17 < age) < 35)
+  ```
+
+  **但17\<age的值要么为true(1)，要么为false(0)。不管是那种情况，表达式17\<age的值都小于35，因此整个测试的结果总是true!**
+- C++逻辑OR(||)和逻辑AND(&&)运算符的优先级都低于关系运算符，但是NOT(!)运算符的优先级高于所有的关系运算符和算术运算符，但是**逻辑AND运算符的优先级高于逻辑OR运算符**。
+- C++可以使用and or not替代&& || !
+
+### Section3 字符函数库cctype
+- \<cctype\>类库提供了对分析字符串更好的方式。
+
+### Section4 ?:运算符
+- ?:运算符类似于Python中的三元表达式。
+
+### Section5 switch语句
+- switch语句的通用格式：
+  ```c++
+  switch (integer-expression)
+  {
+    case label1 : statement(s)
+    case label2 : statement(s)
+    ...
+    default : statement(s)
+  }
+  ```
+- **integer expression 必须是一个结果为整数值的表达式，每个标签都必须是整数常量表达式。最常见的标签是int或char常量，也可以是枚举量。**
+- **C++中的case标签只是行标签，而不是选项之间的界线。当程序跳到switch中特定代码行后，将依次执行之后的所有语句，除非有明确的其他知识。程序不会在执行到下一个case处自动停止，要让程序执行完以组特定语句后停止，必须使用break语句。**
+- switch中的每一个case标签都必须是一个单独的值，且必须是整数（包括char），因此switch无法处理浮点测试。
+- 如果所有的选项都可以用整数常量来标识，则可以使用switch语句或if else语句。如果既可以使用if else if语句，也可以使用switch语句，则当选项不少于3个时，应使用switch语句（代码长度和执行速度上，switch语句效率更高）。 
+
+### Section6 break和continue语句
+- continue跳过循环体剩余的部分，开始新一轮循环。
+- break跳过循环的剩余部分，到达下一条语句。 
+- continue语句会跳过循环体的剩余部分，但不会跳过循环的更新表达式。
+
+### Seciton7 读取数字的循环
+- 
