@@ -30,6 +30,7 @@
     - [Section5 switch语句](#section5-switch%e8%af%ad%e5%8f%a5)
     - [Section6 break和continue语句](#section6-break%e5%92%8ccontinue%e8%af%ad%e5%8f%a5)
     - [Seciton7 读取数字的循环](#seciton7-%e8%af%bb%e5%8f%96%e6%95%b0%e5%ad%97%e7%9a%84%e5%be%aa%e7%8e%af)
+    - [Section8 简单文件输入/输出](#section8-%e7%ae%80%e5%8d%95%e6%96%87%e4%bb%b6%e8%be%93%e5%85%a5%e8%be%93%e5%87%ba)
 
 # C++ Primer Plus (6th Edition) Notes
 
@@ -342,4 +343,45 @@
 - continue语句会跳过循环体的剩余部分，但不会跳过循环的更新表达式。
 
 ### Seciton7 读取数字的循环
-- 
+- 输入错误和EOF都会导致cin返回false，这给使用非数字输入结束读取数字循环提供了方法。
+- 需要使用cin.clear()对输入进行重置。
+
+### Section8 简单文件输入/输出
+- 文件输出和控制台输出非常类似：
+  - 控制台输出（cout）：
+    - 必须包含头文件iostream
+    - 头文件iostream定义了一个用于处理输出的ostream类
+    - 头文件iostream声明了一个名为cout的ostream变量（对象）
+    - 使用命名空间std::
+  - 文件输出：
+    - 必须包含头文件fstream
+    - 头文件fstream定义了一个用于处理输出的ofstream类
+    - 需要声明一个或多个ofstream变量（对象）
+    - 使用命名空间std::
+    - 需要将ofstream对象与文件关联，方法之一是使用open()方法
+    - 使用完文件后应使用方法close()将其关闭
+  - 需要注意的是，iostream提供了预先定义好名为cout的ostream对象，但是在文件输出时，必须自己声明ofstream对象。
+  - **打开已有的文件以接受输出时，默认将原文件清空。**
+- 文件输入和控制台输入的关系与文件输出和控制台输出的关系非常类似。
+  - cstdlib头文件定义了一个用于同操作系统通信的参数值EXIT_FAILURE。
+  - 由于方法good()指出读取输入的操作是否成功，因此，应该在执行读取输入的操作后立刻使用good()进行测试。在sumafile.cpp中，使用的方法是先放置一条输入语句，然后在循环的末尾在放置另一条输入语句，即：
+    ```c++
+    // standard file-reading loop design
+    inFile >> value; // get first value
+    while (inFile.good()) // while input good and not at EOF
+    {
+        // loop body goes here
+        inFile >> value; // get next value
+    }
+    ```
+
+    但是实际上，表达式inFile>>value的结果为inFile，而在需要一个bool值的情况下，inFile的结果为inFile.good()，即true or false。因此，上述代码可以精简为：
+    ```c++
+    // abbreviated file-reading loop design
+    // omit pre-loop input
+    while (inFile >> value) // read and test for success
+    {
+        // loop body goes here
+        // omit end-of-loop input
+    }
+    ```
