@@ -31,6 +31,10 @@
     - [Section6 break和continue语句](#section6-break%e5%92%8ccontinue%e8%af%ad%e5%8f%a5)
     - [Seciton7 读取数字的循环](#seciton7-%e8%af%bb%e5%8f%96%e6%95%b0%e5%ad%97%e7%9a%84%e5%be%aa%e7%8e%af)
     - [Section8 简单文件输入/输出](#section8-%e7%ae%80%e5%8d%95%e6%96%87%e4%bb%b6%e8%be%93%e5%85%a5%e8%be%93%e5%87%ba)
+  - [Chapter7 函数——C++的编程模块](#chapter7-%e5%87%bd%e6%95%b0c%e7%9a%84%e7%bc%96%e7%a8%8b%e6%a8%a1%e5%9d%97)
+    - [Section1 复习函数的基本知识](#section1-%e5%a4%8d%e4%b9%a0%e5%87%bd%e6%95%b0%e7%9a%84%e5%9f%ba%e6%9c%ac%e7%9f%a5%e8%af%86)
+    - [Section2 函数参数和按值传递](#section2-%e5%87%bd%e6%95%b0%e5%8f%82%e6%95%b0%e5%92%8c%e6%8c%89%e5%80%bc%e4%bc%a0%e9%80%92)
+    - [Section3 函数和数组](#section3-%e5%87%bd%e6%95%b0%e5%92%8c%e6%95%b0%e7%bb%84)
 
 # C++ Primer Plus (6th Edition) Notes
 
@@ -385,3 +389,33 @@
         // omit end-of-loop input
     }
     ```
+
+## Chapter7 函数——C++的编程模块
+
+### Section1 复习函数的基本知识
+- 要使用C++函数，必须满足：
+  - 提供函数定义
+  - 提供函数原型
+  - 调用函数
+- C++对于返回值的类型有一定的限制：不能是数组，但可以是其他任何类型。
+- 函数原型是一条语句，因此必须以分号结束。在函数原型中不必提供变量名，有类型列表就足够了。
+- 在编译阶段进行的原型化被称为静态类型检查（static type checking）。静态类型检查可以捕获许多在运行阶段难以捕获的错误。
+
+### Section2 函数参数和按值传递
+- 用于接收传递值的变量被称为形参，C++标准又称为参量（parameter），传递给函数的值被称为实参，C++标准又称为参数（argument）。
+- 7.4 lotto.cpp中，计算中奖概率使用了组合$C_n^m=\frac{A_n^m}{m!}=\frac{n!}{m!(n-m)!}$。书中提出，这种计算不应当先计算出所有的分母，所有的分子，然后相除，因为这回导致计算过程中的中间值过大，应当每次计算一组分母除以分子，然后将所有中间值相乘，即$\frac{10}{2}\times\frac{9}{1}$好于$\frac{10\times9}{2\times1}$。
+
+### Section3 函数和数组
+- **当且仅当在函数头或函数原型中，int \* arr 和 int arr []有相同的含义，都表示arr是一个int指针**。
+  ```c++
+  arr[i] == *(ar + i) // values in two notations
+  &arr[i] == ar + i // addresses in two notations
+  ```
+
+- **如果需要将数组类型和元素数量告诉数组处理函数，必须通过两个不同的参数来传递，而不能使用方括号表示法传递数组长度。**
+  ```c++
+  void fillArray(int arr[], int size); // prototype
+  void fillArray(int arr[size]); // NO -- bad prototype
+  ```
+
+- 
