@@ -14,6 +14,8 @@
 # End of https://www.gitignore.io/api/jupyternotebooks
 
 **/__pycache__
+**/build
+**/*.spec
 **/*.log
 **/*.exe
 !**/.vscode/*
