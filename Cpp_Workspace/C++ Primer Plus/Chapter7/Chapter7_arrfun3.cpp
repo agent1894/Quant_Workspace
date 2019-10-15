@@ -39,7 +39,7 @@ int fill_array(double ar[], int limit)
     using namespace std;
     double temp;
     int i;
-    for (int i = 0; i < limit; i++)
+    for (i = 0; i < limit; i++) // Fix bug here: shouldn't declare int i = 0 in the for loop initialization
     {
         cout << "Enter value #" << (i + 1) << ": ";
         cin >> temp;
