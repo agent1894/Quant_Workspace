@@ -14,87 +14,120 @@ selenium实例化的browser，对应的find_element*方法，如果无法找到�
 同时，即使能够找到可点击的元素，也需留0.1s以上的时间给程序和网页进行交互，否则会出现程序正常但网页未成功点击的情况。
 '''
 
-def login(use_password = 0):
-    browser.get('https://www.taobao.com')
-    time.sleep(enoughSleep)
+class TB_order():
+    def __init__(self):
+        self.snapSleep = 0.01
+        self.shortSleep = 0.1
+        self.longSleep = 1
+        self.enoughSleep = 3
 
-    browser.find_element_by_link_text("亲，请登录").click()
-    time.sleep(longSleep)
-    current_url = browser.current_url
-    '''
-    TODO:
-    1. 进入登录界面后，无法对扫描二维码和输入用户名密码做切换，报错：Element is not clickable at point
-    2. 在输入用户名和密码后无法通过滑动验证码检验
-    '''
-    # if use_password == '1':
-    #     browser.find_element_by_link_text("密码登录").click()
-    #     time.sleep(longSleep)
-    #     input_user = browser.find_element_by_id("TPL_username_1")
-    #     input_user.send_keys(user_name)
-    #     time.sleep(longSleep)
-    #     input_password = browser.find_element_by_id("TPL_password_1")
-    #     input_password.send_keys(user_password)
-    #     time.sleep(longSleep)
-    #     browser.find_element_by_id("J_SubmitStatic").click()
-    # else:
-    #     try:
-    #         browser.find_element_by_id("J_Quick2Static").click()
-    #     except:
-    #         browser.find_element_by_id("J_Static2Quick").click()
-    #     finally:
-    #         print('Waiting for scanning the QR code...')
-    while "login" in current_url:
-        time.sleep(longSleep)
-        print('Waiting for scanning the QR code or enter the password...')
-        current_url = browser.current_url
-    print('Ready for getting cart...')
+    def interactive(self):
+        print('欢迎使用！当前时间 {}'.format(dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        print('程序启动中，请勿关闭此界面...')
+        '''
+        FIXME:目前大型网站都升级了JS检测，如果识别出使用selenium.webdriver则全部判定为机器人，参考资料提出的解决方法是使用代理绕行
+        因此目前输入用户名密码登录功能暂时无法实现
+        print('请选择扫描二维码登录或使用用户名密码登录...')
+        login_method = input('扫描二维码登录请输入0，使用密码登录请输入1（默认使用二维码登录）：')
+        if login_method == '1':
+            user_name = input('请输入用户名：')
+            user_password = getpass.getpass('请输入密码：')
+            time.sleep(shortSleep)
+            print('目前无法使用用户名密码登录')
+        else:
+            print('请准备扫描二维码...')
+            time.sleep(longSleep)
+        '''
+        self.isTest = input('请确认是否进入测试模式(Y/N)...')
+        if self.isTest.upper() == 'Y':
+            order_time = dt.datetime.now() + dt.timedelta(minutes = 1)
+        else:
+            order_time = input('请输入目标下单时间，格式为 YYYY-MM-DD HH:MM:SS：')
+            order_time = dt.datetime.strptime(order_time, '%Y-%m-%d %H:%M:%S')
+        
+        return order_time
 
-def checkout(order_time=dt.datetime.now()):
-    browser.get('https://cart.taobao.com/cart.htm')
-    while dt.datetime.now() < order_time:
-        time.sleep(snapSleep)
-    while True:
-        try:
-            browser.find_element_by_id("J_SelectAll2").click()
-            time.sleep(shortSleep)
-            break
-        except:
-            time.sleep(snapSleep)
-    while True:
-        try:
-            browser.find_element_by_id('J_Go').click()
-            time.sleep(shortSleep)
-            break
-        except:
-            time.sleep(snapSleep)
-    while True:
-        try:
-            browser.find_element_by_link_text("提交订单").click()
-            break
-        except:
-            time.sleep(snapSleep)
+    def webDriver(self):
+        self.browser = webdriver.Chrome()
+        self.browser.maximize_window()
+
+    def login(self, use_password = '0', user_name = 'user_name', user_password = 'user_password'):
+        self.browser.get('https://www.taobao.com')
+        time.sleep(self.enoughSleep)
+
+        self.browser.find_element_by_link_text("亲，请登录").click()
+        time.sleep(self.longSleep)
+        current_url = self.browser.current_url
+
+        if use_password == '1':
+            try:
+                self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-static")
+            except:
+                self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-quick")
+                self.browser.find_element_by_id("J_Quick2Static").click()
+            input_user = self.browser.find_element_by_id("TPL_username_1")
+            input_user.clear()
+            input_user.send_keys(user_name)
+            time.sleep(self.longSleep)
+            input_password = self.browser.find_element_by_id("TPL_password_1")
+            input_password.clear()
+            input_password.send_keys(user_password)
+            time.sleep(self.enoughSleep)
+            while True:
+                try:
+                    button = self.browser.find_element_by_id("nc_1_n1z")
+                    action = ActionChains(self.browser)
+                    action.drag_and_drop_by_offset(button, 350, 0).perform()
+                    time.sleep(self.shortSleep)
+                    self.browser.find_element_by_id("J_SubmitStatic").submit()
+                    break
+                except:
+                    time.sleep(self.longSleep)
+        else:
+            try:
+                self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-quick")
+            except:
+                self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-static")
+                '''
+                FIXME: 无法进行点击，有JS跳转
+                self.browser.find_element_by_id("J_Static2Quick").click()
+                '''
+            finally:
+                print('正在登录中，请稍后...')
+        while "login" in current_url:
+            time.sleep(self.longSleep)
+            print('请扫描二维码登录...')
+            current_url = self.browser.current_url
+        print('登录完成，即将进入购物车...')
+
+    def checkout(self, order_time):
+        self.browser.get('https://cart.taobao.com/cart.htm')
+        while dt.datetime.now() < order_time:
+            time.sleep(self.snapSleep)
+        while True:
+            try:
+                self.browser.find_element_by_id("J_SelectAll2").click()
+                time.sleep(self.shortSleep)
+                break
+            except:
+                time.sleep(self.snapSleep)
+        while True:
+            try:
+                self.browser.find_element_by_id('J_Go').click()
+                time.sleep(self.shortSleep)
+                break
+            except:
+                time.sleep(self.snapSleep)
+        while self.isTest.upper() != 'Y':
+            try:
+                self.browser.find_element_by_link_text("提交订单").click()
+                break
+            except:
+                time.sleep(self.snapSleep)
 
 if __name__ == "__main__":
-    date_time = dt.datetime.now()
-    snapSleep = 0.01
-    shortSleep = 0.1
-    longSleep = 1
-    enoughSleep = 3
-    print('欢迎使用！当前时间 {}'.format(date_time.strftime('%Y-%m-%d %H:%M:%S')))
-    print('程序启动中，请勿关闭此界面...')
-    order_time = input('请输入目标时间，格式为 YYYY-MM-DD HH:MM:SS：')
-    order_time = dt.datetime.strptime(order_time, '%Y-%m-%d %H:%M:%S')
-    print('请选择扫描二维码登录或使用用户名密码登录...')
-    login_method = input('扫描二维码登录请输入0，使用密码登录请输入1（默认使用二维码登录）：')
-    if login_method == '1':
-        user_name = input('请输入用户名：')
-        user_password = getpass.getpass('请输入密码：')
-        time.sleep(shortSleep)
-    elif login_method == '1':
-        print('请准备扫描二维码...')
-        time.sleep(longSleep)
-    
-    browser = webdriver.Chrome()
-    browser.maximize_window()
-    login(login_method)
-    checkout(order_time)
+    order = TB_order()
+    order_time = order.interactive()
+    order.webDriver()
+    order.login()
+    order.checkout(order_time)
