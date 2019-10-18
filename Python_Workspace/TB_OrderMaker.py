@@ -37,7 +37,7 @@ class TB_order():
         self.__longSleep, 
         self.__enoughSleep))
 
-    def interactive(self):
+    def __interactive(self):
         print('欢迎使用！当前时间 {}'.format(dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         print('程序启动中，请勿关闭此界面...')
         '''
@@ -46,30 +46,35 @@ class TB_order():
         print('请选择扫描二维码登录或使用用户名密码登录...')
         login_method = input('扫描二维码登录请输入0，使用密码登录请输入1（默认使用二维码登录）：')
         if login_method == '1':
-            user_name = input('请输入用户名：')
-            user_password = getpass.getpass('请输入密码：')
+            userName = input('请输入用户名：')
+            userPassword = getpass.getpass('请输入密码：')
             time.sleep(__shortSleep)
             print('目前无法使用用户名密码登录')
         else:
             print('请准备扫描二维码...')
             time.sleep(__longSleep)
         '''
-        self.isTest = input('请确认是否进入测试模式(Y/N)...')
-        if self.isTest[0].upper() == 'N':
-            order_time = input('请输入目标下单时间，格式为 YYYY-MM-DD HH:MM:SS：')
-            order_time = dt.datetime.strptime(order_time, '%Y-%m-%d %H:%M:%S')
+        self.__isTest = input('请确认是否进入测试模式(Y/N)...')
+        if self.__isTest[0].upper() == 'N':
+            self.__order_time = input('请输入目标下单时间，格式为 YYYY-MM-DD HH:MM:SS：')
+            self.__order_time = dt.datetime.strptime(self.__order_time, '%Y-%m-%d %H:%M:%S')
         else:
             print('测试模式启动，不会确认订单...')
-            order_time = dt.datetime.now() + dt.timedelta(minutes = 1)
-            print('下单时间为：{}'.format(order_time))
-        return order_time
+        self.__isSingle = input('请确认购买单件商品（Y）或全选购物车商品（N）：')
+        while self.__isSingle.upper() != 'Y' and self.__isSingle.upper() != 'N':
+            self.__isSingle = input('请确认购买单件商品（Y）或全选购物车商品（N）：')
+        if self.__isSingle.upper() == 'Y':
+            self.url = input('请填入商品的网址...')
+            if self.__isTest[0].upper() == 'Y':
+                self.__order_time = dt.datetime.now() + dt.timedelta(minutes = 1)
+        print('下单时间为：{}'.format(self.__order_time))
 
     # 启动webdriver
-    def webDriver(self):
+    def __webDriver(self):
         self.browser = webdriver.Chrome()
         self.browser.maximize_window()
 
-    def login(self, use_password = '0', user_name = 'user_name', user_password = 'user_password'):
+    def __login(self, usePassword = '0', userName = 'userName', userPassword = 'userPassword'):
         self.browser.get('https://www.taobao.com')
         time.sleep(self.__enoughSleep)
 
@@ -77,19 +82,19 @@ class TB_order():
         time.sleep(self.__longSleep)
         current_url = self.browser.current_url
 
-        if use_password == '1':
+        if usePassword == '1':
             try:
                 self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-static")
             except:
                 self.browser.find_element_by_css_selector(".login-box.no-longlogin.module-quick")
                 self.browser.find_element_by_id("J_Quick2Static").click()
-            input_user = self.browser.find_element_by_id("TPL_username_1")
-            input_user.clear()
-            input_user.send_keys(user_name)
+            inputUser = self.browser.find_element_by_id("TPL_username_1")
+            inputUser.clear()
+            inputUser.send_keys(userName)
             time.sleep(self.__longSleep)
-            input_password = self.browser.find_element_by_id("TPL_password_1")
-            input_password.clear()
-            input_password.send_keys(user_password)
+            inputPassword = self.browser.find_element_by_id("TPL_password_1")
+            inputPassword.clear()
+            inputPassword.send_keys(userPassword)
             time.sleep(self.__enoughSleep)
             while True:
                 try:
@@ -116,12 +121,12 @@ class TB_order():
             time.sleep(self.__longSleep)
             print('请扫描二维码登录...')
             current_url = self.browser.current_url
-        print('登录完成，即将进入购物车...')
+        print('登录完成...')
 
     # 全选购物车中所有商品并下单
-    def checkout_cart(self, order_time):
+    def __checkoutCart(self):
         self.browser.get('https://cart.taobao.com/cart.htm')
-        while dt.datetime.now() < order_time:
+        while dt.datetime.now() < self.__order_time:
             time.sleep(self.__snapSleep)
         while True:
             try:
@@ -139,33 +144,34 @@ class TB_order():
                 break
             except:
                 time.sleep(self.__snapSleep)
-        while self.isTest[0].upper() == 'N': # 提交订单，仅在非测试模式下有效
+
+    def __checkoutSignleItem(self):
+        self.browser.get(self.url)
+        while dt.datetime.now() < self.__order_time:
+            time.sleep(self.__snapSleep)
+        while True:
+            try:
+                self.browser.find_element_by_link_text("立即购买").click()
+                break
+            except:
+                time.sleep(self.__snapSleep)
+
+    def makeOrder(self):
+        self.__interactive()
+        self.__webDriver()
+        self.__login()
+        if self.__isSingle.upper() == 'Y':
+            self.__checkoutSignleItem()
+        else:
+            self.__checkoutCart()
+        while self.__isTest[0].upper() == 'N': # 提交订单，仅在非测试模式下有效
             try:
                 self.browser.find_element_by_link_text("提交订单").click()
                 break
             except:
                 time.sleep(self.__snapSleep)
 
-    # TODO: 单个商品直接下单
-    def checkout_signleItem(self, url, order_time):
-        self.browser.get(url)
-        while dt.datetime.now() < order_time:
-            time.sleep(self.__snapSleep)
-        while True:
-            if 'tmall' in url:
-                try:
-                    pass
-                except:
-                    pass
-            elif 'taobao' in url:
-                try:
-                    pass
-                except:
-                    pass
 
 if __name__ == "__main__":
     order = TB_order()
-    order_time = order.interactive()
-    order.webDriver()
-    order.login()
-    order.checkout_cart(order_time)
+    order.makeOrder()
