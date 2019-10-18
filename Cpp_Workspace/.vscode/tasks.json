@@ -9,6 +9,8 @@
             "command": "g++",
             "args": [
                 "-g",
+                "-Wall",
+                "-Werror",
                 "\"${file}\"",
                 "-o",
                 "\"${fileDirname}\\${fileBasenameNoExtension}.exe\""
