@@ -37,7 +37,7 @@
     - [Section3 函数和数组](#section3-%e5%87%bd%e6%95%b0%e5%92%8c%e6%95%b0%e7%bb%84)
     - [Section4 函数和二维数组](#section4-%e5%87%bd%e6%95%b0%e5%92%8c%e4%ba%8c%e7%bb%b4%e6%95%b0%e7%bb%84)
     - [Section5 函数和C-风格字符串](#section5-%e5%87%bd%e6%95%b0%e5%92%8cc-%e9%a3%8e%e6%a0%bc%e5%ad%97%e7%ac%a6%e4%b8%b2)
-    - [Section6 函数和结构](#section6-%e5%87%bd%e6%95%b0%e5%92%8c%e7%bb%93%e6%9e%84)
+    - [Section10 函数指针](#section10-%e5%87%bd%e6%95%b0%e6%8c%87%e9%92%88)
 
 # C++ Primer Plus (6th Edition) Notes
 
@@ -450,3 +450,31 @@
 
 ### Section6 函数和结构
 - 通常来说，使用结构编程时，像处理基本类型一样处理结构即可，即将结构作为参数传递，并在需要时将结构用返回值使用。按值传递会在函数中使用原始结构的副本。但是这种按值传递会有一个缺点：当结构很大时，复制结构会增加内存的需求，降低运行速度。因此，也可以使用传递结构的地址，然后使用指针访问结构的内容。C++提供按引用传递，这个在后面章节进行讨论。
+
+### Section9 递归
+- ```c++
+  void recurs(argumentlist) 
+  {
+    statement1;
+    if (test)
+      recurs(arguments);
+    statements2;
+  }
+  ```
+
+  在这个递归函数中，只要if语句为true，每个recurs()调用都将执行statements1，然后再调用recurs()，而不会执行statements2.当if为false时，当前调用将执行statements2，然后程序控制权将返回调用它的recurs()，再执行statements2。因此，statements1会**按函数调用的顺序执行n次，而statements2将以与函数调用相反的顺序执行n次。**
+
+  ### Section10 函数指针
+  - 获取函数的地址：使用函数名，并不跟参数即可。
+    ```c++
+    process(think); // passes address of think() to process()
+    thought(think()); // passes return value of think() to thought()
+    ```
+
+  - 声明函数指针：声明应指定函数的返回类型以及函数的特征标（参数列表），即声明应像函数原型那样指出有关函数的信息。**通常，要声明指向特定类型的函数的指针，可以首先编写这种函数的原型，然后用(\*pf)替换函数名，这样pf就是这类函数的指针。这里要额外注意运算符的优先级，必须在声明中使用括号将*pf括起。\*pf(int)意味着pf()是一个返回指针的函数，而(\*pf)(int)意味着pf是一个指向函数的指针。**
+    ```c++
+    double (*pf)(int); // pf points to a function that returns double
+    double *pf(int); // pf() a function that returns a pointer-to-double
+    ```
+
+  - 
