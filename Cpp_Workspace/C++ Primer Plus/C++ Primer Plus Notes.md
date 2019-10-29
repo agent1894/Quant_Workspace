@@ -476,5 +476,3 @@
     double (*pf)(int); // pf points to a function that returns double
     double *pf(int); // pf() a function that returns a pointer-to-double
     ```
-
-  - 
