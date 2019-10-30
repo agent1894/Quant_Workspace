@@ -8,16 +8,31 @@ struct box
     float length;
     float volume;
 };
-void setBox(box newBox);
+void initBox(box* ptBox);
 void showBox(box newBox);
 
 int main()
 {
     using namespace std;
-    box newBox = {"MakerA", 10.0, 10.0, 10.0, 100.0};
+    box newBox; 
+    initBox(&newBox);
     showBox(newBox);
 
     return 0;
+}
+
+void initBox(box* ptBox)
+{
+    using namespace std;
+    cout << "Enter the box maker: ";
+    cin.getline(ptBox->maker, 40);
+    cout << "Enter the height: ";
+    cin >> ptBox->height;
+    cout << "Enter the weight: ";
+    cin >> (*ptBox).weight;
+    cout << "Enter the length: ";
+    cin >> (*ptBox).length;
+    ptBox->volume = (*ptBox).height * (*ptBox).weight * (*ptBox).length;
 }
 
 void showBox(box newBox)
@@ -29,5 +44,3 @@ void showBox(box newBox)
     cout << "The box length is: " << newBox.length << endl;
     cout << "The box volume is: " << newBox.volume << endl;
 }
-
-void 
