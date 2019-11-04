@@ -9,5 +9,5 @@ The ReadMe file is re-written by markdown instead of txt.
 
 2019/09/01 Updated:
 
-Add the c++ codes. A new parent folder is now created and all config files are moved to.
+Add the C++ codes. A new parent folder is now created and all config files are moved to.
 
