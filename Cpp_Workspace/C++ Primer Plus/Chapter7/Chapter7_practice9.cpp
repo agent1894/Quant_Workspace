@@ -60,20 +60,48 @@ int main()
 
 int getinfo(student pa[], int n)
 {
-
+    // char fullname[SLEN];
+    // char hobby[SLEN];
+    // int ooplevel;
+    int i;
+    for (i = 0; i < n; i++)
+    {
+        cout << "Enter the fullname of student: ";
+        if (cin.getline(pa[i].fullname, SLEN) && pa[i].fullname[0] != '\0')
+        {
+            // pa[i].fullname = fullname; 
+            cout << "Enter the hobby: ";
+            cin.getline(pa[i].hobby, SLEN);
+            cout << "Enter the ooplevel: ";
+            cin >> pa[i].ooplevel;
+            cin.get();
+        }
+        else
+            break;
+    }
+    return i;
 }
 
 void display1(student st)
 {
-
+    cout << "The fullname of the student is: " << st.fullname << endl;
+    cout << "The hobby of this student is: " << st.hobby << endl;
+    cout << "The ooplevel of this student is: " << st.ooplevel << endl;
 }
 
 void display2(const student * ps)
 {
-
+    cout << "The fullname of the student is: " << ps->fullname << endl;
+    cout << "The hobby of this student is: " << ps->hobby << endl;
+    cout << "The ooplevel of this student is: " << ps->ooplevel << endl;
 }
 
 void display3(const student pa[], int n)
 {
-
+    for (int i = 0; i < n; i++)
+    {
+    cout << "The fullname of the student is: " << pa[i].fullname << endl;
+    cout << "The hobby of this student is: " << pa[i].hobby << endl;
+    cout << "The ooplevel of this student is: " << pa[i].ooplevel << endl;
+    }
 }
