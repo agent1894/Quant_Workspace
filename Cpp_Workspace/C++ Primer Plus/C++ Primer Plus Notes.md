@@ -38,6 +38,9 @@
     - [Section4 函数和二维数组](#section4-%e5%87%bd%e6%95%b0%e5%92%8c%e4%ba%8c%e7%bb%b4%e6%95%b0%e7%bb%84)
     - [Section5 函数和C-风格字符串](#section5-%e5%87%bd%e6%95%b0%e5%92%8cc-%e9%a3%8e%e6%a0%bc%e5%ad%97%e7%ac%a6%e4%b8%b2)
     - [Section10 函数指针](#section10-%e5%87%bd%e6%95%b0%e6%8c%87%e9%92%88)
+  - [Chapter8 函数探幽](#chapter8-%e5%87%bd%e6%95%b0%e6%8e%a2%e5%b9%bd)
+    - [Section1 C++内联函数](#section1-c%e5%86%85%e8%81%94%e5%87%bd%e6%95%b0)
+    - [Section2 引用变量](#section2-%e5%bc%95%e7%94%a8%e5%8f%98%e9%87%8f)
 
 # C++ Primer Plus (6th Edition) Notes
 
@@ -491,15 +494,25 @@
 
   在这个递归函数中，只要if语句为true，每个recurs()调用都将执行statements1，然后再调用recurs()，而不会执行statements2.当if为false时，当前调用将执行statements2，然后程序控制权将返回调用它的recurs()，再执行statements2。因此，statements1会**按函数调用的顺序执行n次，而statements2将以与函数调用相反的顺序执行n次。**
 
-  ### Section10 函数指针
-  - 获取函数的地址：使用函数名，并不跟参数即可。
-    ```c++
-    process(think); // passes address of think() to process()
-    thought(think()); // passes return value of think() to thought()
-    ```
+### Section10 函数指针
+- 获取函数的地址：使用函数名，并不跟参数即可。
+  ```c++
+  process(think); // passes address of think() to process()
+  thought(think()); // passes return value of think() to thought()
+  ```
 
-  - 声明函数指针：声明应指定函数的返回类型以及函数的特征标（参数列表），即声明应像函数原型那样指出有关函数的信息。**通常，要声明指向特定类型的函数的指针，可以首先编写这种函数的原型，然后用(\*pf)替换函数名，这样pf就是这类函数的指针。这里要额外注意运算符的优先级，必须在声明中使用括号将*pf括起。\*pf(int)意味着pf()是一个返回指针的函数，而(\*pf)(int)意味着pf是一个指向函数的指针。**
-    ```c++
-    double (*pf)(int); // pf points to a function that returns double
-    double *pf(int); // pf() a function that returns a pointer-to-double
-    ```
+- 声明函数指针：声明应指定函数的返回类型以及函数的特征标（参数列表），即声明应像函数原型那样指出有关函数的信息。**通常，要声明指向特定类型的函数的指针，可以首先编写这种函数的原型，然后用(\*pf)替换函数名，这样pf就是这类函数的指针。这里要额外注意运算符的优先级，必须在声明中使用括号将*pf括起。\*pf(int)意味着pf()是一个返回指针的函数，而(\*pf)(int)意味着pf是一个指向函数的指针。**
+  ```c++
+  double (*pf)(int); // pf points to a function that returns double
+  double *pf(int); // pf() a function that returns a pointer-to-double
+  ```
+
+## Chapter8 函数探幽
+
+### Section1 C++内联函数
+- 对于常规函数，C++执行到函数调用指令时，程序将在函数调用后立刻储存该指令的内存地址，并将函数参数复制到堆栈，跳转至标记函数起点的内存单元，执行函数代码，如果有的话将返回值放入寄存器中，然后调回到地址被保存的指令处继续执行。这种在内存中反复跳跃的过程会产生一定的开销。对于内联函数，程序则无需跳转至另一个位置执行代码，再跳转回来，而是直接使用对应的函数代码替换了函数调用。因此，内联函数的运行速度比常规函数略快，但是会产生额外的内存消耗。
+- 使用内联函数需要在函数声明前加关键字inline，或在函数定义前加关键字inline。
+- 通常的做法是省略函数原型，将整个函数（函数头和所有函数代码）放在原先函数原型的位置。
+- **内联函数不能递归**。
+
+### Section2 引用变量
