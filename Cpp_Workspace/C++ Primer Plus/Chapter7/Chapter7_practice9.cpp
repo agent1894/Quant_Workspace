@@ -60,16 +60,12 @@ int main()
 
 int getinfo(student pa[], int n)
 {
-    // char fullname[SLEN];
-    // char hobby[SLEN];
-    // int ooplevel;
     int i;
     for (i = 0; i < n; i++)
     {
         cout << "Enter the fullname of student: ";
         if (cin.getline(pa[i].fullname, SLEN) && pa[i].fullname[0] != '\0')
         {
-            // pa[i].fullname = fullname; 
             cout << "Enter the hobby: ";
             cin.getline(pa[i].hobby, SLEN);
             cout << "Enter the ooplevel: ";

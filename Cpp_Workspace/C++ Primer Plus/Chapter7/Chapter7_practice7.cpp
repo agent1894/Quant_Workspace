@@ -63,7 +63,7 @@ double* fill_array(double ar[], int limit)
 void show_array(const double ar[], double* end)
 {
     using namespace std;
-    const double* pt; // 指针const？指针地址的值const？指针地址存入的值const？
+    const double* pt;
     int n;
     for (pt = &ar[0], n = 0; pt != end; pt++)
     {
