@@ -516,3 +516,27 @@
 - **内联函数不能递归**。
 
 ### Section2 引用变量
+- 引用变量会和原始变量使用相同的值和内存单元。
+- 引用变量使用\&进行创建，此处\&不代表地址运算符，而是类型标识符的一部分。
+- **必须在声明引用变量时进行初始化。**
+- 在按值传递的函数中，实参可以选择多种类型，但是如果将类似的参数传递给接受引用参数的函数，编译器将会进行更严格的限制。以书中8.5为例：
+  ```c++
+  double cube(double a);
+  double refcube(double &ra);
+  // 按值传递
+  double z = cube(x + 2.0); // evaluate x + 2.0, pass value
+  z = cube(8.0); // pass the value 8.0
+  int k = 10;
+  z = cube(k); // convert value of k to double, pass value
+  double yo[3] = {2.2, 3.3, 4.4};
+  z = cube(yo[2]); // pass the value 4.4
+  // 接受引用参数的函数
+  double z = refcube(x + 3.0); // should not compile
+  x + 3.0 = 5.0; // nonsensical
+  ```
+
+  显然，refcube接受ra作为一个变量的引用，那么实参应该是该变量，而不是一个表达式（x + 3.0）。
+- 如果实参与引用参数不匹配，C++将生成临时变量。在当前，仅当参数为const引用时，C++才允许这种操作。
+- 当引用参数是const，则编译器将在两种情况下生成临时变量：
+  - 实参的类型正确，但不是左值
+  - 实参的类型不正确，但可以转换为正确的类型
