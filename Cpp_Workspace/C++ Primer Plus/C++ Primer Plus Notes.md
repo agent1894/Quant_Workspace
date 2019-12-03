@@ -543,36 +543,46 @@
     - 非左值包括字面变量和包含多项的表达式
     - 常规变量属于可修改的左值，而const变量属于不可修改的左值
   - 实参的类型不正确，但可以转换为正确的类型
-  - C++11新增了右值引用（rvalue reference），这种引用使用\&\&指向右值。
-  - 在示例8.6中：
-    ```c++
-    accumulate(dup, five) = four;
-    ```
+- C++11新增了右值引用（rvalue reference），这种引用使用\&\&指向右值。
+- 在示例8.6中：
+  ```c++
+  accumulate(dup, five) = four;
+  ```
 
-    这条语句将值赋给函数调用是可行的。因为accumulate()的返回值是一个引用。如果accumulate()按值返回，则不能通过编译。由于返回值是指向dup的引用，因此，这段代码等效于：
-    ```c++
-    accumulate(dup, five); // add five's data to dup
-    dup = four; // overwrite the contents of dup with the contents of four
-    ```
-  - 传统的返回机制与按值传递函数参数类似：计算return后的表达式，并将结果返回给调用函数。也就是说，这个值被复制到一个临时位置，然后调用程序使用这个值。而在返回引用中，会使用不同的机制：
-    ```c++
-    dup = accumulate(team, five);
-    ```
+  这条语句将值赋给函数调用是可行的。因为accumulate()的返回值是一个引用。如果accumulate()按值返回，则不能通过编译。由于返回值是指向dup的引用，因此，这段代码等效于：
+  ```c++
+  accumulate(dup, five); // add five's data to dup
+  dup = four; // overwrite the contents of dup with the contents of four
+  ```
+- 传统的返回机制与按值传递函数参数类似：计算return后的表达式，并将结果返回给调用函数。也就是说，这个值被复制到一个临时位置，然后调用程序使用这个值。而在返回引用中，会使用不同的机制：
+  ```c++
+  dup = accumulate(team, five);
+  ```
 
-    如果accumulate()返回一个结构而不是指向结构的引用，则会把整个结构复制到一个临时位置，然后将这个拷贝复制给dup，但在返回引用时，直接将team复制到dup，提高了效率。因此，**返回引用的函数实际上是被引用的变量的别名**。
-  - 在返回引用时注意变量的作用空间，避免返回函数终止时不再存在的内存单元的引用。同样，也应当避免返回指向临时变量的指针。为避免这种情况，示例8.6中返回了一个作为参数传递给函数的引用。作为参数的引用将指向调用函数使用的数据，因此返回的引用也将指向这些数据。另一种方法是用new来分配新的存储空间，用new分配内存空间后，返回指向该内存空间的指针。同样，可以使用引用完成类似的工作：
-    ```c++
-    const free_throws & clone(free_throws & ft)
-    {
-      free_throws * pt;
-      *pt = ft; // copy info
-      return *pt; // return reference to copy
-    }
-    ```
+  如果accumulate()返回一个结构而不是指向结构的引用，则会把整个结构复制到一个临时位置，然后将这个拷贝复制给dup，但在返回引用时，直接将team复制到dup，提高了效率。因此，**返回引用的函数实际上是被引用的变量的别名**。
+- 在返回引用时注意变量的作用空间，避免返回函数终止时不再存在的内存单元的引用。同样，也应当避免返回指向临时变量的指针。为避免这种情况，示例8.6中返回了一个作为参数传递给函数的引用。作为参数的引用将指向调用函数使用的数据，因此返回的引用也将指向这些数据。另一种方法是用new来分配新的存储空间，用new分配内存空间后，返回指向该内存空间的指针。同样，可以使用引用完成类似的工作：
+  ```c++
+  const free_throws & clone(free_throws & ft)
+  {
+    free_throws * pt;
+    *pt = ft; // copy info
+    return *pt; // return reference to copy
+  }
+  ```
 
-    在这段代码中，指针pt指向无名结构free_throws，因此\*pt就是该结构，但是函数声明表示函数会返回结构的引用，因此，可以这样使用该函数：
-    ```c++
-    free_throws & jolly = clone(three);
-    ```
+  在这段代码中，指针pt指向无名结构free_throws，因此\*pt就是该结构，但是函数声明表示函数会返回结构的引用，因此，可以这样使用该函数：
+  ```c++
+  free_throws & jolly = clone(three);
+  ```
 
-    这使得jolly成为新结构的应用。但是，这种方法隐藏的对new的调用，因此会容易导致忘记使用delete释放内存。
+  这使得jolly成为新结构的应用。但是，这种方法隐藏的对new的调用，因此会容易导致忘记使用delete释放内存。
+- 示例8.7中：
+  ```c++
+  const string & version2 (string & s1, const string & s2)
+  {
+    s1 = s2 + s1 + s2;
+    return s1;
+  }
+  ```
+
+  这里，s1作为一个非const值作为const string返回是合理且安全的。
