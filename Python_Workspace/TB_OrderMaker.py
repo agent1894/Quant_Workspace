@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 from selenium import webdriver
-import selenium
 import datetime as dt
 import time
-import getpass
-
 '''
 selenium实例化的browser，对应的find_element*方法，如果无法找到对应的元素，并非返回False，而是直接抛出NoSuchElementException。
 因此find_element*方法放在while中进行逻辑判断会导致程序无法正常运行。
 需要在while中嵌入try...except处理。
 同时，即使能够找到可点击的元素，也需留0.1s以上的时间给程序和网页进行交互，否则会出现程序正常但网页未成功点击的情况。
 '''
+
 
 class TB_order():
     def __init__(self):
@@ -32,10 +30,7 @@ class TB_order():
         SnapTime = {} seconds
         ShortTime = {} seconds
         LongTime = {} seconds
-        EnoughTime = {} seconds'''.format(self.__snapSleep, 
-        self.__shortSleep, 
-        self.__longSleep, 
-        self.__enoughSleep))
+        EnoughTime = {} seconds'''.format(self.__snapSleep, self.__shortSleep, self.__longSleep, self.__enoughSleep))
 
     def __interactive(self):
         print('欢迎使用！当前时间 {}'.format(dt.datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
@@ -66,7 +61,7 @@ class TB_order():
         if self.__isSingle.upper() == 'Y':
             self.url = input('请填入商品的网址...')
             if self.__isTest[0].upper() == 'Y':
-                self.__order_time = dt.datetime.now() + dt.timedelta(minutes = 1)
+                self.__order_time = dt.datetime.now() + dt.timedelta(minutes=1)
         print('下单时间为：{}'.format(self.__order_time))
 
     # 启动webdriver
@@ -74,7 +69,7 @@ class TB_order():
         self.browser = webdriver.Chrome()
         self.browser.maximize_window()
 
-    def __login(self, usePassword = '0', userName = 'userName', userPassword = 'userPassword'):
+    def __login(self, usePassword='0', userName='userName', userPassword='userPassword'):
         self.browser.get('https://www.taobao.com')
         time.sleep(self.__enoughSleep)
 
@@ -164,7 +159,7 @@ class TB_order():
             self.__checkoutSignleItem()
         else:
             self.__checkoutCart()
-        while self.__isTest[0].upper() == 'N': # 提交订单，仅在非测试模式下有效
+        while self.__isTest[0].upper() == 'N':  # 提交订单，仅在非测试模式下有效
             try:
                 self.browser.find_element_by_link_text("提交订单").click()
                 break

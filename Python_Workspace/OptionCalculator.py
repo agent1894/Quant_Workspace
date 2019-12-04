@@ -1,22 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-This Module Contains Black-Scholes-Merton Calculations of 
+This Module Contains Black-Scholes-Merton Calculations of
 Prices and Greeks for Options.
 '''
 
 import numpy as np
-import pandas as pd
 from scipy.stats import norm
 import datetime as dt
-import matplotlib.pyplot as plt
-import sys
 import warnings
 warnings.filterwarnings('ignore')
 
+
 class Option(object):
     ''' Defines a basic option for further calculation.
-    
     Attributes:
         The following items are compulsory.
         setDate & expDate or t: annualized time interval.
@@ -27,13 +24,18 @@ class Option(object):
         vol: volatility.
         div: dividends.
     '''
-
-    def __init__(self, setDate=dt.date.today(), expDate=dt.date.today(),
-                t = None, S0 = 1, K = 1, optionType = 'C', r = 0.05, vol = 0.3, 
-                div = 0):
+    def __init__(self,
+                 setDate=dt.date.today(),
+                 expDate=dt.date.today(),
+                 t=None,
+                 S0=1,
+                 K=1,
+                 optionType='C',
+                 r=0.05,
+                 vol=0.3,
+                 div=0):
         ''' Inits the Option class.
-        
-        In Python 3.x, all inputs are typed as string, thus the format 
+        In Python 3.x, all inputs are typed as string, thus the format
         cast is necessary.
         '''
         self.optionType = optionType[0].upper()
@@ -43,7 +45,7 @@ class Option(object):
         self.setDate = setDate
         self.expDate = expDate
         self.div = float(div)
-        
+
         if t:  # when directly input the days to expire
             self.t = float(t) / 252.0
         else:
@@ -55,7 +57,7 @@ class Option(object):
     def __calculate_t(self):
         ''' Calculate the time interval when using the start/end date.
 
-        This private method calculates the days to expire under different types 
+        This private method calculates the days to expire under different types
         of date parameters.
         '''
         if type(self.setDate) != dt.date and type(self.setDate) != dt.datetime:
@@ -90,21 +92,18 @@ class Option(object):
 class OptionPriceCalculator(Option):
     ''' Inheritance class from base class Option for price calculation.
 
-    There are two common approaches to calculate the option price: 
+    There are two common approaches to calculate the option price:
     Black-Scholes-Merton model formula or Monte-Carlo simulation.
     This class realizes two approaches and gives comparisons.
     '''
-
     def getOptionPriceBSM(self):
-        d1 = (np.log(self.S0 / self.K) + (self.r + self.div + 0.5 
-            * self.vol**2) * self.t) / (self.vol * np.sqrt(self.t))
+        d1 = (np.log(self.S0 / self.K) +
+              (self.r + self.div + 0.5 * self.vol**2) * self.t) / (self.vol * np.sqrt(self.t))
         d2 = d1 - self.vol * np.sqrt(self.t)
         if self.optionType == 'C':
-            BSMPrice = norm.cdf(d1) * self.S0 - self.K * np.exp(
-                -self.r * self.t) * norm.cdf(d2)
+            BSMPrice = norm.cdf(d1) * self.S0 - self.K * np.exp(-self.r * self.t) * norm.cdf(d2)
         elif self.optionType == 'P':
-            BSMPrice = self.K * np.exp(
-                -self.r * self.t) * norm.cdf(-d2) - norm.cdf(-d1) * self.S0
+            BSMPrice = self.K * np.exp(-self.r * self.t) * norm.cdf(-d2) - norm.cdf(-d1) * self.S0
         else:
             raise TypeError('Inappropriate Option Type')
         return BSMPrice
@@ -116,86 +115,91 @@ class OptionPriceCalculator(Option):
         The calculation of ndarray returns a list of lists.
         '''
         z = np.random.randn(1, n)  # type(z) is np.ndarray
-        st = self.S0 * np.exp((self.r - 0.5 * self.vol**2) * self.t 
-                            + self.vol * np.sqrt(self.t) * z)[0]
+        st = self.S0 * np.exp((self.r - 0.5 * self.vol**2) * self.t + self.vol * np.sqrt(self.t) * z)[0]
         if self.optionType == 'C':
             value = st - self.K
         elif self.optionType == 'P':
             value = self.K - st
         else:
             raise TypeError('Inappropriate Option Type')
-        MCPrice = np.exp(-self.r * self.t) * np.mean(
-            [max(value, 0) for value in value])
+        MCPrice = np.exp(-self.r * self.t) * np.mean([max(value, 0) for value in value])
         return MCPrice
 
     def getOptionPrice(self):
         BSMPrice = self.getOptionPriceBSM()
         MCPrice = self.getOptionPriceMonteCarlo()
         print('-' * 20 + 'Calculate the option price' + '-' * 20)
-        print('The Black-Scholes-Merton option price is: {:.2f}'.
-            format(BSMPrice))
-        print('The Monte-Carlo simulation option price is: {:.2f}'.
-            format(MCPrice))
+        print('The Black-Scholes-Merton option price is: {:.2f}'.format(BSMPrice))
+        print('The Monte-Carlo simulation option price is: {:.2f}'.format(MCPrice))
 
 
 class OptionGreeksCalculator(Option):
     ''' Inheritance class from base class Option for Greeks calculation.
 
     Generally, the Greeks can not use the explicit formula to calculate
-    except Delta. Therefore, the common approach for Greeks calculation 
+    except Delta. Therefore, the common approach for Greeks calculation
     is by differential method to find the approximate solution.
     '''
-
-    def __init__(self, setDate=dt.date.today(), expDate=dt.date.today(),
-                t = None, S0 = 1, K = 1, optionType = 'C', r = 0.05, vol = 0.3, 
-                div = 0):
-        super(OptionGreeksCalculator, self).__init__(
-            setDate = setDate, expDate = expDate, t = t, S0 = S0, K = K, 
-            optionType = optionType, r = r, vol = vol, div = div)
-        preOption = OptionPriceCalculator(
-            S0 = self.S0, 
-            K = self.K,
-            r = self.r, 
-            t = self.t * 252,
-            vol = self.vol,
-            optionType = self.optionType)
+    def __init__(self,
+                 setDate=dt.date.today(),
+                 expDate=dt.date.today(),
+                 t=None,
+                 S0=1,
+                 K=1,
+                 optionType='C',
+                 r=0.05,
+                 vol=0.3,
+                 div=0):
+        super(OptionGreeksCalculator, self).__init__(setDate=setDate,
+                                                     expDate=expDate,
+                                                     t=t,
+                                                     S0=S0,
+                                                     K=K,
+                                                     optionType=optionType,
+                                                     r=r,
+                                                     vol=vol,
+                                                     div=div)
+        preOption = OptionPriceCalculator(S0=self.S0,
+                                          K=self.K,
+                                          r=self.r,
+                                          t=self.t * 252,
+                                          vol=self.vol,
+                                          optionType=self.optionType)
         self.prePrice = preOption.getOptionPriceBSM()
- 
+
     def getOptionDelta(self):
         '''stock price changes ds, the option price changes delta ds'''
-        d1 = (np.log(self.S0 / self.K) + (self.r + 0.5 * self.vol**2)
-              * self.t) / (self.vol * np.sqrt(self.t))
+        d1 = (np.log(self.S0 / self.K) + (self.r + 0.5 * self.vol**2) * self.t) / (self.vol * np.sqrt(self.t))
         if self.optionType == 'C':
             delta = norm.cdf(d1)
         else:
             delta = -norm.cdf(-d1)
         return delta
 
-    def getOptionGamma(self, ds = 0.00001):
+    def getOptionGamma(self, ds=0.00001):
         '''stock price changes ds, the option delta changes gamma ds'''
         preDelta = self.getOptionDelta()
         postOption = OptionGreeksCalculator(
-            S0 = self.S0 + ds, 
-            K = self.K, 
-            r = self.r, 
-            t = self.t * 252,  # annualize t
-            vol = self.vol, 
-            optionType = self.optionType)
+            S0=self.S0 + ds,
+            K=self.K,
+            r=self.r,
+            t=self.t * 252,  # annualize t
+            vol=self.vol,
+            optionType=self.optionType)
         postDelta = postOption.getOptionDelta()
         gamma = (postDelta - preDelta) / ds
         return gamma
 
-    def getOptionTheta(self, dt = 1.0):
-        postOption = OptionPriceCalculator(
-            S0 = self.S0, 
-            K = self.K,
-            r = self.r, 
-            t = self.t * 252 - dt,
-            vol = self.vol,
-            optionType = self.optionType)
+    def getOptionTheta(self, dt=1.0):
+        postOption = OptionPriceCalculator(S0=self.S0,
+                                           K=self.K,
+                                           r=self.r,
+                                           t=self.t * 252 - dt,
+                                           vol=self.vol,
+                                           optionType=self.optionType)
         postPrice = postOption.getOptionPriceBSM()
         '''
-        Usually, theta is calculated based on a day-time. 
+        Usually, theta is calculated based on a day-time.
         Therefore, the result of theta needs to divided by trading days.
         When others keeps constant, with one day passes,
         the option value changes theta
@@ -203,31 +207,28 @@ class OptionGreeksCalculator(Option):
         theta = (postPrice - self.prePrice) / dt
         return theta
 
-    def getOptionVega(self, dvol = 0.00001):
-        postOption = OptionPriceCalculator(
-            S0 = self.S0, 
-            K = self.K,
-            r = self.r, 
-            t = self.t * 252,
-            vol = self.vol + dvol,
-            optionType = self.optionType
-        )
+    def getOptionVega(self, dvol=0.00001):
+        postOption = OptionPriceCalculator(S0=self.S0,
+                                           K=self.K,
+                                           r=self.r,
+                                           t=self.t * 252,
+                                           vol=self.vol + dvol,
+                                           optionType=self.optionType)
         postPrice = postOption.getOptionPriceBSM()
         '''
-        When implied vol changes 1% (0.01), 
+        When implied vol changes 1% (0.01),
         the option value changes 0.01 * vega
         '''
         vega = (postPrice - self.prePrice) / dvol
         return vega
 
-    def getOptionRho(self, dr = 0.00001):
-        postOption = OptionPriceCalculator(
-            S0 = self.S0, 
-            K = self.K, 
-            r = self.r + dr, 
-            t = self.t * 252, 
-            vol = self.vol, 
-            optionType = self.optionType)
+    def getOptionRho(self, dr=0.00001):
+        postOption = OptionPriceCalculator(S0=self.S0,
+                                           K=self.K,
+                                           r=self.r + dr,
+                                           t=self.t * 252,
+                                           vol=self.vol,
+                                           optionType=self.optionType)
         postPrice = postOption.getOptionPriceBSM()
         '''
         When interest rate changes 1% (0.01),
@@ -249,21 +250,35 @@ class OptionGreeksCalculator(Option):
         print('Vega:  {:.4f}'.format(vega))
         print('Rho:   {:.4f}'.format(rho))
 
+
 class OptionImpliedVolCalculator(Option):
-    ''' Inheritance class from base class Option for 
+    ''' Inheritance class from base class Option for
     implied volatility calculation.
 
-    There are two common approaches to calculate the implied volatility: 
+    There are two common approaches to calculate the implied volatility:
     Newton-Raphson method and bisection method.
     This class realizes two approaches and gives comparisons.
     '''
-
-    def __init__(self, setDate=dt.date.today(), expDate=dt.date.today(),
-                t = None, S0 = 1, K = 1, optionType = 'C', r = 0.05, vol = 0.3, 
-                div = 0, price = np.nan):
-        super(OptionImpliedVolCalculator, self).__init__(
-            setDate = setDate, expDate = expDate, t = t, S0 = S0, K = K, 
-            optionType = optionType, r = r, vol = vol, div = div)
+    def __init__(self,
+                 setDate=dt.date.today(),
+                 expDate=dt.date.today(),
+                 t=None,
+                 S0=1,
+                 K=1,
+                 optionType='C',
+                 r=0.05,
+                 vol=0.3,
+                 div=0,
+                 price=np.nan):
+        super(OptionImpliedVolCalculator, self).__init__(setDate=setDate,
+                                                         expDate=expDate,
+                                                         t=t,
+                                                         S0=S0,
+                                                         K=K,
+                                                         optionType=optionType,
+                                                         r=r,
+                                                         vol=vol,
+                                                         div=div)
         self.price = float(price)
 
     def getImpliedVolNewton(self):
@@ -274,16 +289,25 @@ class OptionImpliedVolCalculator(Option):
         n = 1
         t = self.t * 252
         priceGuess = 0.0
-        while abs(price-priceGuess) > 0.0000001 and n < 100:
-            priceGuess = OptionPriceCalculator(
-                setDate = self.setDate, expDate = self.expDate, t = t, 
-                S0 = self.S0, K = self.K, optionType = self.optionType, 
-                r = self.r, div = self.div, vol = vol).getOptionPriceBSM()
-            vol = vol - (priceGuess - price) / OptionGreeksCalculator(
-                setDate = self.setDate, expDate = self.expDate, 
-                t = t, S0 = self.S0, K = self.K, 
-                optionType = self.optionType, r = self.r, div = self.div, 
-                vol = vol).getOptionVega()
+        while abs(price - priceGuess) > 0.0000001 and n < 100:
+            priceGuess = OptionPriceCalculator(setDate=self.setDate,
+                                               expDate=self.expDate,
+                                               t=t,
+                                               S0=self.S0,
+                                               K=self.K,
+                                               optionType=self.optionType,
+                                               r=self.r,
+                                               div=self.div,
+                                               vol=vol).getOptionPriceBSM()
+            vol = vol - (priceGuess - price) / OptionGreeksCalculator(setDate=self.setDate,
+                                                                      expDate=self.expDate,
+                                                                      t=t,
+                                                                      S0=self.S0,
+                                                                      K=self.K,
+                                                                      optionType=self.optionType,
+                                                                      r=self.r,
+                                                                      div=self.div,
+                                                                      vol=vol).getOptionVega()
             n += 1
         print('*' * 20 + ' Newton-Raphson method ' + '*' * 20)
         print('Iteration: {}'.format(n))
@@ -300,10 +324,15 @@ class OptionImpliedVolCalculator(Option):
         t = self.t * 252
         priceGuess = 0.0
         while abs(price - priceGuess) > 0.0000001 and n < 100:
-            priceGuess = OptionPriceCalculator(
-                setDate = self.setDate, expDate = self.expDate, t = t, 
-                S0 = self.S0, K = self.K, optionType = self.optionType, 
-                r = self.r, div = self.div, vol = vol).getOptionPriceBSM()
+            priceGuess = OptionPriceCalculator(setDate=self.setDate,
+                                               expDate=self.expDate,
+                                               t=t,
+                                               S0=self.S0,
+                                               K=self.K,
+                                               optionType=self.optionType,
+                                               r=self.r,
+                                               div=self.div,
+                                               vol=vol).getOptionPriceBSM()
             if priceGuess > price:
                 volHigh = vol
             else:
@@ -320,7 +349,7 @@ class OptionImpliedVolCalculator(Option):
         print('-' * 20 + 'Calculate the option implied vol' + '-' * 20)
         self.getImpliedVolNewton()
         self.getImpliedVolBisection()
-  
+
 
 if __name__ == '__main__':
     while True:
@@ -348,19 +377,37 @@ if __name__ == '__main__':
         impVol = input('To calcualte the implied volatility? (Y/N): ')
         if impVol[0].upper() == 'Y':
             price = input('Please enter the option price: ')
-            impVol = OptionImpliedVolCalculator(
-                setDate = setDate, expDate = expDate, t = t, S0 = S0, K = K, 
-                optionType = optionType, r = r, div = div, price = price)
+            impVol = OptionImpliedVolCalculator(setDate=setDate,
+                                                expDate=expDate,
+                                                t=t,
+                                                S0=S0,
+                                                K=K,
+                                                optionType=optionType,
+                                                r=r,
+                                                div=div,
+                                                price=price)
             impVol.getOptionImpliedVol()
         elif impVol[0].upper() == 'N':
             vol = input('Please enter the volatility: ')
-            prices = OptionPriceCalculator(
-                setDate = setDate, expDate = expDate, t = t, S0 = S0, K = K, 
-                optionType = optionType, r = r, vol = vol, div = div)
+            prices = OptionPriceCalculator(setDate=setDate,
+                                           expDate=expDate,
+                                           t=t,
+                                           S0=S0,
+                                           K=K,
+                                           optionType=optionType,
+                                           r=r,
+                                           vol=vol,
+                                           div=div)
             prices.getOptionPrice()
-            greeks = OptionGreeksCalculator(
-                setDate = setDate, expDate = expDate, t = t, S0 = S0, K = K, 
-                optionType = optionType, r = r, vol = vol, div = div)
+            greeks = OptionGreeksCalculator(setDate=setDate,
+                                            expDate=expDate,
+                                            t=t,
+                                            S0=S0,
+                                            K=K,
+                                            optionType=optionType,
+                                            r=r,
+                                            vol=vol,
+                                            div=div)
             greeks.getOptionGreeks()
         else:
             raise TypeError('Unsupported Option Calculations')
