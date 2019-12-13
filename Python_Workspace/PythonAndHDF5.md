@@ -17,6 +17,17 @@
       - [Fill Values](#fill-values)
     - [Reading and Writing Data](#reading-and-writing-data)
       - [Using Slicing Effectively](#using-slicing-effectively)
+      - [Start-Stop-Step Indexing](#start-stop-step-indexing)
+      - [Multidimensional and Scalar Slicing](#multidimensional-and-scalar-slicing)
+      - [Boolean Indexing](#boolean-indexing)
+      - [Coordinate Lists](#coordinate-lists)
+      - [Automatic Broadcasting](#automatic-broadcasting)
+      - [Reading Directly into an Existing Array](#reading-directly-into-an-existing-array)
+      - [A Note on Data Types](#a-note-on-data-types)
+    - [Resizing Datasets](#resizing-datasets)
+      - [Creating Resizable Datasets](#creating-resizable-datasets)
+      - [Data Shuffling with resize](#data-shuffling-with-resize)
+      - [When and How to Use resize](#when-and-how-to-use-resize)
 
 ## Chapter1. Introduction
 
@@ -353,3 +364,296 @@ Out[59]: 42
 ### Reading and Writing Data
 
 #### Using Slicing Effectively
+
+```Python
+In [60]: dset = f2['big']
+
+In [61]: dset
+Out[61]: <HDF5 dataset "big": shape (100, 1000), type "<f4">
+
+In [62]: out = dset[0:10, 20:70]
+
+In [63]: out.shape
+Out[63]: (10, 50)
+```
+
+在进行切片操作时，h5py进行了如下操作：
+
+1. 确定目标数据的大小，在这里是(10, 50)
+2. 创建一个符合目标大小的empty NumPy array
+3. HDF5选出数据集中需要的部分
+4. HDF5将数据复制到空NumPy array中
+5. 返回新填充的数组
+
+由此可见，在每一次进行切片操作时，HDF5都会先确定切片大小，创建空数组，选择数据集范围，然后才会开始读取数据。因此，提升数据读取性能的关键一步就是**选择合理的切片大小**。
+
+```Python
+# Check for negative values and clip to 0
+
+# Case 1
+for ix in xrange(100):
+    for iy in xrange(1000):
+        val = deset[ix,iy]            # Read one element
+        if val < 0: dset[ix, iy] = 0  # Clip to 0 if needed
+
+# Case 2
+for ix in xrange(100):
+    val = dset[ix,:]  # Read one row
+    val[val < 0] = 0  # Clip negative values to 0
+    dset[ix,:] = val  # Write row back out
+```
+
+在上例中，从(100, 1000)的数据集进行切片，方法2会有更好的效率。因为方法1会进行100000次切片而方法2只进行了100次切片。
+
+尽管方法1中在内存中进行了NumPy arrays的切片，但是一旦在HDF5的机制下会降低性能。
+
+HDF5写入数据和读入数据类似，会先确定数据的大小，确认数据集是否可以进行处理。然后在数据集中选定合适的大小进行写入。因此，一次一个元素、或一次很少的元素写入会极大地降低处理性能。
+
+#### Start-Stop-Step Indexing
+
+h5py使用和NumPy几乎相同的切片方式，包括含有步长的切片。
+
+```Python
+In [64]: dset = f.create_dataset('range', data=np.arange(10))
+
+In [65]: dset[...]
+Out[65]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+In [66]: dset[4]
+Out[66]: 4
+
+In [67]: dset[4:8]
+Out[67]: array([4, 5, 6, 7])
+
+In [68]: dset[4:8:2]
+Out[68]: array([4, 6])
+
+In [69]: dset[:]
+Out[69]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+In [70]: dset[4:-1]
+Out[70]: array([4, 5, 6, 7, 8])
+```
+
+但是，NumPy中的一些技巧并不被HDF5支持，如使用步长-1进行数组倒序的操作，在NumPy中是可行的而HDF5数据集中会报错，因为步长必须大于等于1。
+
+```Python
+In [71]: a
+Out[71]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+In [72]: a[::-1]
+Out[72]: array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+
+In [73]: dset[::-1]
+ValueError: Step must be >= 1 (got -1)
+```
+
+#### Multidimensional and Scalar Slicing
+
+HDF5使用`...`进行切片，在Python中被称为`Ellipsis`，对无需指定的轴进行全选。
+
+```Python
+In [74]: dset = f.create_dataset('4d', shape=(100, 80, 50, 20))
+
+In [75]: dset[0,...,0].shape
+Out[75]: (80, 50)
+
+In [76]: dset[...].shape
+Out[76]: (100, 80, 50, 20)
+```
+
+一种较为特殊的情况是所谓的标量(scalar)数据。在NumPy中有两种方式储存一个元素的数据。
+
+第一种方式是一个大小为(1,)的一维数组，这种结构可以通过切片或者索引获取数据。
+
+```Python
+In [77]: dset = f.create_dataset('1d', shape=(1,), data=42)
+
+In [78]: dset.shape
+Out[78]: (1,)
+
+In [79]: dset[0]
+Out[79]: 42
+
+In [80]: dset[...]
+Out[80]: array([42])
+```
+
+这种方式下，使用`Ellipsis`会返回一个元素的数组，而使用索引会直接返回这个元素本身。
+
+第二种方式大小为()，是一个空元组。这种方式不能通过索引获取数据。
+
+```Python
+In [81]: dset = f.create_dataset('0d', data=42)
+
+In [82]: dset.shape
+Out[82]: ()
+
+In [83]: dset[0]
+ValueError: Illegal slicing argument for scalar dataspace
+
+In [84]: dset[...]
+Out[84]: array(42)
+```
+
+在这种方式下，使用`Ellipsis`同样会返回一个数组，在这里是一个标量数组(scalar array)。
+
+如果在这种方式下同样想获得元素本身，而不是一个NumPy array，可以使用一种看似比较奇怪的方式获取：
+
+```Python
+In [85]: dset[()]
+Out[85]: 42
+```
+
+因此：
+
+1. `Ellipsis`始终会以NumPy array的形式给出数据集所有的数据
+2. 使用空元组(empty tuple"()")也会给出数据集中所有的元素，当一维或更高维时，同样给出数组结构，当0D时，给出标量元素。
+3. 在一些历史代码中会见到类似`.value`的形式，这种方式完全等价于`dataset[()]`，在后续h5py的版本中将不会再支持。
+
+#### Boolean Indexing
+
+HDF5同样支持使用布尔值进行索引。
+
+```Python
+In [86]: data = np.random.random(10)*2 - 1
+
+In [87]: data
+Out[87]:
+array([-0.39438298, -0.5841106 , -0.85382983,  0.48593953,  0.73904431,
+        0.91193146, -0.30166953,  0.54883998,  0.04091559,  0.21349258])
+
+In [88]: dset = f.create_dataset('random', data=data)
+
+In [89]: dset[data<0] = 0
+
+In [90]: dset[...]
+Out[90]:
+array([0.        , 0.        , 0.        , 0.48593953, 0.73904431,
+       0.91193146, 0.        , 0.54883998, 0.04091559, 0.21349258])
+
+In [91]: dset[data<0] = -1 * data[data<0]
+
+In [92]: dset[...]
+Out[92]:
+array([0.39438298, 0.5841106 , 0.85382983, 0.48593953, 0.73904431,
+       0.91193146, 0.30166953, 0.54883998, 0.04091559, 0.21349258])
+```
+
+在这个过程中，先对data进行布尔值判断，随后HDF5将布尔值转化为数据集中的坐标进行赋值读取等操作。这种方式带来两个结果：
+
+1. 对于有很多`True`值的极大的索引表达式，在Python端修改数据后再写入数据集会更快。
+2. 表达式右侧的值要么是一个标量，要么是一个完全等同于选出数据大小的数组。尽管看似比较复杂，但是实际上当符合条件数据很少时，这是一种非常有效的更新数据的方式。
+
+需要注意的是，在上例中始终是选择data进行布尔运算，选择data进行赋值，因此dset本身没有被覆盖。也可以使用类似于Pandas DataFrame的赋值方式，则会直接覆盖dset本身。
+
+```Python
+In [93]: dset[dset<0] = 0
+TypeError: unorderable types: Dataset() < int()
+
+In [94]: dset[dset[...]>0.5] = 0
+
+In [95]: dset[...]
+Out[95]:
+array([0.39438298, 0.        , 0.        , 0.48593953, 0.        ,
+       0.        , 0.30166953, 0.        , 0.04091559, 0.21349258])
+```
+
+#### Coordinate Lists
+
+h5py还从NumPy中使用了一些其他的特性，如使用列表进行切片的功能。
+
+```Python
+In [96]: dset = f['range']
+
+In [97]: dset[...]
+Out[97]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+
+In [98]: dset[[1,2,7]]
+Out[98]: array([1, 2, 7])
+```
+
+但是h5py仍然和NumPy有一些不同，主要在于：
+
+1. 一次只能对一根轴上进行列表切片
+2. 不能使用重复的列表元素
+3. 列表中的索引必须严格递增
+
+#### Automatic Broadcasting
+
+在之前的代码中，使用过`dset[data<0] = 0`这样的代码，这种表达式使用了类似NumPy中的广播(broadcasting)操作。这种操作能够极大地提升性能。
+
+```Python
+In [99]: dset = f2['big']
+
+In [100]: dset.shape
+Out[100]: (100, 1000)
+
+'''alternative method:
+
+data = dset[0,:]
+for idx in xrange(100):
+    dset[idx,:] = data
+'''
+
+In [101]: dset[:,:] = dset[0,:]
+```
+
+在例子中，如果需要复制第0行数据并填充剩下的所有行，尽管可以使用循环赋值，但是这样会进行之前所说的多次切片的行为，而且需要保证边际条件准确无误。使用广播则完全没有这方面的问题，同时在性能上也能有很好的提升。
+
+表达式右侧是(1000,)的数组，左侧是(100, 1000)的数组，由于最后一个维度相同，因此h5py会自动将所有100行的索引全部重复赋值。这种操作只进行了一次切片，剩余的操作会在将数据写入硬盘时完成。
+
+#### Reading Directly into an Existing Array
+
+回到将HDF5数据直接填入数组中并进行自动格式转换的操作。之前已展示过将float32数据读入float64数组中：
+
+```Python
+In [102]: dset.dtype
+Out[102]: dtype('<f4')
+
+In [103]: out = np.empty((100, 1000), dtype=np.float64)
+
+In [104]: dset.read_direct(out)
+```
+
+但是这种方法需要一次性读入所有数据。实际上，还有更加实用的方法。如果需要读第1行所有数据`dset[0,:]`然后将其存入数组第51行`out[50,:]`，可以使用`source_sel`和`dest_sel`关键字，对应*source selection*和*destination selection*。
+
+```Python
+In [105]: dset.read_direct(out, source_sel=np.s_[0,:], dest_sel=np.s_[50,:])
+```
+
+其中比较奇怪的部分是参数中的`np.s_`，这对out进行了切片操作，返回了一个`NumPy slice`对象。
+
+此外，输出的数组不需要和数据集大小相同，例如求均值，常规做法为：
+
+```Python
+In [121]: out = dset[:,0:50]
+
+In [122]: out.shape
+Out[122]: (100, 50)
+
+In [123]: means = out.mean(axis=1)
+
+In [124]: means.shape
+Out[124]: (100,)
+```
+
+使用`read_direct`的做法为：
+
+```Python
+In [125]: out = np.empty((100,50), dtype=np.float32)
+
+In [126]: dset.read_direct(out, np.s_[:,0:50])  # dset_sel can be omitted
+
+In [127]: means = out.mean(axis=1)
+```
+
+#### A Note on Data Types
+
+### Resizing Datasets
+
+#### Creating Resizable Datasets
+
+#### Data Shuffling with resize
+
+#### When and How to Use resize
