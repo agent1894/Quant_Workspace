@@ -162,7 +162,7 @@ array([[1., 1.],
 
 #### Creating Empty Datasets
 
-创建数据集并不需要事先已有NumPy array的存在。`File`对象的`create_dataset`方法允许根据类型和大小创建空数据集（甚至只需要大小，不需要类型。此时默认类型为`np.float32`单精度浮点数）。
+创建数据集并不需要事先已有NumPy array的存在。`File`对象的`create_dataset`方法允许根据类型和形状创建空数据集（甚至只需要形状，不需要类型。此时默认类型为`np.float32`单精度浮点数）。
 
 ```Python
 In [15]: dset = f.create_dataset("test1", (10, 10))
@@ -379,13 +379,13 @@ Out[63]: (10, 50)
 
 在进行切片操作时，h5py进行了如下操作：
 
-1. 确定目标数据的大小，在这里是(10, 50)
-2. 创建一个符合目标大小的empty NumPy array
+1. 确定目标数据的形状，在这里是(10, 50)
+2. 创建一个符合目标形状的empty NumPy array
 3. HDF5选出数据集中需要的部分
 4. HDF5将数据复制到空NumPy array中
 5. 返回新填充的数组
 
-由此可见，在每一次进行切片操作时，HDF5都会先确定切片大小，创建空数组，选择数据集范围，然后才会开始读取数据。因此，提升数据读取性能的关键一步就是**选择合理的切片大小**。
+由此可见，在每一次进行切片操作时，HDF5都会先确定切片形状，创建空数组，选择数据集范围，然后才会开始读取数据。因此，提升数据读取性能的关键一步就是**选择合理的切片形状**。
 
 ```Python
 # Check for negative values and clip to 0
@@ -407,7 +407,7 @@ for ix in xrange(100):
 
 尽管方法1中在内存中进行了NumPy arrays的切片，但是一旦在HDF5的机制下会降低性能。
 
-HDF5写入数据和读入数据类似，会先确定数据的大小，确认数据集是否可以进行处理。然后在数据集中选定合适的大小进行写入。因此，一次一个元素、或一次很少的元素写入会极大地降低处理性能。
+HDF5写入数据和读入数据类似，会先确定数据的形状，确认数据集是否可以进行处理。然后在数据集中选定合适的形状进行写入。因此，一次一个元素、或一次很少的元素写入会极大地降低处理性能。
 
 #### Start-Stop-Step Indexing
 
@@ -464,7 +464,7 @@ Out[76]: (100, 80, 50, 20)
 
 一种较为特殊的情况是所谓的标量(scalar)数据。在NumPy中有两种方式储存一个元素的数据。
 
-第一种方式是一个大小为(1,)的一维数组，这种结构可以通过切片或者索引获取数据。
+第一种方式是一个形状为(1,)的一维数组，这种结构可以通过切片或者索引获取数据。
 
 ```Python
 In [77]: dset = f.create_dataset('1d', shape=(1,), data=42)
@@ -481,7 +481,7 @@ Out[80]: array([42])
 
 这种方式下，使用`Ellipsis`会返回一个元素的数组，而使用索引会直接返回这个元素本身。
 
-第二种方式大小为()，是一个空元组。这种方式不能通过索引获取数据。
+第二种方式形状为()，是一个空元组。这种方式不能通过索引获取数据。
 
 ```Python
 In [81]: dset = f.create_dataset('0d', data=42)
@@ -543,7 +543,7 @@ array([0.39438298, 0.5841106 , 0.85382983, 0.48593953, 0.73904431,
 在这个过程中，先对data进行布尔值判断，随后HDF5将布尔值转化为数据集中的坐标进行赋值读取等操作。这种方式带来两个结果：
 
 1. 对于有很多`True`值的极大的索引表达式，在Python端修改数据后再写入数据集会更快。
-2. 表达式右侧的值要么是一个标量，要么是一个完全等同于选出数据大小的数组。尽管看似比较复杂，但是实际上当符合条件数据很少时，这是一种非常有效的更新数据的方式。
+2. 表达式右侧的值要么是一个标量，要么是一个完全等同于选出数据形状的数组。尽管看似比较复杂，但是实际上当符合条件数据很少时，这是一种非常有效的更新数据的方式。
 
 需要注意的是，在上例中始终是选择data进行布尔运算，选择data进行赋值，因此dset本身没有被覆盖。也可以使用类似于Pandas DataFrame的赋值方式，则会直接覆盖dset本身。
 
@@ -624,36 +624,276 @@ In [105]: dset.read_direct(out, source_sel=np.s_[0,:], dest_sel=np.s_[50,:])
 
 其中比较奇怪的部分是参数中的`np.s_`，这对out进行了切片操作，返回了一个`NumPy slice`对象。
 
-此外，输出的数组不需要和数据集大小相同，例如求均值，常规做法为：
+此外，输出的数组不需要和数据集形状相同，例如求均值，常规做法为：
 
 ```Python
-In [121]: out = dset[:,0:50]
+In [106]: out = dset[:,0:50]
 
-In [122]: out.shape
-Out[122]: (100, 50)
+In [107]: out.shape
+Out[107]: (100, 50)
 
-In [123]: means = out.mean(axis=1)
+In [108]: means = out.mean(axis=1)
 
-In [124]: means.shape
-Out[124]: (100,)
+In [109]: means.shape
+Out[109]: (100,)
 ```
 
 使用`read_direct`的做法为：
 
 ```Python
-In [125]: out = np.empty((100,50), dtype=np.float32)
+In [110]: out = np.empty((100,50), dtype=np.float32)
 
-In [126]: dset.read_direct(out, np.s_[:,0:50])  # dset_sel can be omitted
+In [111]: dset.read_direct(out, np.s_[:,0:50])  # dset_sel can be omitted
 
-In [127]: means = out.mean(axis=1)
+In [112]: means = out.mean(axis=1)
 ```
+
+单纯上看这两种方法没有什么区别，但是实际上有一些显著的区别。第一种方法中，out数组直接通过h5py生成，用以存放数据切片；第二种方法中，out数组由用户分配，在后续的运算中仍然可以继续使用。
+
+性能方面，(100, 50)的数组很难看出差异，但是当数据量提升后，会发现性能上的差异逐渐明显。
+
+```Python
+In [113]: dset = f.create_dataset('perftest', (10000, 10000), dtype=np.float32)
+
+In [114]: dset[:] = np.random.random(10000)  # note the use of broadcasting!
+
+In [115]: def time_simple():
+     ...:     dset[:,0:500].mean(axis=1)
+
+In [116]: out = np.empty((10000, 500), dtype=np.float32)
+
+In [117]: def time_direct():
+     ...:     dset.read_direct(out, np.s_[:,0:500])
+     ...:     out.mean(axis=1)
+```
+
+使用IPython的%timeit方法进行100000000循环后发现，第二种方法在性能上提升了约18%。随着数据量的扩大，`read_direct`的性能优势越明显。
+
+```Python
+In [118]: %timeit time_simple
+16.6 ns ± 0.163 ns per loop (mean ± std. dev. of 7 runs, 100000000 loops each)
+
+In [119]: %timeit time_direct
+13.6 ns ± 0.0798 ns per loop (mean ± std. dev. of 7 runs, 100000000 loops each)
+```
+
+由于一些历史原因，仍然存在`read_direct`的逆方法`write_direct`。但是在当前版本的h5py中，这种方法相对于常规的切片操作不会有任何性能上的优势。
 
 #### A Note on Data Types
 
+这一节中提到了不同计算机系统间，关于不同字节序的问题。由于不同CPU架构下储存数据的方式不同，当存储数据在不同系统间交互的时候，可能会带来数据类型上的问题。现代Intel x86芯片都使用little-endian格式，但是由于HDF5同样支持big-endian格式，因此h5py会默认使用数据存储时使用的格式。根据书中的内容，在x86架构下，两种数据格式会在性能上有接近两倍的差距。
+
+```Python
+In [120]: a = np.ones((1000,1000), dtype='<f4')  # Little-endian 4-byte float
+
+In [121]: b = np.ones((1000,1000), dtype='>f4')  # Big-endian 4-byte float
+
+In [122]: %timeit a.mean
+30.7 ns ± 1.59 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+
+In [123]: %timeit b.mean
+29.8 ns ± 0.724 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+```
+
+可能是由于当前系统更加优化的原因，这种性能上的差距并不能成功复现。当然书中也提及了如何转换数据格式的方法。
+
+```Python
+In [124]: c = b.view("float32")
+
+In [125]: c[:] = b
+
+In [126]: b = c
+
+In [127]: %timeit b.mean
+30.3 ns ± 0.824 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+```
+
+数据格式的差异通常会带来性能上的差异。单精度与双精度，甚至浮点数与整型都会产生巨大差异，甚至导致数据计算上的错误。因此，在使用HDF5时，时刻记得检查数据格式，必要时使用HDF5提供的格式转换功能。
+
 ### Resizing Datasets
+
+前文已经讲到，当创建一个数据集后，数据集的类型就已经固定，并且不能改变。但是，数据集的形状是可以改变的。但是，尽管形状可以改变，仍然有诸多限制。
+
+```Python
+In [128]: dset = f.create_dataset('fixed', (2,2))
+
+In [129]: dset.shape
+Out[129]: (2, 2)
+
+In [130]: dset.maxshape
+Out[130]: (2, 2)
+
+In [131]: dset.resize((1,1))
+TypeError: Only chunked datasets can be resized
+```
+
+在这里，如果想将(2,2)的数据变为(1,1)，会直接引发报错。显然，如果需要改变形状，还需要其他的一些条件。
 
 #### Creating Resizable Datasets
 
+当创建一个数据集时，除了确定数据集的形状，还可以确定数据集最大可以resize的维度。在h5py中，这个属性为`maxshape`，即上例中的另一个属性。
+
+类似于`shape`，`maxshape`同样是在数据集创建时确定，但是和`shape`不同，`maxshape`一旦被确定则不能修改。如果创建数据集时用户没有显式地指定`maxshape`，HDF5就会创建一个不可改变形状的数据集，同时设置`maxshape = shape`。同时，这个数据集也会使用*contiguous storage*，这个设置也会阻止resize。关于*contiguous storage*和*chunked storage*的区别会在后面章节讨论。
+
+当设置了`maxshape`后，会发现resize的操作已经可以实现了。
+
+```Python
+In [132]: dset = f.create_dataset('resizable', (2,2), maxshape=(2,2))
+
+In [133]: dset.shape
+Out[133]: (2, 2)
+
+In [134]: dset.maxshape
+Out[134]: (2, 2)
+
+In [135]: dset.resize((1,1))
+
+In [136]: dset.shape
+Out[136]: (1, 1)
+
+```
+
+同样，形状也可以改变回去，但是显然，改变的形状不能超过`maxshape`给定的大小。
+
+```Python
+In [137]: dset.resize((2,2))
+
+In [138]: dset.shape
+Out[138]: (2, 2)
+
+In [139]: dset.resize((2,3))
+ValueError: Unable to set extend dataset (dimension cannot exceed the existing maximal size (new: 3 max: 2))
+```
+
+这个设定带来的一个问题在于，如果创建数据集时不确定最大使用的形状应该如何处理。显然，HDF5不会要求用户使用一个非常大的数定义`maxshape`，HDF5使用`None`标记无限制的状况。如果数据集的某轴被设置为`None`，则resize不会受形状上限的控制。
+
+```Python
+In [140]: dset = f.create_dataset('unlimited', (2,2), maxshape=(2, None))
+
+In [141]: dset.shape
+Out[141]: (2, 2)
+
+In [142]: dset.maxshape
+Out[142]: (2, None)
+
+In [143]: dset.resize((2,3))
+
+In [144]: dset.shape
+Out[144]: (2, 3)
+
+In [145]: dset.resize((2, 2**30))
+
+In [146]: dset.shape
+Out[146]: (2, 1073741824)
+```
+
+无论如何改变数据集的形状，总维度是不能改变的，数据集的`rank`从一开始即被固定且永远不能被改变。
+
+```Python
+In [147]: dset.resize((2,2,2))
+TypeError: New shape length (3) must match dataset rank (2)
+```
+
 #### Data Shuffling with resize
 
+在NumPy中，改变数组形状会有一些特性，以一个数组为例：
+
+```Python
+In [148]: a = np.array([[1, 2], [3, 4]])
+
+In [149]: a.shape
+Out[149]: (2, 2)
+
+In [150]: print(a)
+[[1 2]
+ [3 4]]
+```
+
+如果将这个NumPy array改变形状，同时保持元素数量不变，则会得到如下结果：
+
+```Python
+In [151]: a.resize((1,4))
+
+In [152]: print(a)
+[[1 2 3 4]]
+```
+
+如果将数组继续扩大，则会追加新的元素，并使用0进行填充：
+
+```Python
+In [153]: a.resize((1,10))
+
+In [154]: print(a)
+[[1 2 3 4 0 0 0 0 0 0]]
+
+```
+
+> 辨析：NumPy array的`resize`和`reshape`方法：
+>
+> `resize`会直接修改原数组，没有返回值而`reshape`不会修改原数组，返回值为一个新的数组
+
+这种操作在NumPy中非常普遍。但是，在HDF5中，resize会有完全不同的机制。通过创建一个新的数据集进行验证：
+
+```Python
+In [155]: dset = f.create_dataset('sizetest', (2,2), dtype=np.int32, maxshape=(None,
+     ...:  None))
+
+In [156]: dset[...] = [[1, 2], [3, 4]]
+
+In [157]: dset[...]
+Out[157]:
+array([[1, 2],
+       [3, 4]], dtype=int32)
+
+```
+
+如果对这个数据集使用类似与NumPy中同样的操作，会发现得出了完全不同的结果：
+
+```Python
+In [158]: dset.resize((1,4))
+
+In [159]: dset[...]
+Out[159]: array([[1, 2, 0, 0]], dtype=int32)
+
+In [160]: dset.resize((1,10))
+
+In [161]: dset[...]
+Out[161]: array([[1, 2, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=int32)
+```
+
+HDF5不会重新整理数据。如果将(2,2)的数据变形为(1,4)，则数据集中[1,0]和[1,1]的数据不会被重新整理，而是会直接消失。因此，在HDF5中，使用`resize`必须非常谨慎，套用NumPy中的经验会导致不可预知的后果。
+
+此外，新添加的数据被初始化为0，这个行为可以使用之前提过的`fillvalue`进行调整。
+
 #### When and How to Use resize
+
+当需要对HDF5数据集进行追加时，合理的使用`resize`可以保证性能。
+
+如果一个数据集每次需要储存1000个元素的数据，但是一开始并不知道会储存多少行，一种显而易见的方法是每次有1000个元素加入，数据集就增加一行。但是这样带来的问题在于，每一次数据的插入都会让数据集resize一次。当添加数据次数很大时，这种方法显得不那么合适。
+
+```Python
+In [162]: dset1 = f.create_dataset('timetraces', (1,1000), maxshape=(None, 1000))
+
+In [163]: def add_trace_1(arr):
+     ...:     dset1.resize((dset1.shape[0] + 1, 1000))
+     ...:     dset1[-1,:] = arr
+```
+
+因此，另一种方式是记录追加的次数，在全部数据追加完成后，一次性进行resize：
+
+```Python
+In [164]: dset2 = f.create_dataset('timetraces2', (5000, 1000), maxshape=(None, 1000
+     ...: ))
+
+In [165]: ntraces = 0
+
+In [166]: def add_trace_2(arr):
+     ...:     global ntraces
+     ...:     dset2[ntraces,:] = arr
+     ...:     ntraces += 1
+
+In [167]: def done():
+     ...:     dset2.resize((ntraces, 1000))
+```
+
+这种方法在实际运用中会有更好的性能表现。
