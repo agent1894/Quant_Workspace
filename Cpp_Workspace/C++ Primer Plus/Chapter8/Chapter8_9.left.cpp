@@ -19,10 +19,8 @@ int main()
     return 0;
 }
 
-/*
-This function returns a pointer to a new string
-consisting of the first n characters in the str string.
-*/
+// This function returns a pointer to a new string
+// consisting of the first n characters in the str string.
 char* left(const char* str, int n)
 {
     if (n < 0)
