@@ -7,6 +7,7 @@
     - [Section1 简单变量](#section1-%e7%ae%80%e5%8d%95%e5%8f%98%e9%87%8f)
     - [Section2 const限定符](#section2-const%e9%99%90%e5%ae%9a%e7%ac%a6)
     - [Section3 浮点数](#section3-%e6%b5%ae%e7%82%b9%e6%95%b0)
+    - [Section4 C++算术运算符](#section4-c%e7%ae%97%e6%9c%af%e8%bf%90%e7%ae%97%e7%ac%a6)
   - [Chapter4 复合类型](#chapter4-%e5%a4%8d%e5%90%88%e7%b1%bb%e5%9e%8b)
     - [Section1 数组](#section1-%e6%95%b0%e7%bb%84)
     - [Section2 字符串](#section2-%e5%ad%97%e7%ac%a6%e4%b8%b2)
@@ -78,6 +79,52 @@
 ### Section3 浮点数
 
 - **`float`只保证6位精度，超过6位会导致精度丢失，浮点常量在默认情况下为`double`类型。**
+
+### Section4 C++算术运算符
+
+- 5种基本的C++算术运算符：
+  - `+` 加法运算。
+  - `-` 减法运算。
+  - `*` 乘法运算。
+  - `/` 除法运算。如果分子分母均为整数，则结果为整数。
+  - `%` 求模运算。分子分母必须为整型，如果运用于浮点数则会导致编译错误。
+- C++会自动执行多种类型转换：
+  - 初始化和赋值时进行的转换：
+
+    在将一种类型的值赋给另一种类型时，值将被转换为接收变量的类型。在将值赋给取值范围更大的类型时通常不会带来问题（最多会导致效率问题），但是相反的情况下会带来一定的问题，如将`long`赋值给`float`会降低精度，将浮点数赋值给整型会丢失小数部分。
+
+  - C++11中，以`{}`方式进行初始化：
+
+    使用`{}`进行的初始化称为列表初始化(list-initialization)，这种方式对类型转换的要求更为严格，即缩窄(narrowing)操作是不被允许的。
+
+  - 表达式中的转换：
+    - 自动转换：即类型出现时便进行转换。
+  
+      在计算表达式时，C++将`bool`, `char`, `unsigned char`, `signed char`和`short`转换为`int`。这些转换被称为整型提升(integral promotion)
+
+    - 不同类型同时出现在表达式中时进行转换：
+
+      1. 如果有一个操作数的类型是`long double`，则将另一个操作数转换为`long double`。
+      2. 否则，如果有一个操作数的类型是`double`，则将另一个操作数转换为`double`。
+      3. 否则，如果有一个操作数的类型是`float`，则将另一个操作数转换为`float`。
+      4. 否则，说明操作数都是整型，执行整形提升。
+      5. 如果操作数都是`signed`或者都是`unsigned`，将低级别提升为高级别类型。
+      6. 如果操作数一个是`signed`一个是`unsigned`，且`unsigned`操作数级别高于`signed`操作数，则将有符号操作数转换为无符号操作数所属的类型。
+      7. 否则，如果有符号类型可表示无符号类型的所有可能值，则将无符号操作数转换为有符号操作数所属的类型。
+      8. 否则，均转换为有符号类型的无符号版本。
+
+    - 强制类型转换：
+
+      ```C++
+      (typeName) value // converts value to typeName type, C style
+      typename (value) // converts value to typeName type, C++ style
+      ```
+
+      此外，C++还引入4个强制类型转换运算符，这种方式的使用要求更为严格。语法为：
+
+      ```C++
+      static_cast<typeName> (value) // converts value to typeName type
+      ```
 
 ## Chapter4 复合类型
 
@@ -842,3 +889,110 @@ void recurs(argumentlist)
 
 - 在历史版本中，关键字`typename`被用`class`替代。这两种表示方法是完全等价的。
 - 在需要对多个不同类型使用同一种算法的函数时，可以使用模板，但是同样有一些情况，并非所有的类型都使用相同的算法。为了满足这种需求，可以想重载常规函数定义那样重载模板定义。和常规重载一样，被重载的模板的函数特征标必须不同。
+- 模板函数同样存在局限性，因为某些数据类型并不能正确处理。例如定义了比较运算符`>`或`<`，但是如果数据类型是数组，由于数组名为对应的地址，因此实际上比较运算符比较的是数组的地址，从而可能带来不可预知的结果。同样，赋值运算符`=`不能运用于结构，乘法运算符`*`不能运用于数组、指针、结构等，都会带来类似的问题。
+- 当需要为特定类型提供具体化的模板定义时，可以使用显式具体化(explicit specialization)这种方法。
+- 显式具体化方法：
+  - 对于给定的函数名，可以有非模板函数，模板函数和显示具体化模板函数以及他们的重载版本。
+  - 显示具体化的原型和定义应以`template <>`开头，并通过名称来指出类型。
+  - 具体化模板函数优先于常规模板函数，非模板函数优先于具体化和常规模板函数。
+- 使用函数模板本身不会生成函数定义，当编译器使用模板为特定类型生成函数定义时，会得到模板实例(instantiation)，实例化过的模板才是函数定义。
+- 编译器根据提供的类型参数（如`int`，`double`等）对模板进行实例化，从而生成函数定义，这种方式被称为隐式实例化(implicit instantiation)。
+
+  现在C++还允许显式实例化(explicit instantiation)。即直接命令编译器创建特定类型的实例，如`Swap<int>()`，其语法是在声明时用尖括号指示类型，并在声明前加上关键字`template`：
+  
+  ```C++
+  template void Swap<int>(int, int); // explicit instantiation
+  ```
+
+  在这个声明下，编译器将直接使用`Swap()`模板生成一个使用`int`类型的实例。
+- **显式实例化(explicit instantiation)和显式具体化(explicit specialization)的区别**
+
+  ```C++
+  template void Swap<int>(int, int); // explicit instantiation
+
+  template <> void Swap<int>(int &, int &); // explicit specialization
+  ```
+
+  显式具体化(explicit specialization)声明在关键字`template`后包含尖括号`<>`，而显式实例化(explicit instantiation)没有。
+
+  显式具体化(explicit specialization)是指，当面对指定的类型时，不要使用常规模板生成函数定义，而是使用专门为该指定类型显式定义的函数定义；而显式实例化(explicit instantiation)是要求编译器根据指定的类型生成模板。
+- **警告：试图在同一个文件中使用同一种类型的显式实例和显式具体化将出错。**
+- 还可以通过在程序中使用函数创建显式实例化，例如：
+
+  ```C++
+  template <typename T>
+  T Add<T a, T b> // pass by value
+  {
+    return a + b;
+  }
+  ...
+  int m = 6;
+  double x = 10.2;
+  cout << Add<double>(x, m) << endl; // explicit instantiation
+  ```
+
+  在上例中，由于模板要求两个传入的参数类型相同，因此模板和函数调用不匹配，但通过使用`Add<double>(x, m)`从而强制为`double`类型实例化，从而将参数m从`int`强制转换为`double`，以便与函数`Add<double>(double, double)`的参数匹配。
+
+  但是如果对pass by reference使用这种方式则不可行，因为引用无法指向另一种格式。
+- Specialization总结：
+
+  ```C++
+  ...
+  template <typename T>
+  void Swap(T &, T &); // template prototype
+
+  template <> void Swap<job>(job &, job &); // explicit specialization for job
+
+  int main(void)
+  {
+    template void Swap<char>(char &, char &); // explicit instantiation for char
+    short a, b;
+    ...
+    Swap(a, b); // implicit template instantiation for short
+
+    job n, m;
+    ...
+    Swap(n, m); // use explicit specialization for job
+
+    char g, h;
+    ...
+    Swap(g, h); // use explicit template instantiation for char
+    ...
+  }
+  ```
+
+  编译器看到`char`的显式实例化后，将使用模板定义生成`Swap()`的`char`版本，对于其他`Swap()`调用，编译器根据函数调用中实际使用的参数生成对应的版本。
+
+  当调用`Swap(a, b)`时，生成`Swap()`的`short`版本；当调用`Swap(n, m)`时，使用为`job`类型提供的独立定义（显式具体化，explicit specialization）；当调用`Swap(g, h)`时，使用已经显式实例化时生成的模板具体化。
+- 当出现函数重载、函数模板和函数模板重载时，C++需要使用一种策略来决定为函数调用使用哪一个函数定义，这个过程称为重载解析(overloading resolution)。简单来说，这个过程有如下三步：
+
+  1. 创建候选函数列表，包含与被调用函数名称相同的函数和模板函数。
+  2. 使用候选函数列表创建可行函数列表。
+  3. 确定是否有最佳的可行函数，如果有则使用，否则报错。
+
+  举例如下，当函数只有一个参数时：
+
+  ```C++
+  may('B'); // actual argument is type char
+  ```
+
+  首先编译器先选择所有名称为`may()`的函数和函数模板，然后寻找可以用一个参数调用的函数。以下函数均符合要求：
+
+  ```C++
+  void may(int); // #1
+  float may(float, float = 3); // #2
+  void may(char); // #3
+  char * may(const char *); // #4
+  char may(const char &); // #5
+  template<typename T> void may(const T &); // #6
+  template<typename T> void may(T *); // #7
+  ```
+
+  其中，#4和#7不符合，因为整型不能被隐式转换为指针，剩下的4个函数和一个模板具体化后都可以使用。
+
+  随后，编译器将选择最佳可行函数。选择顺序为：
+
+  1. 完全匹配，但常规函数优先于函数模板。
+  2. 提升转换（例如`char`和`short`自动转换为`int`，`float`自动转换为`double`）。
+  3. 标准转换（例如`int`转换为`char`，`long`转换为`double`）。
+  4. 用户定义的转换，如类声明中定义的转换。
