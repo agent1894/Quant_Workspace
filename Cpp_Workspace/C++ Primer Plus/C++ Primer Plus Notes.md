@@ -257,7 +257,9 @@
       cin >> size;
       cin >> size;
       int * pz = new int [size]; // dynamic binding, size set at run time
+
       ...
+
       delete [] pz; // free memory when finished
       ```
 
@@ -286,7 +288,9 @@
 
   ```C++
   #include <vector>
+
   ...
+
   using namespace std; // create a zero-size array of int
   int n;
   cin >> n;
@@ -298,7 +302,9 @@
 
   ```C++
   #include<array>
+
   ...
+
   using namespace std;
   array<int, 5> ai; // create array object of 5 ints
   array<double ,4> ad = {1.2, 2.1, 3.43, 4.3};
@@ -466,7 +472,9 @@
   {
     case label1 : statement(s)
     case label2 : statement(s)
+
     ...
+
     default : statement(s)
   }
   ```
@@ -947,16 +955,23 @@ void recurs(argumentlist)
   {
     template void Swap<char>(char &, char &); // explicit instantiation for char
     short a, b;
+
     ...
+
     Swap(a, b); // implicit template instantiation for short
 
     job n, m;
+
     ...
+
     Swap(n, m); // use explicit specialization for job
 
     char g, h;
+
     ...
+
     Swap(g, h); // use explicit template instantiation for char
+
     ...
   }
   ```
@@ -996,3 +1011,136 @@ void recurs(argumentlist)
   2. 提升转换（例如`char`和`short`自动转换为`int`，`float`自动转换为`double`）。
   3. 标准转换（例如`int`转换为`char`，`long`转换为`double`）。
   4. 用户定义的转换，如类声明中定义的转换。
+
+  所以，#1优于#2，因为`char`到`int`是提升转换，而`char`到`float`是标准转换。#3，#5，#6都优于#1和#2，因为能够完全匹配。#3和#5优于#6因为#6是模板。#3和#5都能完全匹配，通常来说这表示出现了问题，但是仍然存在例外：在进行完全匹配时，C++允许某些“无关紧要的转换”（`Type`表示任意类型）：
+  
+  | **从实参 From an Actual Argument** | **到形参 To a Formal Argument**   |
+  |:-------------------------------:|:------------------------------:|
+  | Type | Type &|
+  | Type & | Type|
+  | Type \[\] | \* Type |
+  | Type \(argument\-list\) | Type \(\*\) \(argument\-list\) |
+  | Type | const Type |
+  | Type | volatile Type |
+  | Type \* | const Type |
+  | Type \* | volatile Type \* |
+
+  因此，假设如下函数代码：
+
+  ```C++
+  struct blot
+  {
+    int a;
+    char b[10];
+  };
+
+  blot ink = {25, "spots"};
+
+  ...
+
+  recycle(ink);
+  ```
+
+  对应以下原型都能完全匹配：
+
+  ```C++
+  void recycle(blot); // #1 blot-to-blot
+  void recycle(const blot); // #2 blot-to-(const blot)
+  void recycle(blot &); // #3 blot-to-(blot &)
+  void recycle(const blot &); // #4 blot-to-(const blot &)
+  ```
+
+  通常来说，如果有多个匹配的原型，编译器无法完成重载解析过程，但是如果多个匹配的函数仍有优先顺序时，重载解析可以实现。如指向非const数据的指针和引用优先与非const指针和引用参数匹配，在`recycle()`中体现为选择函数#3，因为`ink`没有被声明为`const`；然而，`const`和非`const`的区别只适用于指针和引用指向的数据，因此如果只定义了#1和#2，则会出现错误。另一种情况是非模板函数优先于模板函数（包括显式具体化），如果两个完全匹配的函数都是模板函数，则较具体的模板函数优先，即显式具体化优先于隐式具体化。举例如下：
+
+  ```C++
+  struct blot
+  {
+    int a;
+    char b[10];
+  };
+
+  template <typename Type> void recycle (Type t); // template
+  template <> void recycle<blot> (blot & t); //specialization for blot
+
+  ...
+
+  blot ink = {25, "spots"};
+
+  ...
+
+  recycle(ink); // use specialization
+  ```
+
+  需要注意的是，所谓“最具体(most specialized)”并不意味着显式具体化，而是在编译器推断时需要进行的类型转换最少，如以下两个模板：
+
+  ```C++
+  template <typename Type> void recycle (Type t); // #1
+  template <typename Type> void recycle (Type * t); // #2
+  ```
+
+  如果程序中的调用使用如下代码：
+
+  ```C++
+  struct blot
+  {
+    int a;
+    char b[10];
+  };
+
+  blot ink = {25, "spots"};
+
+  ...
+
+  recycle(&ink); // address of a structure
+  ```
+
+  在这个调用中，`recycle(&ink)`都能与#1和#2模板匹配，在与#1匹配时，`Type`被解释为`blot*`，在与#2匹配时，`Type`被解释为`ink`。在这种情况下，#2被认为是更具体的，因为#2已经显式指出函数参数是指向`Type`的指针，因此更加具体。
+
+  以上规则被称为函数模板的部分排序规则(partial ordering rules)，和显式实例化一样，是C++98新增的特性。
+
+  此外，还可以通过编写合适的函数调用，使编译器选择用户希望使用的函数或函数模板。程序8.15有详细的示例。
+
+- 因为使用模板时不确定模板实例化时所使用的类型，因此会导致模板中一些类型无法得到确定：
+
+  - ```C++
+    template<typename T1, typename T2>
+    void ft(T1 x, T2 y)
+    {
+
+      ...
+
+      ?type? xpy = x + y;
+
+      ...
+
+    }
+    ```
+
+    在这个案例中，由于由于不知道`ft()`如何使用，因此也就无法确定`xpy`的类型，在C++11前，无法声明`xpy`的类型。
+
+    C++11后，新增了关键字`decltype`从而解决了上述问题：
+
+    ```C++
+    int x;
+    decltype(x) y; // make y the same type as x
+
+    decltype(x + y) xpy; // make xpy the same type as x + y
+    xpy = x + y;
+    // same as
+    decltype(x + y) xpy = x + y;
+    ```
+
+    因此模板函数`ft()`可以重写为：
+
+    ```C++
+    template<typename T1, typename T2>
+    void ft(T1 x, T2 y)
+    {
+
+      ...
+
+      decltype (x + y) xpy = x + y;
+
+      ...
+
+    }
