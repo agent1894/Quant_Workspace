@@ -49,6 +49,10 @@
     - [Section3 默认参数](#section3-%e9%bb%98%e8%ae%a4%e5%8f%82%e6%95%b0)
     - [Section4 函数重载](#section4-%e5%87%bd%e6%95%b0%e9%87%8d%e8%bd%bd)
     - [Seciton5 函数模板](#seciton5-%e5%87%bd%e6%95%b0%e6%a8%a1%e6%9d%bf)
+  - [Chapter9 内存模型和名称空间](#chapter9-%e5%86%85%e5%ad%98%e6%a8%a1%e5%9e%8b%e5%92%8c%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
+    - [Section1 单独编译](#section1-%e5%8d%95%e7%8b%ac%e7%bc%96%e8%af%91)
+    - [Section2 存储持续性、作用域和链接性](#section2-%e5%ad%98%e5%82%a8%e6%8c%81%e7%bb%ad%e6%80%a7%e4%bd%9c%e7%94%a8%e5%9f%9f%e5%92%8c%e9%93%be%e6%8e%a5%e6%80%a7)
+    - [Section3 名称空间](#section3-%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
 
 ## Chapter2 开始学习C++
 
@@ -1144,3 +1148,108 @@ void recurs(argumentlist)
       ...
 
     }
+    ```
+
+    通用声明为:
+
+    ```C++
+    decltype(expression) var;
+    ```
+
+    对于`decltype`确定类型，编译器需要通过如下几步进行核对：
+
+    1. 如果`expression`是没有用括号括起的标识符，则`var`类型与标识符类型相同，包括`const`等限定符：
+
+        ```C++
+          double x = 5.5;
+          double y = 7.9;
+          double &rx = x;
+          const double * pd;
+          decltype(x) w; // w is type double
+          decltype(rx) u = y; // u is type double &
+          decltype(pd) v; // v is type const double *
+        ```
+
+    2. 如果`expression`是一个函数调用，则`var`类型与函数返回值相同：
+
+        ```C++
+        long indeed(int);
+        decltype (indeed(3)) m; // m is type long
+        ```
+
+        （书中说明`m`的类型是`int`，但是根据上下文，应该是`long`）
+    3. 如果`expression`是一个左值，则`var`是指向其类型的引用：
+
+        ```C++
+        double xx = 4.4;
+        decltype((xx)) r2 = xx; // r2 is double &
+        decltype(xx) w = xx; // w is double (Stage 1 match)
+        ```
+
+    4. 如果以上都不匹配，则`var`类型与`expression`类型相同：
+
+        ```C++
+        int j = 3;
+        int &k = j;
+        int &n = j;
+        decltype(j+6) i1; // i1 type int
+        decltype(100L) i2; // i2 type long
+        decltype(k+n) i3; // i3 type int
+        ```
+
+  - 另外，还有一种情况是`decltype`无法解决的，例如：
+
+    ```C++
+    template<typename T1, typename T2>
+    ?type? gt(T1 x, T2 y)
+    {
+
+      ...
+
+      return x + y;
+    }
+    ```
+
+    同样，`x + y`的类型无法预知，同时，`decltype(x + y)`作为返回值也是无效的，因为参数`x y`并还未被声明，`decltype`必须在声明参数后才能使用。因此，C++新增了一种语法。举例，对于如下原型：
+
+    ```C++
+    double h(int x, float y);
+    ```
+
+    新增语法可以如下编写：
+
+    ```C++
+    auto h(int x, float y) -> double;
+    ```
+
+    这将返回类型移动到参数声明后面。`->`被称为后置返回类型(trailing return type)，`auto`是一个占位符，表示后置返回类型提供的类型。这种方法也可以用于函数定义：
+
+    ```C++
+    auto h(int x, float y) -> double
+    {
+      /*
+      function body
+      */;
+    }
+    ```
+
+    通过这种方式，结合`decltype`便可以给上例中`gt()`指定返回类型，即：
+
+    ```C++
+    template<typename T1, typename T2>
+    auto gt(T1 x, T2 y) -> decltype(x + y)
+    {
+
+      ...
+
+      return x + y;
+    }
+    ```
+
+## Chapter9 内存模型和名称空间
+
+### Section1 单独编译
+
+### Section2 存储持续性、作用域和链接性
+
+### Section3 名称空间
