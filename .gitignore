@@ -20,7 +20,10 @@
 **/*.log
 **/*.exe
 !**/.vscode/*
+!.gitignore
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
 !**/*.cpp
 !**/*.md
 !**/*.txt
+!**/*.h
+
