@@ -28,6 +28,24 @@
       - [Creating Resizable Datasets](#creating-resizable-datasets)
       - [Data Shuffling with resize](#data-shuffling-with-resize)
       - [When and How to Use resize](#when-and-how-to-use-resize)
+  - [How Chunking and Compression Can Help You](#how-chunking-and-compression-can-help-you)
+    - [Contiguous Storage](#contiguous-storage)
+    - [Chunked Storage](#chunked-storage)
+    - [Setting the Chunk Shape](#setting-the-chunk-shape)
+      - [Auto-Chunking](#auto-chunking)
+      - [Manually Picking a Shape](#manually-picking-a-shape)
+    - [Performance Example: Resizable Datasets](#performance-example-resizable-datasets)
+    - [Filters and Compression](#filters-and-compression)
+      - [The Filter Pipeline](#the-filter-pipeline)
+      - [Compression Filters](#compression-filters)
+      - [GZIP/DEFLATE Compression](#gzipdeflate-compression)
+      - [SZIP Compression](#szip-compression)
+      - [LZF Compression](#lzf-compression)
+      - [Performance](#performance)
+    - [Other Filters](#other-filters)
+      - [SHUFFLE Filter](#shuffle-filter)
+      - [FLETCHER32 Filter](#fletcher32-filter)
+    - [Third-Party Filters](#third-party-filters)
 
 ## Chapter1. Introduction
 
@@ -897,3 +915,39 @@ In [167]: def done():
 ```
 
 这种方法在实际运用中会有更好的性能表现。
+
+## How Chunking and Compression Can Help You
+
+### Contiguous Storage
+
+### Chunked Storage
+
+### Setting the Chunk Shape
+
+#### Auto-Chunking
+
+#### Manually Picking a Shape
+
+### Performance Example: Resizable Datasets
+
+### Filters and Compression
+
+#### The Filter Pipeline
+
+#### Compression Filters
+
+#### GZIP/DEFLATE Compression
+
+#### SZIP Compression
+
+#### LZF Compression
+
+#### Performance
+
+### Other Filters
+
+#### SHUFFLE Filter
+
+#### FLETCHER32 Filter
+
+### Third-Party Filters
