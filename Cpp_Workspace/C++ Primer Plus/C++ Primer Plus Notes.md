@@ -49,6 +49,9 @@
     - [Section3 默认参数](#section3-%e9%bb%98%e8%ae%a4%e5%8f%82%e6%95%b0)
     - [Section4 函数重载](#section4-%e5%87%bd%e6%95%b0%e9%87%8d%e8%bd%bd)
     - [Seciton5 函数模板](#seciton5-%e5%87%bd%e6%95%b0%e6%a8%a1%e6%9d%bf)
+  - [Chapter9 内存模型和名称空间](#chapter9-%e5%86%85%e5%ad%98%e6%a8%a1%e5%9e%8b%e5%92%8c%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
+    - [Section1 单独编译](#section1-%e5%8d%95%e7%8b%ac%e7%bc%96%e8%af%91)
+    - [Section2 存储持续性、作用域和链接性](#section2-%e5%ad%98%e5%82%a8%e6%8c%81%e7%bb%ad%e6%80%a7%e4%bd%9c%e7%94%a8%e5%9f%9f%e5%92%8c%e9%93%be%e6%8e%a5%e6%80%a7)
 
 ## Chapter2 开始学习C++
 
@@ -345,9 +348,12 @@
       ++x;
 
       for (n = lim; n > 0; --n)
+
       ...;
+
       // 和
       for (n = lim; n > 0; n--)
+
       ...;
       ```
 
@@ -933,7 +939,9 @@ void recurs(argumentlist)
   {
     return a + b;
   }
+
   ...
+
   int m = 6;
   double x = 10.2;
   cout << Add<double>(x, m) << endl; // explicit instantiation
@@ -945,7 +953,9 @@ void recurs(argumentlist)
 - Specialization总结：
 
   ```C++
+
   ...
+
   template <typename T>
   void Swap(T &, T &); // template prototype
 
@@ -973,6 +983,7 @@ void recurs(argumentlist)
     Swap(g, h); // use explicit template instantiation for char
 
     ...
+
   }
   ```
 
@@ -1144,3 +1155,229 @@ void recurs(argumentlist)
       ...
 
     }
+    ```
+
+    通用声明为:
+
+    ```C++
+    decltype(expression) var;
+    ```
+
+    对于`decltype`确定类型，编译器需要通过如下几步进行核对：
+
+    1. 如果`expression`是没有用括号括起的标识符，则`var`类型与标识符类型相同，包括`const`等限定符：
+
+        ```C++
+          double x = 5.5;
+          double y = 7.9;
+          double &rx = x;
+          const double * pd;
+          decltype(x) w; // w is type double
+          decltype(rx) u = y; // u is type double &
+          decltype(pd) v; // v is type const double *
+        ```
+
+    2. 如果`expression`是一个函数调用，则`var`类型与函数返回值相同：
+
+        ```C++
+        long indeed(int);
+        decltype (indeed(3)) m; // m is type long
+        ```
+
+        （书中说明`m`的类型是`int`，但是根据上下文，应该是`long`）
+    3. 如果`expression`是一个左值，则`var`是指向其类型的引用：
+
+        ```C++
+        double xx = 4.4;
+        decltype((xx)) r2 = xx; // r2 is double &
+        decltype(xx) w = xx; // w is double (Stage 1 match)
+        ```
+
+    4. 如果以上都不匹配，则`var`类型与`expression`类型相同：
+
+        ```C++
+        int j = 3;
+        int &k = j;
+        int &n = j;
+        decltype(j+6) i1; // i1 type int
+        decltype(100L) i2; // i2 type long
+        decltype(k+n) i3; // i3 type int
+        ```
+
+  - 另外，还有一种情况是`decltype`无法解决的，例如：
+
+    ```C++
+    template<typename T1, typename T2>
+    ?type? gt(T1 x, T2 y)
+    {
+
+      ...
+
+      return x + y;
+    }
+    ```
+
+    同样，`x + y`的类型无法预知，同时，`decltype(x + y)`作为返回值也是无效的，因为参数`x y`并还未被声明，`decltype`必须在声明参数后才能使用。因此，C++新增了一种语法。举例，对于如下原型：
+
+    ```C++
+    double h(int x, float y);
+    ```
+
+    新增语法可以如下编写：
+
+    ```C++
+    auto h(int x, float y) -> double;
+    ```
+
+    这将返回类型移动到参数声明后面。`->`被称为后置返回类型(trailing return type)，`auto`是一个占位符，表示后置返回类型提供的类型。这种方法也可以用于函数定义：
+
+    ```C++
+    auto h(int x, float y) -> double
+    {
+      /*
+      function body
+      */;
+    }
+    ```
+
+    通过这种方式，结合`decltype`便可以给上例中`gt()`指定返回类型，即：
+
+    ```C++
+    template<typename T1, typename T2>
+    auto gt(T1 x, T2 y) -> decltype(x + y)
+    {
+
+      ...
+
+      return x + y;
+    }
+    ```
+
+## Chapter9 内存模型和名称空间
+
+### Section1 单独编译
+
+- 推荐的设计模式为，将程序分为三部分：
+
+  1. 头文件：包含结构声明和使用这些结构的函数的原型
+  2. 源代码文件：包含与结构有关的函数的代码
+  3. 源代码文件：包含调用与结构相关的函数的代码
+
+- 不要在头文件中写完整的函数定义，这样当一个程序的多个文件都包含这个头文���时，会导致同一个函数重复定义产生错误。通常来说，头文件中一般包含：
+
+  - 函数原型
+  - 使用`#define`或`const`定义的符号常量
+  - 结构声明
+  - 类声明
+  - 模板声明
+  - 内联函数
+
+- 在包含自定义的头文件时，使用`""`而非`<>`，因为编译器对尖括号内的头文件会在系统文件中查找，而在双引号内会优先查找工作目录，没有后再查找标准位置。
+- **注意，不要使用`#include`包含源代码文件，这样会导致多重声明。**
+- 为避免多次包含同一个头文件，C++使用预处理器编译指令`#ifndef`，即(if not defined)，这样，编译器将查看`#ifndef`和`endif`之间的内容。
+
+### Section2 存储持续性、作用域和链接性
+
+- C++使用四种不同的方案存储数据，区别在于数据留存在内存中的时间：
+  - 自动存储持续性：在函数定义中声明的变量（包括函数参数）的存储持续性为自动的。他们在程序开始执行其所有的函数或代码块时被创建，在执行完函数或代码块时，他们使用的内存被释放。
+  - 静态存储持续性：在函数定义外定义的变量和使用关键字`static`定义的变量的存储持续性都为静态。他们在程序整个运行过程中存在。
+  - 线程存储持续性(C++11)：使用关键字`thread_local`声明的变量，其生命周期与所属的线程一样。
+  - 动态存储持续性：用`new`运算符分配的内存将一直存在，直到使用`delete`运算符将其释放或程序结束为止。这种内存的存储持续性为动态，有时被称为自由存储(free store)或堆(heap)。
+
+- 作用域(scope)描述了名称在多大范围内可见。链接性(linkage)描述了名称如何在不同单元间共享。
+- 在默认情况下，在函数中声明的函数参数和变量的**存储持续性为自动，作用域为局部，没有链接性。**
+- 可以使用任何在声明时其值为已知的表达式来初始化自动变量。
+- 由于自动变量的数目随函数的开始和结束而增减，因此程序必须在运行时对自动变量进行管理。常用的方法是留出一段内存，并将其视为栈，以管理变量的增减。
+
+  程序使用两个指针来跟踪栈，一个指针指向栈底（即栈开始的位置），另一个指针指向栈顶（即下一个可用内存单元）。
+- 寄存器变量由关键字`register`标识，会使用CPU寄存器来存储自动变量：
+
+  ```C++
+  register int count_fast; // request for a register variable
+  ```
+
+  在C++11后，这种方式的用法已经基本退化。
+
+- C++为静态持续变量提供了3种链接性：
+  - 外部链接性，可在其他文件中访问。必须在代码块外部声明。
+  - 内部链接性，只能在当前文件中访问。必须在代码块外部声明，并使用`static`限定符。
+  - 无链接性，只能在当前函数或代码块中访问。必须在代码块内部声明，并使用`static`限定符。
+
+  ```C++
+  ...
+
+  int global = 1000; // static duration, external linkage
+  static int one_file = 50; // static druation, internal linkage
+  int main()
+  {
+
+    ...
+
+  }
+  void funct1(int n)
+  {
+    static int count = 0; // static duration, no linkage
+    int llama = 0;
+
+    ...
+
+  }
+  void funct2(int q)
+  {
+
+    ...
+
+  }
+  ```
+
+  在上例中，`global`, `one_file`和`count`都是静态持续变量，在整个程序执行期间都存在。`count`作用域为局部，没有链接性，因此只能在`funct1()`函数中使用。与自动变量`llama`不同的是，即使`funct1()`函数没有被执行，`count`变量同样留在内存中。
+
+  如果没有显式地初始化静态变量，编译器将全部设置为0。这种变量被称为零初始化(zero-initialized)。
+
+  | **存储描述** | **持续性** | **作用域** | **链接性** | **声明** |
+  |:----------------:|:------:|:------:|:------:|:----------------------------------:|
+  | 自动 | 自动 | 代码块 | 无 | 代码块中 |
+  | 寄存器 | 自动 | 代码块 | 无 | 代码块中，使用关键字`register' |
+  | 静态，无链接性 | 静态 | 代码块 | 无 | 代码块中，使用关键字`static` |
+  | 静态，外部链接性 | 静态 | 文件 | 外部 | 不在任何函数内 |
+  | 静态，内部链接性 | 静态 | 文件 | 内部 | 不在任何函数内，使用关键字`static` |
+
+  除了默认使用的零初始化外，也可以进行表达式初始化和动态初始化。零初始化和表达式初始化会在编译时初始化变量，动态初始化则在编译后初始化。
+- 链接性为外部的变量通常称为外部变量，存储持续性为静态，作用域为整个文件，也称为全局变量。
+  - 单定义规则(One Definition Rule, ODR)是指，变量只能有一次定义。但是C++同时规定，每个使用外部变量的文件都必须声明。为了避免和ODR冲突，C++提供了两种变量声明：一种是定义声明(defining declaration)或简称为定义(definition)，给变量分配存储空间；另一种是引用声明(referencing declaration)或简称为声明(declaration)，不给变量分配存储空间，因为这是对已有变量的引用。
+  
+    引用声明使用关键字`extern`且不进行初始化，否则声明为定义，并分配存储空间。
+  
+    如果要在多个文件中使用外部变量，只需在一个文件中包含该变量的定义（单定义规则），但在使用该变量的所有其他文件中，都必须使用关键字`extern`声明：
+
+    ```C++
+    // file01.cpp
+    extern int cats = 20; // definition because of initialization
+    int dogs = 22; // also a definition
+    int fleas; // also a definition
+
+    ...
+
+    // file02.cpp
+    // use cats and dogs from file01.cpp
+    extern int cats; // not definitions because they use
+    extern int dogs; // extern and have no initialization
+
+    ...
+
+    // file98.cpp
+    // use cast, dogs and fleas from file01.cpp
+    extern int cats;
+    extern int dogs;
+    extern int fleas;
+
+    ...
+    ```
+
+    在上例中，所有文件都使用了`file01.cpp`中定义的变量`cats`和`dogs`。但`file02.cpp`没有重新声明变量`fleas`因此无法使用这个变量。
+
+    在`file01.cpp1`中，`extern`关键字并不是必须的，但是在引用这个变量的另一个文件中，必须要有`extern`关键字。
+
+  - 在程序9.6中，使用了作用域解析运算符(`::`)，放在变量名前时，该运算符表示使用变量的全局版本。
+  
+- 将`static`限定符用于作用域为整个文件的变量时，该变量的链接性将为内部的，同时会覆盖同名的全局定义。
