@@ -1,6 +1,6 @@
 // file1.cpp -- example of a three-file program
 #include <iostream>
-#include "coordin.h" // structure templates, function prototypes
+#include "Chapter9_1.coordin.h" // structure templates, function prototypes
 using namespace std;
 int main()
 {

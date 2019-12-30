@@ -1,7 +1,7 @@
 // file2.cpp -- contains functions called in file1.cpp
 #include <iostream>
 #include <cmath>
-#include "coordin.h" // structure templates, function prototypes
+#include "Chapter9_1.coordin.h" // structure templates, function prototypes
 
 // convert rectangular to polar coordiantes
 polar rect_to_polar(rect xypos)
