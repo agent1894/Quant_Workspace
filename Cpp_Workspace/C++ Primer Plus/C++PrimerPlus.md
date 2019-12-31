@@ -1471,7 +1471,196 @@ void recurs(argumentlist)
 - 除了用户定义的名称空间外，还存在另一个名称空间——全局名称空间(global namespace)，对应于文件级声明区域，因此所谓的全局变量可以描述为位于全局名称空间中。
 - 任何名称空间中的名称都不会与其他名称空间中的名称发生冲突。
 - 作用域解析运算符`::`可以访问给定名称空间的名称。未被装饰的名称称为未限定名称(unqualified name)，包含名称空间的名称称为限定名称(qualified name)。
-- C++提供了两种机制来简化对名称空间中名称的使用。
+- C++提供了两种机制来简化对名称空间中名称的使用，可以不用每次都通过作用域解析运算符`::`使用名称空间来限定名称。
 
   1. `using`声明是特定的标识符可用。
   2. `using`编译指令使整个名称空间可用。
+
+- `using`声明由被限定的名称和它前面的关键字`using`组成。`using`声将特定的名称添加到它所属的声明区域中：
+
+  ```C++
+  namespace Jill
+  {
+    double bucket(double n) // function definition
+      {
+
+        ...
+
+      }
+    double fetch; // variable declaration
+    struct Hill
+    {
+
+      ...
+
+    }; // structure declaration
+  }
+  char fetch;
+
+  int main()
+  {
+    using Jill:fetch; // put getch into local namespace
+    double fetch; // Error! Already have a local fetch
+    cin >> fetch; // read a value into Jill::fetch
+    cin >> ::fetch; // read a value into global fetch
+
+    ...
+
+  }
+  ```
+
+  在上例中，由于`using`声明将名称添加到局部声明区域中，因此这个示例避免了将另一个局部变量也命名为`fetch`，同时，和其他局部变量一样，`fetch`将覆盖同名的全局变量。
+
+- 在函数外使用`using`声明时，将把名称添加到全局名称空间中：
+
+  ```C++
+  void other();
+  namespace Jill
+  {
+    double bucket(double n)
+    {
+
+      ...
+
+    }
+    double fetch;
+    struct Hill
+    {
+
+      ...
+
+    };
+  }
+  using Jill::fetch; // put fetch into global namespace
+
+  int main()
+  {
+    cin >> fetch; // read a value into Jill:fetch
+    other()
+
+    ...
+
+  }
+
+  void other()
+  {
+    cout << fetch; // display Jill::fetch
+
+    ...
+
+  }
+  ```
+
+- `using`声明使一个名称可用，而`using`编译指令使所有的名称都可用。`using`编译指令由名称空间名和它前面的关键字`using namespace`组成，它使名称空间中所有名称都可用，而不需要使用作用域解析运算符`::`。
+
+  ```C++
+  using namespace Jack; // make all the names in Jack available
+  ```
+
+  在全局声明区域中使用`using`编译指令，将使该名称空间的名称全局可用：
+
+  ```C++
+  #include <iostream>
+  using namespace std; // places names in namespace std make names available globally
+  ```
+
+  在函数中使用`using`编译指令，将使其中的名称在该函数中可用：
+
+  ```C++
+  int main()
+  {
+    using namespace Jack; // make names available in main()
+
+    ...
+
+  }
+  ```
+
+- 如果使用作用域解析运算符，不会存在二义性，如：
+
+  ```C++
+  jack::pal = 3;
+  jill::pal = 10;
+  ```
+
+  但如果使用`using`声明，情况将发生变化：
+
+  ```C++
+  using jack::pal;
+  using jill::pal;
+  pal = 4; // which one? now have a conflict
+  ```
+
+  编译器将阻止这种声明，因为会导致二义性。
+
+- 使用`using`编译指令导入一个名称空间中所有的名称与使用多个`using`声明是不一样的，而更像是大量使用作用域解析运算符。使用`using`声明时，就如同声明了相应的名称，如果这个名称在函数中已经声明，则不能用`using`声明导入相同的名称。但在使用`using`编译指令时，将进行名称解析，就像在包含`using`声明和名称空间本身的最小声明区域中声明名称一样。在全局的名称空间中，如果使用`using`编译指令导入一个已经在函数中声明的名称，则局部名称将隐藏名称空间名，但仍然可以使用作用域解析运算符：
+
+  ```C++
+  namespace Jill
+  {
+    double bucket(double n)
+    {
+
+      ...
+
+    }
+    double fetch;
+    struct Hill
+    {
+
+      ...
+
+    };
+  }
+  char fetch; // global namespace
+  
+  int main()
+  {
+    using namespace Jill; // import all namespace names
+    Hill Thrill; // create a type Jill::Hill structure
+    double water = bucket(2); // use Jill::bucket()
+    double fetch; // not an error; hides Jill::fetch
+    cin >> fetch; // read a value into the local fetch
+    cin >> ::fetch; // read a value into global fetch
+    cin >> Jill::fetch; // read a value into Jill::fetch
+
+    ...
+
+  }
+
+  int foom()
+  {
+    Hill top; // ERROR
+    Jill::Hill crest; //valid
+  }
+  ```
+
+  在上例中，在函数`main()`中，名称`Jill::fetch`被放在局部名称空间中，但作用域不是局部的，因此不会覆盖全局的`fetch`，然而，局部声明的`fetch`将隐藏`Jill::fetch`和全局`fetch`，但是如果使用作用域解析运算符，则后两个`fetch`变量都是可用的。对比使用`using`声明的例子，可以更加直观地理解其中的区别。
+
+  尽管**函数中的`using`编译指令将名称空间的名称视为在函数之外声明**的，但是不会使该文件中的其他函数能够使用这些名称。上例中，`foom()`函数即不能使用未限定的标识符`Hill`。
+
+- **假设名称空间和声明区域定义了相同的名称，如果试图使用`using`声明将名称空间的名称导入该声明区域，则这两个名称会发生冲突，从而出错；如果使用`using`编译指令将该名称空间的名称导入该声明区域，则局部版本将隐藏名称空间版本。**
+
+  一般来说，使用`using`声明比使用`using`编译指令更加安全，因为`using`声明只导入指定的名称，如果这个名称和局部名称发生冲突，则编译器将给出提示；而使用`using`编译指令会导入所有名称，包括可能并不需要的名称，如果与局部名称发生冲突，则局部名称将覆盖名称空间版本，同时编译器并不会给出警告。
+
+- 名称空间声明可以进行嵌套：
+
+  ```C++
+  namespace elements
+  {
+    namespace fire
+    {
+      int flame;
+
+      ...
+
+    }
+    float water;
+  }
+  ```
+
+  这里，`flame`指的是`element::fire::flame`，同样。也可以使用`using`编译指令使内部名称可用：
+
+  ```C++
+  using namespace elements::fire;
+  ```
