@@ -1,6 +1,6 @@
-# C++ Primer Plus (6th Edition) Notes
+# C++ Primer Plus 6th Edition by Stephen Prata (Pearson)
 
-- [C++ Primer Plus (6th Edition) Notes](#c-primer-plus-6th-edition-notes)
+- [C++ Primer Plus 6th Edition by Stephen Prata (Pearson)](#c-primer-plus-6th-edition-by-stephen-prata-pearson)
   - [Chapter2 开始学习C++](#chapter2-%e5%bc%80%e5%a7%8b%e5%ad%a6%e4%b9%a0c)
     - [Section 4 函数](#section-4-%e5%87%bd%e6%95%b0)
   - [Chapter3 处理数据](#chapter3-%e5%a4%84%e7%90%86%e6%95%b0%e6%8d%ae)
@@ -52,6 +52,7 @@
   - [Chapter9 内存模型和名称空间](#chapter9-%e5%86%85%e5%ad%98%e6%a8%a1%e5%9e%8b%e5%92%8c%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
     - [Section1 单独编译](#section1-%e5%8d%95%e7%8b%ac%e7%bc%96%e8%af%91)
     - [Section2 存储持续性、作用域和链接性](#section2-%e5%ad%98%e5%82%a8%e6%8c%81%e7%bb%ad%e6%80%a7%e4%bd%9c%e7%94%a8%e5%9f%9f%e5%92%8c%e9%93%be%e6%8e%a5%e6%80%a7)
+    - [Section3 名称空间](#section3-%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
 
 ## Chapter2 开始学习C++
 
@@ -1395,3 +1396,82 @@ void recurs(argumentlist)
   在这种情况下，必须在所有使用该常量的文件中使用`extern`关键字来声明。注意这和常规外部变量不同。常规外部变量定义时不需要使用`extern`关键字，而是在使用该变量的其他文件中使用`extern`。
 
   另外由于单个`const`在多个文件之间共享，因此**只有一个文件可以对其进行初始化。**
+
+- C++不允许在一个函数中定义另一个函数。因此，所有函数的存储持续性都为静态。
+- 函数同样有链接性，默认情况下函数链接性为外部，即可在文件中共享。也可以使用`static`将函数链接性设置为内部，使之只能在一个文件中使用。
+- 除以上几种链接性以外，还有一种所谓语言链接性(languange linking)，主要实现不同语言不同编译器如何对函数名进行翻译并链接的行为。
+- 已介绍过的为变量分配内存的方案并不适用于使用C++运算符`new`分配的内存，这种内存被称为动态内存。动态内存由运算符`new`和`delete`控制，而不是由作用域和链接性规则控制。因此，可以在一个函数中分配动态内存，而在另一个函数中将其释放。与自动内存不同，动态内存不是LIFO，其分配和释放的顺序要取决于`new`和`delete`在何时以何种方式被使用。
+  - 可以直接使用`new`运算符进行初始化，在C++11中，可以使用大括号的列表初始化初始化常规结构或数组，例如：
+
+    ```C++
+    struct where
+    {
+      double x;
+      double y;
+      double z;
+    };
+
+    where * one = new where {2.5, 5.3, 7.2}; // C++11
+    int * ar = new int [4] (2,4,6,7); // C++11
+    ```
+
+    同样，C++11中也可以将列表初始化用于单值变量：
+
+    ```C++
+    int * pi = new int {6}; // *pi set to 6
+    double * pd = new double {99.99}; // *pd set to 99.99
+    ```
+
+  - 当`new`请求内存失败时，会引发异常`std::bad_alloc`。
+  - 运算符`new`和`new []`分别调用以下函数：
+
+    ```C++
+    void * operator new(std::size_t); // used by new
+    void * operator new[] (std::size_t); // used by new[]
+    ```
+
+    这些函数被称为分配函数(alloction function)，位于全局名称空间中，对应的有`delete`和`delete[]`调用的释放函数(deallocation function)。
+  - 通常`new`负责在堆(heap)中找到一个满足要求的内存块，但`new`运算符还有另一种变体，被称为定位(placement)`new`运算符，可以指定要使用的位置，便于进行设置内存管理，处理需要通过特定地址进行访问的硬件或在特定位置创建对象。
+
+    要使用定位`new`特性，首先需要包含头文件`<new>`，提供了定位`new`运算符的原型，然后将`new`运算符用于提供了所需地址的参数，例如：
+
+    ```C++
+    #include <new>
+    struct chaff
+    {
+      char dross[20];
+      int slag;
+    };
+    char buffer1[50];
+    char buffer2[500];
+    int main()
+    {
+      chaff * p1, * p2;
+      int * p3, * p4;
+      // first, the regular forms of new
+      p1 = new chaff; // place structure in heap
+      p3 = new int[20]; // place int array in heap
+      // now, the two forms of placement new
+      p2 = new (buffer1) chaff; // place structure in buffer1
+      p4 = new (buffer2) int[20]; // place int array in buffer2
+    }
+    ```
+
+    上例中使用了两个数组给定位`new`运算符提供内存空间。即从`buffer1`中分配空间给`chaff`，从`buffer2`中分配空间给一个包含20个元素的`int`数组。
+
+    *定位`new`运算符暂时未完全理解。*
+
+### Section3 名称空间
+
+- 声明区域(declaration region)指可以在其中进行声明的区域。当在函数外声明全局变量时，变量的声明区域为其声明所在的文件；当在函数内声明变量时，声明区域为其声明所在的代码块。
+- 潜在作用域(potential scope)指变量从声明点开始到声明区域的结尾。
+- 变量并非在其潜在作用域的全部范围内可见，例如变量常常会被另一个嵌套在声明区域中声明的同名变量隐藏。比如在函数中声明的局部变量（其声明区域为整个函数）会隐藏同一个文件中声明的全局变量（其声明区域为整个文件）。
+- 在C++新增的特性中，可以通过定义一种新的声明区域来创建命名的名称空间。一个名称空间中的名称不会与另一个名称空间中的相同名称发生冲突，同时允许程序的其他部分使用该名称空间中声明的东西。
+- 名称空间可以是全局的，也可以位于另一个名称空间中，但不能位于代码块中。因此，在默认情况下，在名称空间中声明的名称的链接性为外部的，除非引用了常量。
+- 除了用户定义的名称空间外，还存在另一个名称空间——全局名称空间(global namespace)，对应于文件级声明区域，因此所谓的全局变量可以描述为位于全局名称空间中。
+- 任何名称空间中的名称都不会与其他名称空间中的名称发生冲突。
+- 作用域解析运算符`::`可以访问给定名称空间的名称。未被装饰的名称称为未限定名称(unqualified name)，包含名称空间的名称称为限定名称(qualified name)。
+- C++提供了两种机制来简化对名称空间中名称的使用。
+
+  1. `using`声明是特定的标识符可用。
+  2. `using`编译指令使整个名称空间可用。
