@@ -240,7 +240,7 @@
   6. 指针算数。C++允许将指针和整数相加，加1的结果等于原来的地址值加上指向的对象占用的总字节数。还可以将一个指针减去另一个指针，获得两个指针的差。后一种运算将得到一个整数，仅当两个指针指向同一个数组（也可以指向超出结尾的一个位置）时，这种运算才有意义：这将得到两个元素的间隔。
 
       ```C++
-      int tacos[10] = {5,2,8,4,1,2,2,3,6,8};
+      int tacos[10] = {5, 2, 8, 4, 1, 2, 2, 3, 6, 8};
       int * pt = tacos; // suppose pt and tacos are the address 3000
       pt = pt + 1; // now pt is 3004 if a int is 4 bytes
       int *pe = &tacos[9]; // pe is 3036 if an int is 4 bytes
@@ -282,7 +282,7 @@
 
 - *指针与字符串（未完全理解）*：
   1. 在将字符串读入程序时，应使用已分配的内存地址。该地址可以是数组名，也可以是使用`new`初始化过的指针。
-  2. 应使用`strcpy()`或`strncpy()`，而不是使用赋值运算符来将字符串赋给数组。
+  2. **应使用`strcpy()`或`strncpy()`，而不是使用赋值运算符来将字符串赋给数组。**
 - 在运行时创建数组优于在编译时创建数组，对于结构也是如此
 - **当创建动态结构时，不能将成员运算符句点用于结构名，因为这个结构没有名称，只知道对应的地址。如果结构标识符是结构名，则使用句点运算符，如果标识符是指向结构的指针，则使用箭头成员运算符`->`**。如果`ps`是一个指针，指向一个结构`struct`，那么`ps->member`即为指向`struct`的member成员。
 
@@ -1412,7 +1412,7 @@ void recurs(argumentlist)
     };
 
     where * one = new where {2.5, 5.3, 7.2}; // C++11
-    int * ar = new int [4] (2,4,6,7); // C++11
+    int * ar = new int [4] (2, 4, 6, 7); // C++11
     ```
 
     同样，C++11中也可以将列表初始化用于单值变量：
@@ -1664,3 +1664,124 @@ void recurs(argumentlist)
   ```C++
   using namespace elements::fire;
   ```
+
+  名称空间中也可以使用`using`编译指令和`using`声明：
+
+  ```C++
+  namespace myth
+  {
+    using Jill::fetch;
+    using namespace elements;
+    using std::cout;
+    using std::cin;
+  }
+  ```
+
+  此时如果需要访问`Jill::fetch`，由于`Jill::fetch`位于名称空间`myth`中，因此可以这样访问：
+
+  ```C++
+  std::cin >> myth::fetch;
+  ```
+
+  同样，`fetch`也位于`Jill`名称空间中，因此仍然可以使用`Jill::fetch`：
+
+  ```C++
+  std::cout << Jill::fetch; // display value read into myth::fetch
+  ```
+
+  如果没有冲突的局部变量，也可以写为：
+
+  ```C++
+  using namespace myth;
+  cin >> fetch; // readlly std::cin and Jill::fetch
+  ```
+
+  同时，上例中使用的`using`编译指令也被进行了传递，即：
+
+  ```C++
+  using namespace myth;
+  ```
+
+  等价于：
+
+  ```C++
+  using namespace myth;
+  using namespace elements;
+  ```
+
+- 名称空间可以创建别名，例如：
+
+  ```C++
+  namespace my_very_favourite_things {...};
+  namespace mvft = my_very_favourite_thins; // alias  
+  ```
+
+  从而可以简化对嵌套名称的使用：
+
+  ```C++
+  namespace MEF = myth::elements::fire;
+  using MEF::flame;
+  ```
+
+- 可以通过省略名称空间的名称来创建未命名的名称空间：
+
+  ```C++
+  namespace // unnamed namespace
+  {
+    int ice;
+    int bandycoot;
+  }
+  ```
+
+  这种声明方法的潜在作用域为从该声明点到该声明区域的末尾。由于未命名的名称空间没有名称，因此无法显式地使用`using`编译指令或`using`声明来使其可以在其他位置使用，因此，可以理解为提供了链接性为内部的静态变量的替代品。举例如下：
+
+  ```C++
+  static int counts; // static storage, internal linkage
+  int other();
+  int main();
+  {
+
+    ...
+
+  }
+  
+  int other();
+  {
+
+    ...
+
+  }
+  ```
+
+  可以采用名称空间方法为：
+
+  ```C++
+  namespace
+  {
+    int counts; // static storage, internal linkage
+  }
+  int other();
+  int main();
+  {
+
+    ...
+
+  }
+
+  int other();
+  {
+
+    ...
+
+  }
+  ```
+
+- 名称空间的指导原则：
+
+  - 使用在已命名的名称空间中声明的变量，而不是使用外部全局变量。
+  - 使用在已命名的名称空间中声明的变量，而不是使用静态全局变量。
+  - 如果开发了一个函数库或类库，将其放在一个名称空间中。
+  - 仅将编译指令`using`作为一种将旧代码转换为使用名称空间的权宜之计。
+  - 不要在头文件中使用`using`编译指令。
+  - 导入名称时，首选使用作用域解析运算符`::`或`using`声明的方法。
+  - 对于`using`声明，首选将其作用域设置为局部而不是全局。
