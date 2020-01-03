@@ -53,6 +53,8 @@
     - [Section1 单独编译](#section1-%e5%8d%95%e7%8b%ac%e7%bc%96%e8%af%91)
     - [Section2 存储持续性、作用域和链接性](#section2-%e5%ad%98%e5%82%a8%e6%8c%81%e7%bb%ad%e6%80%a7%e4%bd%9c%e7%94%a8%e5%9f%9f%e5%92%8c%e9%93%be%e6%8e%a5%e6%80%a7)
     - [Section3 名称空间](#section3-%e5%90%8d%e7%a7%b0%e7%a9%ba%e9%97%b4)
+  - [Chapter10 对象和类](#chapter10-%e5%af%b9%e8%b1%a1%e5%92%8c%e7%b1%bb)
+    - [Section1 过程性编程和面向对象编程](#section1-%e8%bf%87%e7%a8%8b%e6%80%a7%e7%bc%96%e7%a8%8b%e5%92%8c%e9%9d%a2%e5%90%91%e5%af%b9%e8%b1%a1%e7%bc%96%e7%a8%8b)
 
 ## Chapter2 开始学习C++
 
@@ -1785,3 +1787,7 @@ void recurs(argumentlist)
   - 不要在头文件中使用`using`编译指令。
   - 导入名称时，首选使用作用域解析运算符`::`或`using`声明的方法。
   - 对于`using`声明，首选将其作用域设置为局部而不是全局。
+
+## Chapter10 对象和类
+
+### Section1 过程性编程和面向对象编程
