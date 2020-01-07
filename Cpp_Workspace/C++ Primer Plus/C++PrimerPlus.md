@@ -57,6 +57,9 @@
     - [Section1 过程性编程和面向对象编程](#section1-%e8%bf%87%e7%a8%8b%e6%80%a7%e7%bc%96%e7%a8%8b%e5%92%8c%e9%9d%a2%e5%90%91%e5%af%b9%e8%b1%a1%e7%bc%96%e7%a8%8b)
     - [Section2 抽象和类](#section2-%e6%8a%bd%e8%b1%a1%e5%92%8c%e7%b1%bb)
     - [Section3 类的构造函数和析构函数](#section3-%e7%b1%bb%e7%9a%84%e6%9e%84%e9%80%a0%e5%87%bd%e6%95%b0%e5%92%8c%e6%9e%90%e6%9e%84%e5%87%bd%e6%95%b0)
+    - [Section4 this指针](#section4-this%e6%8c%87%e9%92%88)
+    - [Section5 对象数组](#section5-%e5%af%b9%e8%b1%a1%e6%95%b0%e7%bb%84)
+    - [Section6 类作用域](#section6-%e7%b1%bb%e4%bd%9c%e7%94%a8%e5%9f%9f)
 
 ## Chapter2 开始学习C++
 
@@ -80,7 +83,7 @@
 - `unsigned`是无符号变体，可以增加变量能够储存的最大值，但是仅适用于非负数据。如`short`保存-32768到32767，但是`unsigned short`可以保存0-65535。
 - C++中，**单引号用于字符，双引号用于字符串**。
 
-### Section2 const限定符
+### Section2 `const`限定符
 
 - `const`定义常量时，常量名推荐使用全部大写，同时不要使用`#define`进行定义，因为`const`可以对常量作用域有更好的限制。
 
@@ -145,7 +148,7 @@
 - `cin`的基础特性中，会识别输入的第一个单词，随后在结尾处加入空白。因此，后续输入的内容会被放入输入队列中，这会直接影响下一次输入时的状态。
 - 在Chapter2 Section3中遇到的`cin.get()`的问题，在此得到解决。即不定义`char array`时，`cin.get()`仅会读取一个字符，而使用`cin.get(name, ArSize)`时，编译器会读取一个字符串放入数组中。
 
-### Section3 string类简介
+### Section3 `string`类简介
 
 - `<cstring>`头文件提供了标准C语言库的字符串函数，用来处理字符数组。而`<string>`头文件则定义了`string`类。
 
@@ -160,7 +163,70 @@
 
 ### Section6 枚举
 
-- *暂时还不能理解枚举的意义*
+- 枚举提供了另一种创建符号常量的方式。例如：
+
+  ```C++
+  enum spectrum {red, orange, yellow, green, blue, violet, indigo, ultraviolet};
+  ```
+
+  这条语句使`spectrum`称为新类型的名称，`spectrum`被称为枚举(enumeration)；将`red, orange, yellow`等作为符号常量，对应整数值0-7，这些常量被称为枚举量(enumerator)。
+- 默认情况下会将整数值赋给枚举量，也可以显式地指定整数值来覆盖默认值。
+- 可以使用枚举名来声明这种类型的变量：
+
+  ```C++
+  spectrum band; // band is a variable of type spectrum
+  ```
+
+- 在不进行强制类型装换的情况下，只能将定义枚举时使用的枚举量赋给这种枚举的变量：
+
+  ```C++
+  band = blue; // valid, blue is an enumerator
+  band = 2000; // invalid, 2000 is not an enumerator
+  ```
+
+  因此，`spectrum`变量受到限制，只有8个可能的值。
+- 对于枚举，只定义了赋值运算符，没有为枚举定义算术运算：
+
+  ```C++
+  band = orange; // valid
+  ++band; // not valid
+  band = orange + red; // not valid, but a little tricky
+  ```
+
+- 枚举量是整型，可被提升为`int`类型，但`int`类型不能自动转换为枚举类型。
+
+  ```C++
+  int color = blue; // valid, spectrum type promoted to int
+  band = 3; // invalid, int not converted to spectrum
+  color = 3 + red; // valid, red converted to int
+  ```
+
+- 如果`int`值是有效的，则可以通过强制类型转换，将它赋给枚举变量；如果对一个不适当的值进行强制类型转换，则会出现不确定的结果。
+
+  ```C++
+  band = spectrum(3); // typecast 3 to type spectrum
+  band = spectrum(40003); // undefined
+  ```
+
+- 可以使用赋值运算符显式的设置枚举量的值：
+
+  ```C++
+  enum bits{one = 1, two = 2, four = 4, eight = 8};
+  ```
+
+  指定的值必须是整数，也可以只显式的定义其中一些枚举量的值：
+
+  ```C++
+  enum bigstep{first, second = 100, third};
+  ```
+
+  在这里，`first`在默认情况下为0，没有被初始化的枚举量的值将比其前面的枚举量大1，因此`third`的值为101。
+
+  也可以创建多个值相同的枚举量：
+
+  ```C++
+  enum {zero, null = 0, one, numero_uno = 1};
+  ```
 
 ### Section7 指针和自由存储空间
 
@@ -321,7 +387,7 @@
 
 ## Chapter5 循环和关系表达式
 
-### Section1 for循环
+### Section1 `for`循环
 
 - for循环的组成：循环只进行一次初始化；test-expression（测试表达式）决定循环体是否被执行，通常，这个表达式是关系表达式，即对两个值进行比较；**update-expression（更新表达式）在每轮循环结束时执行，此时循环体已经执行完毕**。通常，它用来对跟踪循环轮次的变量的值进行增减。
 
@@ -371,16 +437,16 @@
 
 - 比较C-字符串，应当使用C-风格字符串库中的`strcmp()`函数来比较。该函数接受两个字符串地址作为参数，这意味着参数可以是指针、字符串常量或字符串数组名。如果两个字符串相同，该函数将返回零；如果第一个字符串按字母顺序排在第二个字符串之前，则`strcmp()`将返回一个负数值；如果第一个字符串按字母顺序排在第二个字符串之后，则`strcmp()`将返回一个正数值。注意此处字符是根据字符的系统编码进行比较的。如果使用ASCII码时，所有大写字母的编码都比小写字母小，所以大写字母将位于小写字母之前，同时这也意味着大小写是敏感的。
 
-### Section2 while循环
+### Section2 `while`循环
 
-- while循环是没有初始化和更新部分的for循环，它只有测试条件和循环体。
+- `while`循环是没有初始化和更新部分的`for`循环，它只有测试条件和循环体。
 
   ```C++
   while (test-condition)
     body
   ```
 
-- 标点符号的使用要特别注意。分号结束一个语句，而for或while为一个完整的语句，下面提供了一个错误的示例。由于错误的使用了分号，会导致花括号内的代码位于循环后，永远不会被执行，构成了一个死循环。
+- 标点符号的使用要特别注意。分号结束一个语句，而`for`或`while`为一个完整的语句，下面提供了一个错误的示例。由于错误的使用了分号，会导致花括号内的代码位于循环后，永远不会被执行，构成了一个死循环。
 
   ```C++
   i = 0;
@@ -393,15 +459,15 @@
   ```
 
 - 延迟循环：使用头文件`<ctime>`实现，其中定义了符号常量`CLOCKS_PER_SEC`，该常量等于每秒钟包含的系统时间单位数。因此，将系统时间（函数`clock()`）除以这个值，可以得到秒数，或将秒数乘以这个值，可以得到以系统时间单位为单位的时间。同时`<ctime>`将`clock_t`作为`clock()`返回类型的别名，因此可以将变量声明为`clock_t`类型，从而避免不同的系统或编译器对`clock()`函数返回值的类型的差异。
-- 类型别名：C++为类型建立别名的方式有两种，一种是使用预处理器`#define`，这种方式书中并不推荐，包括在定义`const`常量时（可能是为了和C的语法做出一定的区别，并体现出C++的特性？）。另一种则是使用C++（和C）的关键字`typedef`来创建别名。`typedef`不会创建新类型，而只是为已有的类型建立一个新名称。`typedef`的通用格式为：
+- 类型别名：C++为类型建立别名的方式有两种，一种是使用预处理器`#define`，这种方式书中并不推荐，包括在定义`const`常量时。另一种则是使用C++（和C）的关键字`typedef`来创建别名。`typedef`不会创建新类型，而只是为已有的类型建立一个新名称。`typedef`的通用格式为：
 
   ```C++
   typedef typeName aliasName;
   ```
 
-### Section3 do while循环
+### Section3 `do while`循环
 
-- do while循环不同于for循环和while循环，do while时出口条件(exit condition)循环，即这种循环将**首先执行循环体，在判定测试表达式，因此这样的循环通常至少执行一次**。其语法结构为：
+- `do while`循环不同于`for`循环和`while`循环，`do while`时出口条件(exit condition)循环，即这种循环将**首先执行循环体，在判定测试表达式，因此这样的循环通常至少执行一次**。其语法结构为：
 
   ```C++
   do
@@ -409,9 +475,9 @@
   while (test_expression);
   ```
 
-### Section4 基于范围的for循环（C++11）
+### Section4 基于范围的`for`循环（C++11）
 
-- 基于范围(range-based)的for循环是C++11新增的新特性，使对数组的每个元素执行相同操作的循环成为可能。
+- 基于范围(range-based)的`for`循环是C++11新增的新特性，使对数组的每个元素执行相同操作的循环成为可能。
 - 会在模板容器类中做详细讨论
 
 ### Section5 循环和文本输入
@@ -431,7 +497,7 @@
 
 ## Chapter6 分支语句和逻辑运算符
 
-### Section1 if语句
+### Section1 `if`语句
 
 - 从语法上看，整个if else结构被视为一条语句。
 - if else if else结构，看似是一种新的结构，实际上是由于C++的自由格式允许将这些元素排列成便于阅读的格式。它只是一个if else被包含在另一个if else中。
@@ -439,17 +505,17 @@
 ### Section2 逻辑表达式
 
 - 逻辑运算符：
-  1. OR: ||
-  2. AND: &&
-  3. NOT: !
-- C++规定，||和&&运算符是个顺序点(sequence point)，也就是说，先修改左侧的值，再对右侧的值进行判定（C++11的说法是，运算符左边的子表达式先于右边的子表达式）。举例如下：
+  1. `OR: ||`
+  2. `AND: &&`
+  3. `NOT: !`
+- C++规定，`||`和`&&`运算符是个顺序点(sequence point)，也就是说，先修改左侧的值，再对右侧的值进行判定（C++11的说法是，运算符左边的子表达式先于右边的子表达式）。举例如下：
 
   ```C++
   i++ < 6||i == j
   ```
 
   假设原来的值为10，则在对i和j进行比较时，i的值将为11。
-- 取值范围测试的每一部分都使用AND运算符将两个完整的关系表达式组合起来，**不要使用数学符号**。
+- 取值范围测试的每一部分都使用`AND`运算符将两个完整的关系表达式组合起来，**不要使用数学符号**。
 
   ```C++
   if (age > 17 && age < 35) // OK
@@ -463,20 +529,20 @@
   ```
 
   **但`17 < age`的值要么为`true(1)`，要么为`false(0)`。不管是哪种情况，表达式`17 < age`的值都小于35，因此整个测试的结果总是true!**
-- C++逻辑OR(||)和逻辑AND(&&)运算符的优先级都低于关系运算符，但是NOT(!)运算符的优先级高于所有的关系运算符和算术运算符，但是**逻辑AND运算符的优先级高于逻辑OR运算符**。
-- C++可以使用and or not替代&& || !
+- C++逻辑`OR(||)`和逻辑`AND(&&)`运算符的优先级都低于关系运算符，但是`NOT(!)`运算符的优先级高于所有的关系运算符和算术运算符，但是**逻辑`AND`运算符的优先级高于逻辑`OR`运算符**。
+- C++可以使用`and or not`替代`&& || !`。
 
-### Section3 字符函数库cctype
+### Section3 字符函数库`cctype`
 
 - `<cctype>`类库提供了对分析字符串更好的方式。
 
-### Section4 ?:运算符
+### Section4 `?:`运算符
 
 - `?:`运算符类似于Python中的三元表达式。
 
-### Section5 switch语句
+### Section5 `switch`语句
 
-- switch语句的通用格式：
+- `switch`语句的通用格式：
 
   ```C++
   switch (integer-expression)
@@ -492,10 +558,10 @@
 
 - **integer expression 必须是一个结果为整数值的表达式，每个标签都必须是整数常量表达式。最常见的标签是`int`或`char`常量，也可以是枚举量。**
 - **C++中的`case`标签只是行标签，而不是选项之间的界线。当程序跳到switch中特定代码行后，将依次执行之后的所有语句，除非有明确的其他知识。程序不会在执行到下一个`case`处自动停止，要让程序执行完以组特定语句后停止，必须使用`break`语句。**
-- switch中的每一个`case`标签都必须是一个单独的值，且必须是整数（包括`char`），因此switch无法处理浮点测试。
-- 如果所有的选项都可以用整数常量来标识，则可以使用switch语句或if else语句。如果既可以使用if else if语句，也可以使用switch语句，则当选项不少于3个时，应使用switch语句（代码长度和执行速度上，switch语句效率更高）。
+- `switch`中的每一个`case`标签都必须是一个单独的值，且必须是整数（包括`char`），因此`switch`无法处理浮点测试。
+- 如果所有的选项都可以用整数常量来标识，则可以使用`switch`语句或`if else`语句。如果既可以使用`if else if`语句，也可以使用`switch`语句，则当选项不少于3个时，应使用`switch`语句（代码长度和执行速度上，`switch`语句效率更高）。
 
-### Section6 break和continue语句
+### Section6 `break`和`continue`语句
 
 - `continue`跳过循环体剩余的部分，开始新一轮循环。
 - `break`跳过循环的剩余部分，到达下一条语句。
@@ -525,7 +591,7 @@
   - **打开已有的文件以接受输出时，默认将原文件清空。**
 - 文件输入和控制台输入的关系与文件输出和控制台输出的关系非常类似。
   - `<cstdlib>`头文件定义了一个用于同操作系统通信的参数值`EXIT_FAILURE`。
-  - 由于方法`good()`指出读取输入的操作是否成功，因此，应该在执行读取输入的操作后立刻使用`good()`进行测试。在sumafile.cpp中，使用的方法是先放置一条输入语句，然后在循环的末尾在放置另一条输入语句，即：
+  - 由于方法`good()`指出读取输入的操作是否成功，因此，应该在执行读取输入的操作后立刻使用`good()`进行测试。在`sumafile.cpp`中，使用的方法是先放置一条输入语句，然后在循环的末尾在放置另一条输入语句，即：
 
     ```C++
     // standard file-reading loop design
@@ -587,7 +653,7 @@
   - **指针指向一个常量对象**，这样可以防止使用该指针来修改所指向的值。
   - **将指针本身声明为常量**，这样可以防止改变指针指向的位置。
 
-  首先声明一个指向常量的指针pt：
+  首先声明一个指向常量的指针`pt`：
 
   ```C++
   int age = 39;
@@ -630,7 +696,7 @@
   int *ar2 [4]; // 4个指向int指针组成的数组， 其实写成int* ar2 [4];会更好理解。int*说明ar2是指针
   ```
 
-  *同样，在使用const时仍有困惑*
+  *同样，在使用`const`时仍有困惑*
 
 ### Section5 函数和C-风格字符串
 
@@ -654,21 +720,17 @@
 
 ### Section9 递归
 
-```C++
-void recurs(argumentlist)
-void recurs(argumentlist)
-void recurs(argumentlist)
-void recurs(argumentlist)
-void recurs(argumentlist)
-void recurs(argumentlist)
-void recurs(argumentlist)
-{
-  statement1;
-  if (test)
-    recurs(arguments);
-  statements2;
-}
-```
+- 如果递归函数调用自己，则被调用的函数也将调用自己，从而无限循环下去，除非代码中包含终止调用链的内容。
+
+  ```C++
+  void recurs(argumentlist)
+  {
+    statement1;
+    if (test)
+      recurs(arguments);
+    statements2;
+  }
+  ```
 
   在这个递归函数中，只要if语句为`true`，每个`recurs()`调用都将执行statements1，然后再调用`recurs()`，而不会执行statements2.当if为`false`时，当前调用将执行statements2，然后程序控制权将返回调用它的`recurs()`，再执行statements2。因此，statements1会**按函数调用的顺序执行n次，而statements2将以与函数调用相反的顺序执行n次。**
 
@@ -1867,3 +1929,189 @@ void recurs(argumentlist)
     ```
 
     无论哪种方法，都可在公有接口中在参数名中包含company和shares。
+
+- C++提供了两种使用构造函数进行初始化对象的方法：
+  - 显式地调用构造函数：
+
+    ```C++
+    Stock food = Stock("World Cabbage", 250, 1.25);
+    ```
+
+  - 隐式地调用构造函数：
+
+    ```C++
+    Stock garment("Furry Mason", 50, 2.5);
+    ```
+
+  每次创建类对象，甚至使用`new`动态分配内存时，C++都使用类构造函数，例如：
+
+  ```C++
+  Stock* pstock = new Stock("Electroshock Games", 18, 19.0);
+  ```
+
+  当没有提供构造函数时，C++会自动提供默认构造函数，但是不初始化其成员。一旦为类定义了构造函数后，就必须为它提供默认构造函数，否则声明会出错。
+
+  在设计类时，通常应提供对所有类成员做隐式初始化的默认构造函数。
+
+- 析构函数会在对象过期时完成清理工作。如果构造函数使用`new`来分配内存，则析构函数将使用`delete`来释放内存。
+- 析构函数的名称为在类名前加`~`，和构造函数一样，析构函数也没有返回值和声明类型，同时析构函数没有参数。
+
+  通常不应在代码中显式地调用析构函数。如果创建的是静态存储类对象，则其析构函数将在程序结束时自动被调用；如果创建的是自动存储类对象，则其析构函数将在程序执行完代码块时自动被调用；如果对象是通过`new`创建的，则它将驻留在栈内存或堆内存（自由存储区）中，当使用`delete`释放内存时，其析构函数将自动被调用。
+- 由于在类对象过期时析构函数将自动被调用，因此必须有一个析构函数。如果没有提供析构函数，则编译器将隐式地声明一个默认析构函数，并在发现导致对象被删除的代码后，提供默认析构函数的定义。
+- 在默认情况下，将一个对象赋给同类型的另一个对象时，C++将源对象的每个数据成员的内容复制到目标对象中相应的数据成员中。
+- 当应用构造函数至已存在对象时，构造函数会创建一个新的临时的对象，将内容复制到已存在对象中，然后编译器调用析构函数，以删除临时对象。
+- 自动变量被存放于栈中，因此最后创建的对象将最先被删除。
+- 根据编译器的不同，初始化创建有指定值的对象，可能会创建临时对象，可能不会，因此可能会调用析构函数，也可能不会；而在赋值语句中使用构造函数则总会在赋值前创建一个临时对象，相应的也会调用析构函数。如果既可以通过初始化，也可以通过赋值来设置对象的值，则应采用初始化的方式，这种方式的效率更高。
+- C++11中，支持使用列表初始化语法，只要用大括号括起即可。
+- 当出现如下情况时：
+
+  ```C++
+  const Stock land = Stock("Kludgehorn Properties");
+  land.show();
+  ```
+
+  编译器将拒绝第二行。因为`show()`的代码无法确保调用对象不被修改（因为是`const`）。在之前会在函数声明中将参数声明为`const`引用或指向`const`的指针，但是在这里，`show()`不提供任何参数，而且使用的对象是由方法调用提供的，因此需要使用另一种语法保证函数不会修改调用对象。解决方法是将`const`关键字放在函数的括号后面，即`show()`的声明更新为：
+
+  ```C++
+  void show() const; // promises not to change invoking object
+  ```
+
+  函数定义的开头则为：
+
+  ```C++
+  void stock::show() const // promises not to change invoking object
+  ```
+
+  以这种方式声明和定义的类函数被称为`const`成员函数，只要类方法不修改调用对象，就应将其声明为`const`。
+
+- 构造函数和析构函数小结：
+  - 构造函数是一种特殊的类成员函数，在创建类对象时被调用。
+  - 构造函数的名称和类名相同，但通过函数重载，可以创建多个同名的构造函数，条件是每个函数的特征标都不同。
+  - 构造函数没有声明类型。
+  - 构造函数用于初始化类对象的成员，初始化应与构造函数的参数列表匹配。例如，`Bozo`类的构造函数原型为：
+
+    ```C++
+    Bozo(const char* fname, const char* lname); // constructor prototype
+    ```
+
+    则可以用来初始化新对象：
+
+    ```C++
+    Bozo bozetta = Bozo("Bozetta", "Biggens"); // primary form
+    Bozo fufu("Fufu", "O'Dweeb"); // short form
+    Bozo* pc = new Bozo("Popo", "Le Peu"); // dynamic object
+    // C++11
+    Bozo boztta = {"Bozetta", "Biggens"};
+    Bozo fufu{"Fufu", "O'Dweeb"};
+    Bozo* pc = new Bozo{"Popo", "Le Peu"};
+    ```
+
+  - 如果构造函数只有一个参数，则将对象初始化为一个与参数的类型相同的值时，该构造函数将被调用。例如，`Bozo`类的构造函数原型为：
+
+    ```C++
+    Bozo(int age);
+    ```
+
+    则可以初始化对象：
+
+    ```C++
+    Bozo dribble = Bozo(44); // primary form
+    Bozo roon(66); // secondary form
+    Bozo tubby = 32; // special form for one-argument constructors
+    ```
+
+    其中第三种是一个特性，**接受一个参数的构造函数允许使用赋值语法将对象初始化为一个值**：
+
+    ```C++
+    Classname object = value;
+    ```
+
+    这种特性可能导致问题，因此后续将提到如何关闭这项特性。
+
+  - 默认构造函数没有参数，如果创建对象时没有进行显式初始化，则将调用默认构造函数。如果程序中没有提供任何构造函数，则编译器会为程序定义一个默认构造函数，否则必须自己提供默认构造函数。默认构造函数可以没有任何参数，如果有，则必须给所有参数都提供默认值。
+  - 当对象被删除时，程序将调用析构函数。每个类都只能有一个析构函数。
+  - 析构函数没有返回类型，也没有参数，其名称为类名称前加上`~`。
+  - **如果构造函数使用了`new`，则必须提供使用`delete`的析构函数**。
+
+### Section4 `this`指针
+
+- 当需要在函数调用中返回对象本身，可以使用`this`指针。`this`指针指向用来调用成员函数的对象，`this`被作为隐藏参数传递给方法。一般来说，所有的类方法都将`this`指针设置为调用它的对象的地址。
+- 每个成员函数（包括构造函数和析构函数）都有一个`this`指针。`this`指针指向调用对象。如果方法需要引用整个调用对象，则可以使用表达式`*this`。在函数的括号后面使用`const`限定符将`this`限定为`const`，这样将不能使用`this`来修改对象的值。
+
+  然而，要返回的并不是`this`，因为`this`是对象的地址，对象本身是`*this`（将解除引用运算符`*`用于指针，将得到指针指向的值）。
+
+### Section5 对象数组
+
+- 声明对象数组的方法与声明标准类型数组相同。
+- 当程序创建未被显式初始化的类对象时，总是调用默认构造函数。声明对象数组要求类要么没有显式地定义任何构造函数，那将使用不执行任何操作的隐式默认构造函数，要么定义了一个显式默认构造函数。
+- 可以用构造函数来初始化数组。在这种情况下，必须为每个元素调用构造函数。
+
+### Section6 类作用域
+
+- 类作用域意味着不能从外部直接访问类的成员，即使要调用公有成员函数，也必须通过对象。
+- 在定义成员函数时，必须使用作用域解析运算符。
+- 在类中直接声明一个常量是不可行的，因为声明类只是描述了对象的形式，并没有创建对象：
+
+  ```C++
+  class Bakery
+  {
+    private:
+      const int Months = 12; // declare a constant? FAILS
+      double costs[Months];
+
+      ...
+
+  }
+  ```
+
+  要实现这个目标，通常有两种做法：
+  - 在类中声明一个枚举。在类声明中声明的枚举的作用域为整个类，因此可以用枚举为整型常量提供作用域为整个类的符号名称。即：
+
+    ```C++
+    class Bakery
+    {
+      private:
+        enum {Months = 12};
+        double costs[Months];
+
+        ...
+
+    }
+    ```
+
+  - 另一种方式是使用关键字`static`：
+
+    ```C++
+    class Bakery
+    {
+      private:
+        static const int Months = 12;
+        double costs[Months];
+
+        ...
+
+    }
+    ```
+
+- 在传统枚举中，不同枚举定义中的枚举量可能发生冲突，例如：
+
+  ```C++
+  enum egg{Small, Medium, Large, Jumbo};
+  enum t_shirt{Small, Medium, Large, Jumbo};
+  ```
+
+  这将无法通过编译，因为处于相同的作用域中会导致冲突。
+
+  C++11提供了一种新的枚举，其枚举作用域为类，其声明类似于：
+
+  ```C++
+  enum class egg {Small, Medium, Large, Jumbo};
+  enum class t_shirt{Small, Medium, Large, Xlarge};
+  ```
+
+  需要使用枚举名来限定枚举量：
+
+  ```C++
+  egg choice = egg::Large; // the Large enumerator of the egg enum
+  t_shirt Floyd = t_shirt::Large; // the Large enumerator of the t_shirt enum
+  ```
