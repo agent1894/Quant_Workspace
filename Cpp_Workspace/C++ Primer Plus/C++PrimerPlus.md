@@ -60,6 +60,7 @@
     - [Section4 this指针](#section4-this%e6%8c%87%e9%92%88)
     - [Section5 对象数组](#section5-%e5%af%b9%e8%b1%a1%e6%95%b0%e7%bb%84)
     - [Section6 类作用域](#section6-%e7%b1%bb%e4%bd%9c%e7%94%a8%e5%9f%9f)
+    - [Section7 抽象数据类型](#section7-%e6%8a%bd%e8%b1%a1%e6%95%b0%e6%8d%ae%e7%b1%bb%e5%9e%8b)
 
 ## Chapter2 开始学习C++
 
@@ -2115,3 +2116,15 @@
   egg choice = egg::Large; // the Large enumerator of the egg enum
   t_shirt Floyd = t_shirt::Large; // the Large enumerator of the t_shirt enum
   ```
+
+### Section7 抽象数据类型
+
+- 抽象数据类型(abstract data type, ADT)可以用类来很好的实现。所谓抽象数据类型，即以一种通用的方式描述数据类型，而不引入语言或实现细节。
+- 例如，栈就是一种管理变量的抽象数据类型。根据栈的特征，可以由可对它执行的操作来描述：
+  - 可创建空栈。
+  - 可将数据项添加到栈顶（压入）。
+  - 可从栈顶删除数据项（弹出）。
+  - 可查看栈是否填满。
+  - 可查看栈是否为空。
+
+  将上述描述转换为类声明，使用公有成员函数提供栈操作的接口，使用私有数据成员存储栈数据。
