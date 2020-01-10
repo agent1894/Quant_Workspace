@@ -25,7 +25,9 @@ int setgolf(golf & g)
         return 1;
     }
     else
+    {
         return 0;
+    }
 }
 
 void handicap(golf & g, int hc)
