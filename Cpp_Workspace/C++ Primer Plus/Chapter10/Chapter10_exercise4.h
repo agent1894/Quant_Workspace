@@ -8,26 +8,27 @@ namespace SALES
         private:
             static const int QUARTERS = 4;
             double sales[QUARTERS];
-            int length;
+            double sum;
+            double min;
+            double max;
+            double average;
             void calculate()
             {
-                double sum = 0.0;
-                double min = sales[0];
-                double max = sales[0];
-                double average = 0.0;
-                for (int i = 0; i < ((length < QUARTERS) ? length : QUARTERS); i++)
+                sum = 0.0;
+                min = sales[0];
+                max = sales[0];
+                average = 0.0;
+                for (int i = 0; i < QUARTERS; i++)
                 {
                     sum += sales[i];
                     min = (min < sales[i]) ? min : sales[i];
                     max = (max > sales[i]) ? max : sales[i];
-                    if (length != 0)
-                        average = sum / length;
+                    average = sum / QUARTERS;
                 }
             }
         public:
             Sales()
             {
-                length = 4;
                 for (int i = 0; i < QUARTERS; i++)
                 {
                     sales[i] = 0.0;
