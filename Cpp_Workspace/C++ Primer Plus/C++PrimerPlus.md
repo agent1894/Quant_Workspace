@@ -5,13 +5,13 @@
     - [Section 4 函数](#section-4-%e5%87%bd%e6%95%b0)
   - [Chapter3 处理数据](#chapter3-%e5%a4%84%e7%90%86%e6%95%b0%e6%8d%ae)
     - [Section1 简单变量](#section1-%e7%ae%80%e5%8d%95%e5%8f%98%e9%87%8f)
-    - [Section2 const限定符](#section2-const%e9%99%90%e5%ae%9a%e7%ac%a6)
+    - [Section2 `const`限定符](#section2-const%e9%99%90%e5%ae%9a%e7%ac%a6)
     - [Section3 浮点数](#section3-%e6%b5%ae%e7%82%b9%e6%95%b0)
     - [Section4 C++算术运算符](#section4-c%e7%ae%97%e6%9c%af%e8%bf%90%e7%ae%97%e7%ac%a6)
   - [Chapter4 复合类型](#chapter4-%e5%a4%8d%e5%90%88%e7%b1%bb%e5%9e%8b)
     - [Section1 数组](#section1-%e6%95%b0%e7%bb%84)
     - [Section2 字符串](#section2-%e5%ad%97%e7%ac%a6%e4%b8%b2)
-    - [Section3 string类简介](#section3-string%e7%b1%bb%e7%ae%80%e4%bb%8b)
+    - [Section3 `string`类简介](#section3-string%e7%b1%bb%e7%ae%80%e4%bb%8b)
     - [Section4 结构简介](#section4-%e7%bb%93%e6%9e%84%e7%ae%80%e4%bb%8b)
     - [Section5 共用体](#section5-%e5%85%b1%e7%94%a8%e4%bd%93)
     - [Section6 枚举](#section6-%e6%9e%9a%e4%b8%be)
@@ -19,19 +19,19 @@
     - [Section8 指针、数组和指针算数](#section8-%e6%8c%87%e9%92%88%e6%95%b0%e7%bb%84%e5%92%8c%e6%8c%87%e9%92%88%e7%ae%97%e6%95%b0)
     - [Section10 数组的替代品](#section10-%e6%95%b0%e7%bb%84%e7%9a%84%e6%9b%bf%e4%bb%a3%e5%93%81)
   - [Chapter5 循环和关系表达式](#chapter5-%e5%be%aa%e7%8e%af%e5%92%8c%e5%85%b3%e7%b3%bb%e8%a1%a8%e8%be%be%e5%bc%8f)
-    - [Section1 for循环](#section1-for%e5%be%aa%e7%8e%af)
-    - [Section2 while循环](#section2-while%e5%be%aa%e7%8e%af)
-    - [Section3 do while循环](#section3-do-while%e5%be%aa%e7%8e%af)
-    - [Section4 基于范围的for循环（C++11）](#section4-%e5%9f%ba%e4%ba%8e%e8%8c%83%e5%9b%b4%e7%9a%84for%e5%be%aa%e7%8e%afc11)
+    - [Section1 `for`循环](#section1-for%e5%be%aa%e7%8e%af)
+    - [Section2 `while`循环](#section2-while%e5%be%aa%e7%8e%af)
+    - [Section3 `do while`循环](#section3-do-while%e5%be%aa%e7%8e%af)
+    - [Section4 基于范围的`for`循环（C++11）](#section4-%e5%9f%ba%e4%ba%8e%e8%8c%83%e5%9b%b4%e7%9a%84for%e5%be%aa%e7%8e%afc11)
     - [Section5 循环和文本输入](#section5-%e5%be%aa%e7%8e%af%e5%92%8c%e6%96%87%e6%9c%ac%e8%be%93%e5%85%a5)
     - [Section6 嵌套循环和二维数组](#section6-%e5%b5%8c%e5%a5%97%e5%be%aa%e7%8e%af%e5%92%8c%e4%ba%8c%e7%bb%b4%e6%95%b0%e7%bb%84)
   - [Chapter6 分支语句和逻辑运算符](#chapter6-%e5%88%86%e6%94%af%e8%af%ad%e5%8f%a5%e5%92%8c%e9%80%bb%e8%be%91%e8%bf%90%e7%ae%97%e7%ac%a6)
-    - [Section1 if语句](#section1-if%e8%af%ad%e5%8f%a5)
+    - [Section1 `if`语句](#section1-if%e8%af%ad%e5%8f%a5)
     - [Section2 逻辑表达式](#section2-%e9%80%bb%e8%be%91%e8%a1%a8%e8%be%be%e5%bc%8f)
-    - [Section3 字符函数库cctype](#section3-%e5%ad%97%e7%ac%a6%e5%87%bd%e6%95%b0%e5%ba%93cctype)
-    - [Section4 ?:运算符](#section4-%e8%bf%90%e7%ae%97%e7%ac%a6)
-    - [Section5 switch语句](#section5-switch%e8%af%ad%e5%8f%a5)
-    - [Section6 break和continue语句](#section6-break%e5%92%8ccontinue%e8%af%ad%e5%8f%a5)
+    - [Section3 字符函数库`cctype`](#section3-%e5%ad%97%e7%ac%a6%e5%87%bd%e6%95%b0%e5%ba%93cctype)
+    - [Section4 `?:`运算符](#section4-%e8%bf%90%e7%ae%97%e7%ac%a6)
+    - [Section5 `switch`语句](#section5-switch%e8%af%ad%e5%8f%a5)
+    - [Section6 `break`和`continue`语句](#section6-break%e5%92%8ccontinue%e8%af%ad%e5%8f%a5)
     - [Seciton7 读取数字的循环](#seciton7-%e8%af%bb%e5%8f%96%e6%95%b0%e5%ad%97%e7%9a%84%e5%be%aa%e7%8e%af)
     - [Section8 简单文件输入/输出](#section8-%e7%ae%80%e5%8d%95%e6%96%87%e4%bb%b6%e8%be%93%e5%85%a5%e8%be%93%e5%87%ba)
   - [Chapter7 函数——C++的编程模块](#chapter7-%e5%87%bd%e6%95%b0c%e7%9a%84%e7%bc%96%e7%a8%8b%e6%a8%a1%e5%9d%97)
@@ -57,10 +57,13 @@
     - [Section1 过程性编程和面向对象编程](#section1-%e8%bf%87%e7%a8%8b%e6%80%a7%e7%bc%96%e7%a8%8b%e5%92%8c%e9%9d%a2%e5%90%91%e5%af%b9%e8%b1%a1%e7%bc%96%e7%a8%8b)
     - [Section2 抽象和类](#section2-%e6%8a%bd%e8%b1%a1%e5%92%8c%e7%b1%bb)
     - [Section3 类的构造函数和析构函数](#section3-%e7%b1%bb%e7%9a%84%e6%9e%84%e9%80%a0%e5%87%bd%e6%95%b0%e5%92%8c%e6%9e%90%e6%9e%84%e5%87%bd%e6%95%b0)
-    - [Section4 this指针](#section4-this%e6%8c%87%e9%92%88)
+    - [Section4 `this`指针](#section4-this%e6%8c%87%e9%92%88)
     - [Section5 对象数组](#section5-%e5%af%b9%e8%b1%a1%e6%95%b0%e7%bb%84)
     - [Section6 类作用域](#section6-%e7%b1%bb%e4%bd%9c%e7%94%a8%e5%9f%9f)
     - [Section7 抽象数据类型](#section7-%e6%8a%bd%e8%b1%a1%e6%95%b0%e6%8d%ae%e7%b1%bb%e5%9e%8b)
+  - [Chapter11 使用类](#chapter11-%e4%bd%bf%e7%94%a8%e7%b1%bb)
+    - [Section1 运算符重载](#section1-%e8%bf%90%e7%ae%97%e7%ac%a6%e9%87%8d%e8%bd%bd)
+    - [Section2 计算时间：一个运算符重载示例](#section2-%e8%ae%a1%e7%ae%97%e6%97%b6%e9%97%b4%e4%b8%80%e4%b8%aa%e8%bf%90%e7%ae%97%e7%ac%a6%e9%87%8d%e8%bd%bd%e7%a4%ba%e4%be%8b)
 
 ## Chapter2 开始学习C++
 
@@ -2128,3 +2131,28 @@
   - 可查看栈是否为空。
 
   将上述描述转换为类声明，使用公有成员函数提供栈操作的接口，使用私有数据成员存储栈数据。
+
+## Chapter11 使用类
+
+### Section1 运算符重载
+
+- 运算符重载是一种形式的C++多态。
+- 要重载运算符，需使用被称为运算符函数的特殊函数形式，格式如下：
+
+  ```C++
+  operator op(argument-list)
+  ```
+
+  其中`op`必须是有效的C++运算符。例如`operator+()`重载`+`运算符，`operator*()`重载`*`运算符。
+
+### Section2 计算时间：一个运算符重载示例
+
+- 再次重申使用引用作为参数和返回值的注意点：不要返回指向局部变量或临时变量的引用。函数执行完毕后，局部变量和临时变量将消失，引用将指向不存在的数据。
+- 运算符重载中，编译器将根据操作数的类型来确定如何操作：
+
+  ```C++
+  int a, b, c;
+  Time A, B, C;
+  c = a + b; // use int addition
+  C = A + B; // use addition as defined for Time objects
+  ```
