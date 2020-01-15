@@ -65,6 +65,8 @@
     - [Section1 运算符重载](#section1-%e8%bf%90%e7%ae%97%e7%ac%a6%e9%87%8d%e8%bd%bd)
     - [Section2 计算时间：一个运算符重载示例](#section2-%e8%ae%a1%e7%ae%97%e6%97%b6%e9%97%b4%e4%b8%80%e4%b8%aa%e8%bf%90%e7%ae%97%e7%ac%a6%e9%87%8d%e8%bd%bd%e7%a4%ba%e4%be%8b)
     - [Section3 友元](#section3-%e5%8f%8b%e5%85%83)
+    - [Section4 重载运算符：作为成员函数还是非成员函数](#section4-%e9%87%8d%e8%bd%bd%e8%bf%90%e7%ae%97%e7%ac%a6%e4%bd%9c%e4%b8%ba%e6%88%90%e5%91%98%e5%87%bd%e6%95%b0%e8%bf%98%e6%98%af%e9%9d%9e%e6%88%90%e5%91%98%e5%87%bd%e6%95%b0)
+    - [Section5 再谈重载：一个矢量类](#section5-%e5%86%8d%e8%b0%88%e9%87%8d%e8%bd%bd%e4%b8%80%e4%b8%aa%e7%9f%a2%e9%87%8f%e7%b1%bb)
 
 ## Chapter2 开始学习C++
 
@@ -2179,7 +2181,7 @@
     - `[]`下标运算符
     - `->`通过指针访问类成员运算符
 
-    只能通过成员函数进行重载。
+    **只能通过成员函数进行重载。**
 
 ### Section3 友元
 
@@ -2284,3 +2286,42 @@
     return os;
   }
   ```
+
+  在这里，返回类型是`ostream&`，意味着函数返回`ostream`对象的引用。因为函数开始执行时，程序传递了一个对象引用，因此函数的返回值就是传递进去的对象，也就是说`cout << trip;`将被转换为`operator<<(cout, trip);`而该调用返回`cout`对象，因此，类似这样的语句可以正常工作：
+
+  ```C++
+  cout << "Trip time: " << trip << " (Tuesday)\n"; // can do
+  ```
+
+  具体来说，`cout << "Trip time: "`调用`ostream`中的`<<`定义，显示字符串并返回`cout`对象。从而将语句简化为：`cout << trip << " (Tuesday)\n";`。
+  
+  接下来，程序使用`<<`的`Time`声明显示`trip`值，并再次返回`cout`对象，将语句再次简化为`cout << " (Tuesday)\n";`。
+
+  最后，程序再次调用`ostream`中的`<<`定义，显示最后一个字符串并结束运行。
+
+- 一般来说，要重载`<<`运算符来显示`c_name`的对象，可使用一个友元函数，定义为：
+
+  ```C++
+  ostream& operator <<(ostream& os, const c_name& obj)
+  {
+    os << ... ; // display object contents
+    return os;
+  }
+  ```
+
+### Section4 重载运算符：作为成员函数还是非成员函数
+
+- 对于很多运算符来说，可以选择使用成员函数或非成员函数来实现运算符重载。一般来说，非成员函数应是友元函数，这样才可以直接访问类的私有数据。在`Time`类的重载加法运算符中，可以在类声明中使用如下两种声明的任一种：
+
+  ```C++
+  // member version
+  Time operator+(const Time& t) const;
+  // non-member version
+  friend Time operator+(const Time& t1, const Time& t2);
+  ```
+
+  加法运算符需要两个操作数，对于成员函数版本来说，一个操作数通过`this`指针隐式地传递，另一个操作数作为函数参数显式地传递；对于友元函数来说，两个操作数都作为参数传递。
+
+  在定义运算符时，必须选择其中的一种格式，而不能同时选择两种格式，因为这两种格式都与同一个表达式匹配，同时定义将导致二义性错误。
+
+### Section5 再谈重载：一个矢量类
