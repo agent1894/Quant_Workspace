@@ -17,6 +17,7 @@
     - [Section6 枚举](#section6-%e6%9e%9a%e4%b8%be)
     - [Section7 指针和自由存储空间](#section7-%e6%8c%87%e9%92%88%e5%92%8c%e8%87%aa%e7%94%b1%e5%ad%98%e5%82%a8%e7%a9%ba%e9%97%b4)
     - [Section8 指针、数组和指针算数](#section8-%e6%8c%87%e9%92%88%e6%95%b0%e7%bb%84%e5%92%8c%e6%8c%87%e9%92%88%e7%ae%97%e6%95%b0)
+    - [Section9 类型组合](#section9-%e7%b1%bb%e5%9e%8b%e7%bb%84%e5%90%88)
     - [Section10 数组的替代品](#section10-%e6%95%b0%e7%bb%84%e7%9a%84%e6%9b%bf%e4%bb%a3%e5%93%81)
   - [Chapter5 循环和关系表达式](#chapter5-%e5%be%aa%e7%8e%af%e5%92%8c%e5%85%b3%e7%b3%bb%e8%a1%a8%e8%be%be%e5%bc%8f)
     - [Section1 `for`循环](#section1-for%e5%be%aa%e7%8e%af)
@@ -41,6 +42,8 @@
     - [Section4 函数和二维数组](#section4-%e5%87%bd%e6%95%b0%e5%92%8c%e4%ba%8c%e7%bb%b4%e6%95%b0%e7%bb%84)
     - [Section5 函数和C-风格字符串](#section5-%e5%87%bd%e6%95%b0%e5%92%8cc-%e9%a3%8e%e6%a0%bc%e5%ad%97%e7%ac%a6%e4%b8%b2)
     - [Section6 函数和结构](#section6-%e5%87%bd%e6%95%b0%e5%92%8c%e7%bb%93%e6%9e%84)
+    - [Section7 函数和`string`对象](#section7-%e5%87%bd%e6%95%b0%e5%92%8cstring%e5%af%b9%e8%b1%a1)
+    - [Section8 函数与`array`对象](#section8-%e5%87%bd%e6%95%b0%e4%b8%8earray%e5%af%b9%e8%b1%a1)
     - [Section9 递归](#section9-%e9%80%92%e5%bd%92)
     - [Section10 函数指针](#section10-%e5%87%bd%e6%95%b0%e6%8c%87%e9%92%88)
   - [Chapter8 函数探幽](#chapter8-%e5%87%bd%e6%95%b0%e6%8e%a2%e5%b9%bd)
@@ -362,6 +365,91 @@
   2. **应使用`strcpy()`或`strncpy()`，而不是使用赋值运算符来将字符串赋给数组。**
 - 在运行时创建数组优于在编译时创建数组，对于结构也是如此
 - **当创建动态结构时，不能将成员运算符句点用于结构名，因为这个结构没有名称，只知道对应的地址。如果结构标识符是结构名，则使用句点运算符，如果标识符是指向结构的指针，则使用箭头成员运算符`->`**。如果`ps`是一个指针，指向一个结构`struct`，那么`ps->member`即为指向`struct`的member成员。
+
+### Section9 类型组合
+
+- 数组、结构和指针可以通过各种方式组合，例如：
+
+  ```C++
+  struct antarctica_years_end
+  {
+    int year;
+    /* some really interesting data, etc. */
+  }
+  ```
+
+  - 可以创建这种类型的变量：
+
+    ```C++
+    antarctica_years_end s01, s02, s03; // s01, s02, s03 are structures
+    ```
+
+    然后使用成员运算符访问成员：
+
+    ```C++
+    s01.year = 1998;
+    ```
+
+  - 可以创建指向这种结构的指针：
+
+    ```C++
+    antarctica_years_end * pa = &s02;
+    ```
+
+    将指针设为有效地址后，就可使用间接成员运算符访问成员：
+
+    ```C++
+    pa -> year = 1999;
+    ```
+
+  - 可以创建结构数组：
+
+    ```C++
+    antarctica_years_end trio[3]; // array of 3 structures
+    ```
+
+    然后可以使用成员运算符访问元素的成员：
+
+    ```C++
+    trio[0].year = 2003; // trio[0] is a structure
+    ```
+
+    其中`trio`是一个数组，`trio[0]`是一个结构，而`trio[0].year`是结构的一个成员。由于数组名是一个指针，因此也可以使用间接成员运算符：
+
+    ```C++
+    (trio + 1) -> year = 2004; // same as trio[1].year = 2004;
+    ```
+
+  - 可以创建指针数组：
+
+    ```C++
+    const antarctica_years_end * arp[3] = {&s01, &s02, &s03};
+    ```
+
+    在这里`arp`是一个指针数组，`arp[1]`就是一个指针，因此可以使用间接成员运算符来访问成员：
+
+    ```C++
+    std::cout << arp[1] -> year << std::endl;
+    ```
+
+  - 可以创建指向上述数组的指针：
+
+    ```C++
+    const antarctica_years_end ** ppa = arp;
+    ```
+
+    其中`arp`是一个数组的名称，因此是第一个元素的地址，但其第一个元素是指针，因此`ppa`是一个指针，指向一个指向`const antarctica_years_end`的指针。C++11使用`auto`，根据`arp`的类型自动正确推断出`ppb`的类型：
+
+    ```C++
+    auto ppb = arp; // C++11 automatic type deduction
+    ```
+
+    要使用`ppa`访问数据，可以分析：`ppa`是一个指向结构指针的指针，因此`*ppa`是一个结构指针，可以应用间接成员运算符：
+
+    ```C++
+    std::cout << (*ppa) -> year << std::endl;
+    std::cout << (*(ppb + 1)) -> year << std::endl;
+    ```
 
 ### Section10 数组的替代品
 
@@ -724,6 +812,15 @@
 ### Section6 函数和结构
 
 - 通常来说，使用结构编程时，像处理基本类型一样处理结构即可，即将结构作为参数传递，并在需要时将结构用返回值使用。按值传递会在函数中使用原始结构的副本。但是这种按值传递会有一个缺点：当结构很大时，复制结构会增加内存的需求，降低运行速度。因此，也可以使用传递结构的地址，然后使用指针访问结构的内容。C++提供按引用传递，这个在后面章节进行讨论。
+
+### Section7 函数和`string`对象
+
+- 相比C风格字符串，`string`对象更加类似于结构。可以将一个`string`对象赋给另一个`string`对象，也可以将`string`对象作为完整的实体进行传递，这和结构都是相同的。如果需要多个字符串，可以声明一个`string`对象数组，而不需要声明二维`char`数组。
+
+### Section8 函数与`array`对象
+
+- 在传值给函数时，既可以按值将对象传递给函数，此时函数处理的是原始对象的副本，另外也可以传递指向对象的指针，这样函数就能操作原始对象。
+- 模板`array`并非只能存储基本数据类型，还可以存储对象。
 
 ### Section9 递归
 
