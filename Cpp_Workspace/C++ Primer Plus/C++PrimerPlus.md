@@ -2422,3 +2422,53 @@
   在定义运算符时，必须选择其中的一种格式，而不能同时选择两种格式，因为这两种格式都与同一个表达式匹配，同时定义将导致二义性错误。
 
 ### Section5 再谈重载：一个矢量类
+
+- 这一章节通过对一个矢量类的创建，复习了运算符重载和友元的设计。由于无法用一个数表示矢量，因此显然应该创建一个类来表示；其次，矢量与普通数学运算有相似之处，因此应当对运算符进行重载，使其能适用于矢量。
+- 以下基于书中的例子：
+  1. `reset()`方法并非必不可少。假设`shove`是一个`Vector`对象，以下两种方式都可以产生同样的效果：
+
+      ```C++
+      shove.reset(100, 300);
+      shove = Vector(100, 300); // create and assign a temporary object
+      ```
+
+      区别在于，方法`set()`直接修改了`shove`的内容，而使用构造函数会先创建一个临时对象，然后将临时对象赋值给`shove`。
+  2. 在设置坐标模式（默认直角坐标，或极坐标）时，使用了枚举`RECT`进行描述。由于标识符`POL`的作用域为类，因此类定义中可以直接使用。但是当使用全限定名时，必须使用`VECTOR::Vector::POL`因为`POL`是在`Vector`类中定义的，而`Vector`是在名称空间`VECTOR`中定义的。
+  3. 在重载运算符`<<`时，由于`operator<<()`是一个友元函数，友元函数不在类作用域内，因此必须使用`Vector::RECT`而不能直接使用`RECT`，但是同时，这个友元函数在名称空间`VECTOR`中，因此无需表述为：`VECTOR::Vector::RECT`。
+  4. 为`Vector`重载加法运算符时，直接对`x`和`y`两个轴上的分量进行相加即可：
+
+      ```C++
+      Vector Vector::operator+(const Vector & b) const
+      {
+        Vector sum;
+        sum.x = x + b.x;
+        sum.y = y + b.y;
+        return sum; // incomplete version
+      }
+      ```
+
+      但是这种方法无法对极坐标进行处理，直观的解决方法是在上述定义中进行对极坐标的追加操作：
+
+      ```C++
+      Vector Vector::operator+(const Vector & b) const
+      {
+        Vector sum;
+        sum.x = x + b.x;
+        sum.y = y + b.y;
+        sum.set_ang(sum.x, sum.y);
+        sum.set_mag(sum.x, sum.y);
+        return sum; // version duplicates needlessly
+      }
+      ```
+
+      更加有效的方式是使用构造函数处理，并且更加简单和可靠：
+
+      ```C++
+      Vector Vector::operator+(const Vector & b) const
+      {
+        return Vector(x + b.x, y + b.y); // return the constructed Vector
+      }
+      ```
+
+      直接使用构造函数根据新的`x`分量和`y`分量创建临时对象，并返回该对象的副本。这种方式可以确保新的`Vector`对象是根据构造函数制定的标准规则创建的。
+  5. 为`Vector`重载乘法运算符时，
