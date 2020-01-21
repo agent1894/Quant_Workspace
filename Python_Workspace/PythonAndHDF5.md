@@ -3,6 +3,9 @@
 - [Python and HDF5 by Andrew Collette (O'Reilly)](#python-and-hdf5-by-andrew-collette-oreilly)
   - [Chapter1. Introduction](#chapter1-introduction)
   - [Chapter2. Getting Started](#chapter2-getting-started)
+    - [Setting Up](#setting-up)
+    - [The HDF5 Tools](#the-hdf5-tools)
+      - [Command Line Tools](#command-line-tools)
     - [Your First HDF5 File](#your-first-hdf5-file)
       - [File Drivers](#file-drivers)
   - [Chapter3. Working with Datasets](#chapter3-working-with-datasets)
@@ -28,7 +31,7 @@
       - [Creating Resizable Datasets](#creating-resizable-datasets)
       - [Data Shuffling with resize](#data-shuffling-with-resize)
       - [When and How to Use resize](#when-and-how-to-use-resize)
-  - [How Chunking and Compression Can Help You](#how-chunking-and-compression-can-help-you)
+  - [Chapter4. How Chunking and Compression Can Help You](#chapter4-how-chunking-and-compression-can-help-you)
     - [Contiguous Storage](#contiguous-storage)
     - [Chunked Storage](#chunked-storage)
     - [Setting the Chunk Shape](#setting-the-chunk-shape)
@@ -51,17 +54,19 @@
 
 HDF5即Hierarchical Data Format version 5, 是一种全新的分层数据格式。在数据使用量日益增大的当前，HDF5格式会在数据的读写和分析上获得广泛的使用。
 
-HDF5结构化，“自描述”的数据结构和Python的结合非常自然，目前较为成熟并得到广泛应用的是h5py和PyTables库。
+HDF5结构化，“自描述”的数据结构和Python的结合非常自然，目前较为成熟并得到广泛应用的是`h5py`和`PyTables`库。
 
 书中提出HDF5的“杀手级特性”，即：HDF5使用组(groups)和属性(attributes)以分层结构组织。组类似于文件管理系统中的文件夹，将相关的数据集(datasets)储存在一起。属性则将描述性的元数据(descriptive metadata)直接和描述的数据相关联，使用户可以非常直接的看到数据的相关信息，以对数据有一个整体的认识。
 
-HDF5的另一个特性是可以使用类似于NumPy array的切片功能。这使得HDF5在海量数据的I/O上获得很大的优势。真实数据保留在硬盘中，通过切片，只有必要的数据才会被读取到内存中，因此极大地提升了性能和效率。同时，HDF5可以允许用户控制存储空间的分配。创建一个全新的数据集不会占用任何存储空间，只有当确实有数据写入时才会分配空间。
+HDF5的另一个特性是可以使用类似于`NumPy array`的切片功能。这使得HDF5在海量数据的I/O上获得很大的优势。真实数据保留在硬盘中，通过切片，只有必要的数据才会被读取到内存中，因此极大地提升了性能和效率。同时，HDF5可以允许用户控制存储空间的分配。创建一个全新的数据集不会占用任何存储空间，只有当确实有数据写入时才会分配空间。
 
 HDF5在存储*具有相同类型的大型数值数组，有任意元数据作为标签的分层组织的数据模型*时有显著的优势。如果用户需要增强多表间的数据关联，或希望对数据使用JOINs方法，仍应当选取传统的关系型数据库。同样，对于小型的一维数据集，使用如CSV等文本格式储存会更加合理。因此，当用户不需要数据间具有强关系特性，需求高性能表现，部分I/O，分层组织结构和任意元数据时，HDF5会是非常好的工具。
 
-HDF5数据模型有三种基本元素：数据集(datasets)，将数值型数据存于硬盘中的类数组型对象；组(groups)，分层保存数据集和其他组；属性(attributes)，直接对应数据集和组的用户自定义的元数据。
+HDF5数据模型有三种基本元素：数据集(`datasets`)，将数值型数据存于硬盘中的类数组型对象；组(`groups`)，分层保存数据集和其他组；属性(`attributes`)，直接对应数据集和组的用户自定义的元数据。
 
 ## Chapter2. Getting Started
+
+### Setting Up
 
 在提到性能问题时，作者指出，尽管HDF5通常出现在大数据集应用的场景中，但是本书不会过多讨论优化和基准问题。作为用户，只需要合理调用API，将性能问题交给HDF5即可。
 
@@ -73,9 +78,24 @@ HDF5数据模型有三种基本元素：数据集(datasets)，将数值型数据
 - 确保使用的是正确的数据类型，特别是浮点数的精度问题。
 - 在成熟的社区中提问和寻找答案。
 
+### The HDF5 Tools
+
+#### Command Line Tools
+
+除了使用图形化界面查看HDF5文件，使用命令行会是更加简单方便的方式。在这里，使用`h5ls`工具。这个工具可以非常方便的查看HDF5文件包含的数据结构，可以直接在命令行界面下使用如下代码：
+
+```Shell
+$ h5ls demo.hdf5
+array Dataset {10}
+group Group
+scalar Dataset{SCALAR}
+```
+
+会给出HDF5文件的组成部分名称，和对应的数据结构。加入参数`-vlr`后，会获得更加详细的信息。
+
 ### Your First HDF5 File
 
-使用h5py操作HDF5文件和Python操作文件非常类似。h5py的`File`对象提供了创建数据集和组的功能。类似于Python操作文件，File对象同样提供`.mode`属性。
+使用`h5py`操作HDF5文件和Python操作文件非常类似。`h5py`的`File`对象提供了创建数据集和组的功能。类似于Python操作文件，`File`对象同样提供`.mode`属性。
 
 ```Python
 f = h5py.File("name.hdf5", "w")   # New file overwriting any existing file
@@ -110,7 +130,7 @@ File drivers用于处理将HDF5文件的地址空间映射到磁盘的机制。�
 
 ### Dataset Basics
 
-通过以下简单的代码就可以创建一个HDF5文件，同时将一个NumPy array保存到my dataset数据集中。
+通过以下简单的代码就可以创建一个HDF5文件，同时将一个`NumPy array`保存到`my dataset`数据集中。
 
 ```Python
 In [1]: import numpy as np
@@ -131,7 +151,7 @@ Out[7]: <HDF5 dataset "my dataset": shape (5, 2), type "<f8">
 
 #### Type and Shape
 
-`Dataset`对象在创建时确定类型，且不能被修改。`Dataset`通常使用标准NumPy `dtype`对象。
+`Dataset`对象在创建时确定类型，且不能被修改。`Dataset`通常使用标准`NumPy dtype`对象。
 
 ```Python
 In [8]: dset.dtype
@@ -145,7 +165,7 @@ Out[9]: (5, 2)
 
 #### Reading and Writing
 
-读取dataset和切片操作会返回一个NumPy array。
+读取`dataset`和切片操作会返回一个`NumPy array`。
 
 ```Python
 In [10]: out = dset[...]
@@ -162,7 +182,7 @@ In [12]: type(out)
 Out[12]: numpy.ndarray
 ```
 
-在这个过程中，h5py将选取数据集中被切片的部分并读取HDF5数据，因此，切片操作会直接读写硬盘。
+在这个过程中，`h5py`将选取数据集中被切片的部分并读取HDF5数据，因此，切片操作会直接读写硬盘。
 
 ```Python
 In [13]: dset[1:4,1] = 2.0
@@ -180,7 +200,7 @@ array([[1., 1.],
 
 #### Creating Empty Datasets
 
-创建数据集并不需要事先已有NumPy array的存在。`File`对象的`create_dataset`方法允许根据类型和形状创建空数据集（甚至只需要形状，不需要类型。此时默认类型为`np.float32`单精度浮点数）。
+创建数据集并不需要事先已有`NumPy array`的存在。`File`对象的`create_dataset`方法允许根据类型和形状创建空数据集（甚至只需要形状，不需要类型。此时默认类型为`np.float32`单精度浮点数）。
 
 ```Python
 In [15]: dset = f.create_dataset("test1", (10, 10))
@@ -229,9 +249,9 @@ In [27]: !ls -lh testfile.hdf5
 
 #### Saving Space with Explicit Storage Types
 
-由于HDF5可以接受基本上所有的NumPy类型，在没有显式指定保存格式时，`create_dataset`方法会自行推断保存格式。因此，当能够明确数据保存格式时，显式地指定格式可以节省磁盘空间和I/O时间。
+由于HDF5可以接受基本上所有的`NumPy`类型，在没有显式指定保存格式时，`create_dataset`方法会自行推断保存格式。因此，当能够明确数据保存格式时，显式地指定格式可以节省磁盘空间和I/O时间。
 
-通常，为了保证计算精度会使用8位双精度浮点数(NumPy dtype float64)进行内存中的计算。但是在数据保存时，常用的方法是使用4位单精度浮点数(NumPy dtype float32)进行保存。
+通常，为了保证计算精度会使用8位双精度浮点数(`NumPy dtype float64`)进行内存中的计算。但是在数据保存时，常用的方法是使用4位单精度浮点数(`NumPy dtype float32`)进行保存。
 
 ```Python
 In [28]: bigdata = np.ones((100,1000))
@@ -277,7 +297,7 @@ Out[38]: dtype('<f4')
 
 在内存中的双精度向硬盘中的单精度存储时，用户不需要考虑格式转换的问题，HDF5库会自行完成格式转换。但是，当需要从硬盘中储存的单精度读入内存并使用双精度进行运算时，则会带来一定的格式问题。如果数据量极大，显然不能同时在内存中读入单精度数据后再在内存中转换为双精度。
 
-面对这个问题的最佳解决方案为直接向预先分配好正确格式的NumPy array中读入硬盘数据。
+面对这个问题的最佳解决方案为直接向预先分配好正确格式的`NumPy array`中读入硬盘数据。
 
 ```Python
 In [39]: dset = f2['big']
@@ -340,7 +360,7 @@ Out[47]: dtype('float64')
 
 #### Reshaping an Existing Array
 
-只要总元素数量一致，HDF5支持写入和原始NumPy array形状不同的数据，同时不会有任何性能损耗。
+只要总元素数量一致，HDF5支持写入和原始`NumPy array`形状不同的数据，同时不会有任何性能损耗。
 
 ```Python
 In [52]: imagedata = np.random.rand(100, 480, 640)
@@ -395,12 +415,12 @@ In [63]: out.shape
 Out[63]: (10, 50)
 ```
 
-在进行切片操作时，h5py进行了如下操作：
+在进行切片操作时，`h5py`进行了如下操作：
 
 1. 确定目标数据的形状，在这里是(10, 50)
-2. 创建一个符合目标形状的empty NumPy array
+2. 创建一个符合目标形状的empty `NumPy array`
 3. HDF5选出数据集中需要的部分
-4. HDF5将数据复制到空NumPy array中
+4. HDF5将数据复制到空`NumPy array`中
 5. 返回新填充的数组
 
 由此可见，在每一次进行切片操作时，HDF5都会先确定切片形状，创建空数组，选择数据集范围，然后才会开始读取数据。因此，提升数据读取性能的关键一步就是**选择合理的切片形状**。
@@ -423,13 +443,13 @@ for ix in xrange(100):
 
 在上例中，从(100, 1000)的数据集进行切片，方法2会有更好的效率。因为方法1会进行100000次切片而方法2只进行了100次切片。
 
-尽管方法1中在内存中进行了NumPy arrays的切片，但是一旦在HDF5的机制下会降低性能。
+尽管方法1中在内存中进行了`NumPy arrays`的切片，但是一旦在HDF5的机制下会降低性能。
 
 HDF5写入数据和读入数据类似，会先确定数据的形状，确认数据集是否可以进行处理。然后在数据集中选定合适的形状进行写入。因此，一次一个元素、或一次很少的元素写入会极大地降低处理性能。
 
 #### Start-Stop-Step Indexing
 
-h5py使用和NumPy几乎相同的切片方式，包括含有步长的切片。
+h5py使用和`NumPy`几乎相同的切片方式，包括含有步长的切片。
 
 ```Python
 In [64]: dset = f.create_dataset('range', data=np.arange(10))
@@ -453,7 +473,7 @@ In [70]: dset[4:-1]
 Out[70]: array([4, 5, 6, 7, 8])
 ```
 
-但是，NumPy中的一些技巧并不被HDF5支持，如使用步长-1进行数组倒序的操作，在NumPy中是可行的而HDF5数据集中会报错，因为步长必须大于等于1。
+但是，`NumPy`中的一些技巧并不被HDF5支持，如使用步长-1进行数组倒序的操作，在`NumPy`中是可行的而HDF5数据集中会报错，因为步长必须大于等于1。
 
 ```Python
 In [71]: a
@@ -480,7 +500,7 @@ In [76]: dset[...].shape
 Out[76]: (100, 80, 50, 20)
 ```
 
-一种较为特殊的情况是所谓的标量(scalar)数据。在NumPy中有两种方式储存一个元素的数据。
+一种较为特殊的情况是所谓的标量(scalar)数据。在`NumPy`中有两种方式储存一个元素的数据。
 
 第一种方式是一个形状为(1,)的一维数组，这种结构可以通过切片或者索引获取数据。
 
@@ -516,7 +536,7 @@ Out[84]: array(42)
 
 在这种方式下，使用`Ellipsis`同样会返回一个数组，在这里是一个标量数组(scalar array)。
 
-如果在这种方式下同样想获得元素本身，而不是一个NumPy array，可以使用一种看似比较奇怪的方式获取：
+如果在这种方式下同样想获得元素本身，而不是一个`NumPy array`，可以使用一种看似比较奇怪的方式获取：
 
 ```Python
 In [85]: dset[()]
@@ -525,9 +545,9 @@ Out[85]: 42
 
 因此：
 
-1. `Ellipsis`始终会以NumPy array的形式给出数据集所有的数据
+1. `Ellipsis`始终会以`NumPy array`的形式给出数据集所有的数据
 2. 使用空元组(empty tuple"()")也会给出数据集中所有的元素，当一维或更高维时，同样给出数组结构，当0D时，给出标量元素。
-3. 在一些历史代码中会见到类似`.value`的形式，这种方式完全等价于`dataset[()]`，在后续h5py的版本中将不会再支持。
+3. 在一些历史代码中会见到类似`.value`的形式，这种方式完全等价于`dataset[()]`，在后续`h5py`的版本中将不会再支持。
 
 #### Boolean Indexing
 
@@ -558,12 +578,12 @@ array([0.39438298, 0.5841106 , 0.85382983, 0.48593953, 0.73904431,
        0.91193146, 0.30166953, 0.54883998, 0.04091559, 0.21349258])
 ```
 
-在这个过程中，先对data进行布尔值判断，随后HDF5将布尔值转化为数据集中的坐标进行赋值读取等操作。这种方式带来两个结果：
+在这个过程中，先对`data`进行布尔值判断，随后HDF5将布尔值转化为数据集中的坐标进行赋值读取等操作。这种方式带来两个结果：
 
 1. 对于有很多`True`值的极大的索引表达式，在Python端修改数据后再写入数据集会更快。
 2. 表达式右侧的值要么是一个标量，要么是一个完全等同于选出数据形状的数组。尽管看似比较复杂，但是实际上当符合条件数据很少时，这是一种非常有效的更新数据的方式。
 
-需要注意的是，在上例中始终是选择data进行布尔运算，选择data进行赋值，因此dset本身没有被覆盖。也可以使用类似于Pandas DataFrame的赋值方式，则会直接覆盖dset本身。
+需要注意的是，在上例中始终是选择`data`进行布尔运算，选择`data`进行赋值，因此`dset`本身没有被覆盖。也可以使用类似于`Pandas DataFrame`的赋值方式，则会直接覆盖`dset`本身。
 
 ```Python
 In [93]: dset[dset<0] = 0
@@ -579,7 +599,7 @@ array([0.39438298, 0.        , 0.        , 0.48593953, 0.        ,
 
 #### Coordinate Lists
 
-h5py还从NumPy中使用了一些其他的特性，如使用列表进行切片的功能。
+`h5py`还从`NumPy`中使用了一些其他的特性，如使用列表进行切片的功能。
 
 ```Python
 In [96]: dset = f['range']
@@ -591,7 +611,7 @@ In [98]: dset[[1,2,7]]
 Out[98]: array([1, 2, 7])
 ```
 
-但是h5py仍然和NumPy有一些不同，主要在于：
+但是`h5py`仍然和`NumPy`有一些不同，主要在于：
 
 1. 一次只能对一根轴上进行列表切片
 2. 不能使用重复的列表元素
@@ -599,7 +619,7 @@ Out[98]: array([1, 2, 7])
 
 #### Automatic Broadcasting
 
-在之前的代码中，使用过`dset[data<0] = 0`这样的代码，这种表达式使用了类似NumPy中的广播(broadcasting)操作。这种操作能够极大地提升性能。
+在之前的代码中，使用过`dset[data<0] = 0`这样的代码，这种表达式使用了类似`NumPy`中的广播(broadcasting)操作。这种操作能够极大地提升性能。
 
 ```Python
 In [99]: dset = f2['big']
@@ -619,11 +639,11 @@ In [101]: dset[:,:] = dset[0,:]
 
 在例子中，如果需要复制第0行数据并填充剩下的所有行，尽管可以使用循环赋值，但是这样会进行之前所说的多次切片的行为，而且需要保证边际条件准确无误。使用广播则完全没有这方面的问题，同时在性能上也能有很好的提升。
 
-表达式右侧是(1000,)的数组，左侧是(100, 1000)的数组，由于最后一个维度相同，因此h5py会自动将所有100行的索引全部重复赋值。这种操作只进行了一次切片，剩余的操作会在将数据写入硬盘时完成。
+表达式右侧是(1000,)的数组，左侧是(100, 1000)的数组，由于最后一个维度相同，因此`h5py`会自动将所有100行的索引全部重复赋值。这种操作只进行了一次切片，剩余的操作会在将数据写入硬盘时完成。
 
 #### Reading Directly into an Existing Array
 
-回到将HDF5数据直接填入数组中并进行自动格式转换的操作。之前已展示过将float32数据读入float64数组中：
+回到将HDF5数据直接填入数组中并进行自动格式转换的操作。之前已展示过将`np.float32`数据读入`np.float64`数组中：
 
 ```Python
 In [102]: dset.dtype
@@ -666,7 +686,7 @@ In [111]: dset.read_direct(out, np.s_[:,0:50])  # dset_sel can be omitted
 In [112]: means = out.mean(axis=1)
 ```
 
-单纯上看这两种方法没有什么区别，但是实际上有一些显著的区别。第一种方法中，out数组直接通过h5py生成，用以存放数据切片；第二种方法中，out数组由用户分配，在后续的运算中仍然可以继续使用。
+单纯上看这两种方法没有什么区别，但是实际上有一些显著的区别。第一种方法中，`out`数组直接通过`h5py`生成，用以存放数据切片；第二种方法中，`out`数组由用户分配，在后续的运算中仍然可以继续使用。
 
 性能方面，(100, 50)的数组很难看出差异，但是当数据量提升后，会发现性能上的差异逐渐明显。
 
@@ -685,7 +705,7 @@ In [117]: def time_direct():
      ...:     out.mean(axis=1)
 ```
 
-使用IPython的%timeit方法进行100000000循环后发现，第二种方法在性能上提升了约18%。随着数据量的扩大，`read_direct`的性能优势越明显。
+使用`IPython`的`%timeit`魔法方法进行100000000循环后发现，第二种方法在性能上提升了约18%。随着数据量的扩大，`read_direct`的性能优势越明显。
 
 ```Python
 In [118]: %timeit time_simple
@@ -695,11 +715,11 @@ In [119]: %timeit time_direct
 13.6 ns ± 0.0798 ns per loop (mean ± std. dev. of 7 runs, 100000000 loops each)
 ```
 
-由于一些历史原因，仍然存在`read_direct`的逆方法`write_direct`。但是在当前版本的h5py中，这种方法相对于常规的切片操作不会有任何性能上的优势。
+由于一些历史原因，仍然存在`read_direct`的逆方法`write_direct`。但是在当前版本的`h5py`中，这种方法相对于常规的切片操作不会有任何性能上的优势。
 
 #### A Note on Data Types
 
-这一节中提到了不同计算机系统间，关于不同字节序的问题。由于不同CPU架构下储存数据的方式不同，当存储数据在不同系统间交互的时候，可能会带来数据类型上的问题。现代Intel x86芯片都使用little-endian格式，但是由于HDF5同样支持big-endian格式，因此h5py会默认使用数据存储时使用的格式。根据书中的内容，在x86架构下，两种数据格式会在性能上有接近两倍的差距。
+这一节中提到了不同计算机系统间，关于不同字节序的问题。由于不同CPU架构下储存数据的方式不同，当存储数据在不同系统间交互的时候，可能会带来数据类型上的问题。现代Intel x86芯片都使用little-endian格式，但是由于HDF5同样支持big-endian格式，因此`h5py`会默认使用数据存储时使用的格式。根据书中的内容，在x86架构下，两种数据格式会在性能上有接近两倍的差距。
 
 ```Python
 In [120]: a = np.ones((1000,1000), dtype='<f4')  # Little-endian 4-byte float
@@ -749,7 +769,7 @@ TypeError: Only chunked datasets can be resized
 
 #### Creating Resizable Datasets
 
-当创建一个数据集时，除了确定数据集的形状，还可以确定数据集最大可以resize的维度。在h5py中，这个属性为`maxshape`，即上例中的另一个属性。
+当创建一个数据集时，除了确定数据集的形状，还可以确定数据集最大可以resize的维度。在`h5py`中，这个属性为`maxshape`，即上例中的另一个属性。
 
 类似于`shape`，`maxshape`同样是在数据集创建时确定，但是和`shape`不同，`maxshape`一旦被确定则不能修改。如果创建数据集时用户没有显式地指定`maxshape`，HDF5就会创建一个不可改变形状的数据集，同时设置`maxshape = shape`。同时，这个数据集也会使用*contiguous storage*，这个设置也会阻止resize。关于*contiguous storage*和*chunked storage*的区别会在后面章节讨论。
 
@@ -814,7 +834,7 @@ TypeError: New shape length (3) must match dataset rank (2)
 
 #### Data Shuffling with resize
 
-在NumPy中，改变数组形状会有一些特性，以一个数组为例：
+在`NumPy`中，改变数组形状会有一些特性，以一个数组为例：
 
 ```Python
 In [148]: a = np.array([[1, 2], [3, 4]])
@@ -827,7 +847,7 @@ In [150]: print(a)
  [3 4]]
 ```
 
-如果将这个NumPy array改变形状，同时保持元素数量不变，则会得到如下结果：
+如果将这个`NumPy array`改变形状，同时保持元素数量不变，则会得到如下结果：
 
 ```Python
 In [151]: a.resize((1,4))
@@ -846,11 +866,11 @@ In [154]: print(a)
 
 ```
 
-> 辨析：NumPy array的`resize`和`reshape`方法：
+> 辨析：`NumPy array`的`resize`和`reshape`方法：
 >
 > `resize`会直接修改原数组，没有返回值而`reshape`不会修改原数组，返回值为一个新的数组
 
-这种操作在NumPy中非常普遍。但是，在HDF5中，resize会有完全不同的机制。通过创建一个新的数据集进行验证：
+这种操作在`NumPy`中非常普遍。但是，在HDF5中，`resize`会有完全不同的机制。通过创建一个新的数据集进行验证：
 
 ```Python
 In [155]: dset = f.create_dataset('sizetest', (2,2), dtype=np.int32, maxshape=(None,
@@ -865,7 +885,7 @@ array([[1, 2],
 
 ```
 
-如果对这个数据集使用类似与NumPy中同样的操作，会发现得出了完全不同的结果：
+如果对这个数据集使用类似与`NumPy`中同样的操作，会发现得出了完全不同的结果：
 
 ```Python
 In [158]: dset.resize((1,4))
@@ -879,7 +899,7 @@ In [161]: dset[...]
 Out[161]: array([[1, 2, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=int32)
 ```
 
-HDF5不会重新整理数据。如果将(2,2)的数据变形为(1,4)，则数据集中[1,0]和[1,1]的数据不会被重新整理，而是会直接消失。因此，在HDF5中，使用`resize`必须非常谨慎，套用NumPy中的经验会导致不可预知的后果。
+HDF5不会重新整理数据。如果将(2,2)的数据变形为(1,4)，则数据集中`[1,0]`和`[1,1]`的数据不会被重新整理，而是会直接消失。因此，在HDF5中，使用`resize`必须非常谨慎，套用NumPy中的经验会导致不可预知的后果。
 
 此外，新添加的数据被初始化为0，这个行为可以使用之前提过的`fillvalue`进行调整。
 
@@ -916,11 +936,97 @@ In [167]: def done():
 
 这种方法在实际运用中会有更好的性能表现。
 
-## How Chunking and Compression Can Help You
+## Chapter4. How Chunking and Compression Can Help You
 
 ### Contiguous Storage
 
+首先，创建一个含有4个元素的二维数组。
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: a = np.array([["A", "B"], ["C", "D"]])
+
+In [4]: print(a)
+[['A' 'B']
+ ['C' 'D']]
+
+In [5]: a[1, 1]
+Out[5]: 'D'
+```
+
+显然，可以使用索引方式获取其中的元素。但是在内存中，并不存在二维的存储空间。数组中的元素实际上是被存在一维的缓存中，即：`'A' 'B' 'C' 'D'`，这种方法就被称为*contiguous storage*。因为无论保存在硬盘还是内存中的数据，都是一一排列进行存储。
+
+在默认情况下，只有比较小的HDF5数据集会使用contiguous storage。数据集中的数据会被摊平(flattened)并存储至磁盘中，就像`NumPy`和`C`所做的一样。
+
+在这种机制下，显然一些特定的操作会显著快于其他的操作。
+
+如果创建一个(100, 480, 640)的数组用于存放100张640×460像素的图片，一个contiguous的数据集会将数据按照每640个元素进行排列并连续储存。
+
+```Python
+In [6]: f = h5py.File("imagetest.hdf5")
+
+In [7]: dset = f.create_dataset("Images", (100, 480, 640), dtype='uint8')
+```
+
+如果需要读取第一张图片的数据，则可以使用切片获取：
+
+```Python
+In [8]: image = dset[0, :, :]
+
+In [9]: image.shape
+Out[9]: (480, 640)
+```
+
+在这种存储方式下，每640个元素组成一个block，当读取第一张图片时，从磁盘中读取480个block合并成为一个大的block。因此，处理数据的一个原则是*locality*，即读取存储在一起的数据会更快。
+
+使用contiguous方式存储数据的好处就是磁盘分布会完全匹配数据集的形状，随着索引移动的过程也是数据在磁盘中的顺序。
+
+但是，如果并不是整张图片的提取，而是在图片中提取一部分，例如在第一张图中提取左上角64×64的部分：
+
+```Python
+In [10]: tile = dset[0, 0:64, 0:64]
+
+In [11]: tile.shape
+Out[11]: (64, 64)
+```
+
+在这种情况下，数据就无法连续的读取，而是需要在第一个640的block中提取索引0-63的数据，随后移动至第二个640的block，提取索引640-703的数据，随后移动至第三个640的block，提取索引1280-1343的数据并以此类推。如果需要在100张图片中都做类似的处理，则会使用这种方式读取整个数据集。因此这种默认使用contiguous的存储机制在上述情况下没有很好的表现。
+
 ### Chunked Storage
+
+解决上述问题的方法就是使用*chunking*。这种方式会让用户明确最符合数据读写需求的N维形状。当将数据写入磁盘时，HDF5先将数据分割为指定形状的chunk，将其摊平后再存入磁盘。这些chunk会被分别保存至文件系统不同的地方，使用B-tree进行索引。
+
+仍然以图片数据为例，同样是(100, 480, 640)的数据集，但是使用chunked格式进行保存，这需要在`create_dateset`方法中使用一个新的关键字`chunks`：
+
+```Python
+In [12]: dset = f.create_dataset("chunked", (100, 480, 640), dtype='i1', chunks=(1, 64, 64))
+```
+
+*chunk shape*在数据集创建时便确定，并且不能进行更改，可以使用`chunks`属性确认chunk的形状，如果返回`None`，则说明数据集没有使用*chunked storage*。
+
+```Python
+In [13]: dset.chunks
+Out[13]: (1, 64, 64)
+
+In [14]: dset[0, 0:64, 0:64]
+Out[14]:
+array([[0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       ...,
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0],
+       [0, 0, 0, ..., 0, 0, 0]], dtype=int8)
+```
+
+在chunked storage下，同样提取第一张图左上角64×64的数据，HDF5从`[0, 0, 0]`开始查找，随后查找`[0, 0, 64]`，直到`[99, 448, 512]`和`[99, 448, 576]`为止（因为一次查找一个chunk，即64×64）。在这里，只需读取一个chunk即可。
+
+更好的是，由于chunked数据已经使用整齐的方式存储，因此可以在读写时使用任一种操作。例如HDF5在压缩文件的压缩和解压缩时就使用了chunks。
+
+使用chunking只需要知道这是一种存储方式，不需要在读写chunked数据集时做任何特殊操作，只需要使用标准`NumPy`切片代码，剩下的HDF5会自行处理。
 
 ### Setting the Chunk Shape
 
