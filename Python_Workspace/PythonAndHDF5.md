@@ -139,7 +139,7 @@ In [2]: import h5py
 
 In [3]: f = h5py.File("testfile.hdf5")
 
-In [4]: arr = np.ones((5,2))
+In [4]: arr = np.ones((5, 2))
 
 In [5]: f["my dataset"] = arr
 
@@ -224,22 +224,22 @@ In [20]: dset[0:1024] = np.arange(1024)
 In [21]: f.flush()
 
 In [22]: !ls -lh testfile.hdf5
--rw-rw-r-- 1 1024 users 4.1G 12月 11 18:05 testfile.hdf5
+-rw-rw-r-- 1 1024 users 4.1G 1月 1 18:05 testfile.hdf5
 ```
 
 但是，实际发现此时硬盘空间已经真实消耗4G，并未实现书中的示例。查阅资料后发现，应使用如下代码：
 
 ```Python
-In [23]: !rm testfile.hdf5
+In [23]: del f["big dataset"]
 
-In [24]: f = h5py.File("testfile.hdf5")
+In [24]: f.flush()
 
 In [25]: dset = f.create_dataset("big dataset", (1024**3,), dtype=np.float32, chunks=True)
 
 In [26]: f.flush()
 
 In [27]: !ls -lh testfile.hdf5
--rw-rw-r-- 1 1024 users 1.4K 12月 11 18:06 testfile.hdf5
+-rw-rw-r-- 1 1024 users 4.1K 1月 1 18:06 testfile.hdf5
 ```
 
 此时验证无误。
@@ -254,7 +254,7 @@ In [27]: !ls -lh testfile.hdf5
 通常，为了保证计算精度会使用8位双精度浮点数(`NumPy dtype float64`)进行内存中的计算。但是在数据保存时，常用的方法是使用4位单精度浮点数(`NumPy dtype float32`)进行保存。
 
 ```Python
-In [28]: bigdata = np.ones((100,1000))
+In [28]: bigdata = np.ones((100, 1000))
 
 In [29]: bigdata.dtype
 Out[29]: dtype('float64')
@@ -266,17 +266,17 @@ Out[30]: (100, 1000)
 显然直接保存时使用的是双精度浮点数，但同样可以指定使用单精度浮点数进行保存。改变保存方法后空间占用节省了一半。
 
 ```Python
-In [31]: with h5py.File('big1.hdf5','w') as f1:
-    ...:     f1['big'] = bigdata
+In [31]: with h5py.File("big1.hdf5",'w') as f1:
+    ...:     f1["big"] = bigdata
 
 In [32]: !ls -lh big1.hdf5
--rwxrwxrwx 1 1024 users 784K 12月 11 18:14 big1.hdf5
+-rwxrwxrwx 1 1024 users 784K 1月 1 18:14 big1.hdf5
 
-In [33]: with h5py.File('big2.hdf5','w') as f2:
-    ...:     f2.create_dataset('big', data=bigdata, dtype=np.float32)
+In [33]: with h5py.File("big2.hdf5",'w') as f2:
+    ...:     f2.create_dataset("big", data=bigdata, dtype=np.float32)
 
 In [34]: !ls -lh big2.hdf5
--rwxrwxrwx 1 1024 users 393K 12月 11 18:15 big2.hdf5
+-rwxrwxrwx 1 1024 users 393K 1月 1 18:15 big2.hdf5
 ```
 
 但是需要注意的是，一旦指定保存格式后，读取的数据也会变成指定保存的格式。
@@ -286,10 +286,10 @@ In [35]: f1 = h5py.File("big1.hdf5")
 
 In [36]: f2 = h5py.File("big2.hdf5")
 
-In [37]: f1['big'].dtype
+In [37]: f1["big"].dtype
 Out[37]: dtype('<f8')
 
-In [38]: f2['big'].dtype
+In [38]: f2["big"].dtype
 Out[38]: dtype('<f4')
 ```
 
@@ -300,7 +300,7 @@ Out[38]: dtype('<f4')
 面对这个问题的最佳解决方案为直接向预先分配好正确格式的`NumPy array`中读入硬盘数据。
 
 ```Python
-In [39]: dset = f2['big']
+In [39]: dset = f2["big"]
 
 In [40]: dset.dtype
 Out[40]: dtype('<f4')
@@ -319,7 +319,7 @@ In [43]: dset.read_direct(big_out)
 In [44]: big_out.dtype
 Out[44]: dtype('float64')
 
-In [45]: big_out[0,0]
+In [45]: big_out[0, 0]
 Out[45]: 1.0
 ```
 
@@ -330,8 +330,8 @@ Out[45]: 1.0
 做格式转换时不一定每次都创建空数组然后读入。使用`Dataset.astype`上下文管理器同样可以起到类似的功能。
 
 ```Python
-In [46]: with dset.astype('float64'):
-    ...:     out = dset[0,:]
+In [46]: with dset.astype("float64"):
+    ...:     out = dset[0, :]
 
 In [47]: out.dtype
 Out[47]: dtype('float64')
@@ -343,16 +343,16 @@ Out[47]: dtype('float64')
 - 当从高精度向低精度转换时，HDF5会对数据进行截断。
 
   ```Python
-    In [48]: f.create_dataset('x', data=1e256, dtype=np.float64)
+    In [48]: f.create_dataset("x", data=1e256, dtype=np.float64)
     Out[48]: <HDF5 dataset "x": shape (), type "<f8">
 
-    In [49]: print(f['x'][...])
+    In [49]: print(f["x"][...])
     1e+256
 
-    In [50]: f.create_dataset('y', data=1e256, dtype=np.float32)
+    In [50]: f.create_dataset("y", data=1e256, dtype=np.float32)
     Out[50]: <HDF5 dataset "y": shape (), type "<f4">
 
-    In [51]: print(f['y'][...])
+    In [51]: print(f["y"][...])
     inf
   ```
 
@@ -368,7 +368,7 @@ In [52]: imagedata = np.random.rand(100, 480, 640)
 In [53]: imagedata.shape
 Out[53]: (100, 480, 640)
 
-In [54]: f.create_dataset('newshape', data=imagedata, shape=(100, 2, 240, 640))
+In [54]: f.create_dataset("newshape", data=imagedata, shape=(100, 2, 240, 640))
 Out[54]: <HDF5 dataset "newshape": shape (100, 2, 240, 640), type "<f8">
 ```
 
@@ -377,7 +377,7 @@ Out[54]: <HDF5 dataset "newshape": shape (100, 2, 240, 640), type "<f8">
 当创建新数据集时，默认会使用0填充数据集：
 
 ```Python
-In [55]: dset = f.create_dataset('empty', (2,2), dtype=np.int32)
+In [55]: dset = f.create_dataset("empty", (2, 2), dtype=np.int32)
 
 In [56]: dset[...]
 Out[56]:
@@ -388,7 +388,7 @@ array([[0, 0],
 但是同样，也可以选择不同的默认值对数据集进行填充，如-1或NaN等，使用`fillvalue`参数即可。填充的数值只有当数据被读取的时候才会被处理，因此并不会占用额外的存储空间。但是一旦在创建数据集时被确定，则不能被更改，即该数据集所有的空值都会以创建数据集时定义的值填充，除非空值被写入其他值，`fillvalue`同样会作为数据集的属性被记录。
 
 ```Python
-In [57]: dset = f.create_dataset('filled', (2,2), dtype=np.int32, fillvalue=42)
+In [57]: dset = f.create_dataset("filled", (2, 2), dtype=np.int32, fillvalue=42)
 
 In [58]: dset[...]
 Out[58]:
@@ -404,7 +404,7 @@ Out[59]: 42
 #### Using Slicing Effectively
 
 ```Python
-In [60]: dset = f2['big']
+In [60]: dset = f2["big"]
 
 In [61]: dset
 Out[61]: <HDF5 dataset "big": shape (100, 1000), type "<f4">
@@ -431,14 +431,14 @@ Out[63]: (10, 50)
 # Case 1
 for ix in xrange(100):
     for iy in xrange(1000):
-        val = deset[ix,iy]            # Read one element
+        val = deset[ix, iy]            # Read one element
         if val < 0: dset[ix, iy] = 0  # Clip to 0 if needed
 
 # Case 2
 for ix in xrange(100):
-    val = dset[ix,:]  # Read one row
+    val = dset[ix, :]  # Read one row
     val[val < 0] = 0  # Clip negative values to 0
-    dset[ix,:] = val  # Write row back out
+    dset[ix, :] = val  # Write row back out
 ```
 
 在上例中，从(100, 1000)的数据集进行切片，方法2会有更好的效率。因为方法1会进行100000次切片而方法2只进行了100次切片。
@@ -452,7 +452,7 @@ HDF5写入数据和读入数据类似，会先确定数据的形状，确认数�
 h5py使用和`NumPy`几乎相同的切片方式，包括含有步长的切片。
 
 ```Python
-In [64]: dset = f.create_dataset('range', data=np.arange(10))
+In [64]: dset = f.create_dataset("range", data=np.arange(10))
 
 In [65]: dset[...]
 Out[65]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -491,7 +491,7 @@ ValueError: Step must be >= 1 (got -1)
 HDF5使用`...`进行切片，在Python中被称为`Ellipsis`，对无需指定的轴进行全选。
 
 ```Python
-In [74]: dset = f.create_dataset('4d', shape=(100, 80, 50, 20))
+In [74]: dset = f.create_dataset("4d", shape=(100, 80, 50, 20))
 
 In [75]: dset[0,...,0].shape
 Out[75]: (80, 50)
@@ -505,7 +505,7 @@ Out[76]: (100, 80, 50, 20)
 第一种方式是一个形状为(1,)的一维数组，这种结构可以通过切片或者索引获取数据。
 
 ```Python
-In [77]: dset = f.create_dataset('1d', shape=(1,), data=42)
+In [77]: dset = f.create_dataset("1d", shape=(1,), data=42)
 
 In [78]: dset.shape
 Out[78]: (1,)
@@ -522,7 +522,7 @@ Out[80]: array([42])
 第二种方式形状为()，是一个空元组。这种方式不能通过索引获取数据。
 
 ```Python
-In [81]: dset = f.create_dataset('0d', data=42)
+In [81]: dset = f.create_dataset("0d", data=42)
 
 In [82]: dset.shape
 Out[82]: ()
@@ -554,23 +554,23 @@ Out[85]: 42
 HDF5同样支持使用布尔值进行索引。
 
 ```Python
-In [86]: data = np.random.random(10)*2 - 1
+In [86]: data = np.random.random(10) * 2 - 1
 
 In [87]: data
 Out[87]:
 array([-0.39438298, -0.5841106 , -0.85382983,  0.48593953,  0.73904431,
         0.91193146, -0.30166953,  0.54883998,  0.04091559,  0.21349258])
 
-In [88]: dset = f.create_dataset('random', data=data)
+In [88]: dset = f.create_dataset("random", data=data)
 
-In [89]: dset[data<0] = 0
+In [89]: dset[data < 0] = 0
 
 In [90]: dset[...]
 Out[90]:
 array([0.        , 0.        , 0.        , 0.48593953, 0.73904431,
        0.91193146, 0.        , 0.54883998, 0.04091559, 0.21349258])
 
-In [91]: dset[data<0] = -1 * data[data<0]
+In [91]: dset[data < 0] = -1 * data[data < 0]
 
 In [92]: dset[...]
 Out[92]:
@@ -586,10 +586,10 @@ array([0.39438298, 0.5841106 , 0.85382983, 0.48593953, 0.73904431,
 需要注意的是，在上例中始终是选择`data`进行布尔运算，选择`data`进行赋值，因此`dset`本身没有被覆盖。也可以使用类似于`Pandas DataFrame`的赋值方式，则会直接覆盖`dset`本身。
 
 ```Python
-In [93]: dset[dset<0] = 0
+In [93]: dset[dset < 0] = 0
 TypeError: unorderable types: Dataset() < int()
 
-In [94]: dset[dset[...]>0.5] = 0
+In [94]: dset[dset[...] > 0.5] = 0
 
 In [95]: dset[...]
 Out[95]:
@@ -602,7 +602,7 @@ array([0.39438298, 0.        , 0.        , 0.48593953, 0.        ,
 `h5py`还从`NumPy`中使用了一些其他的特性，如使用列表进行切片的功能。
 
 ```Python
-In [96]: dset = f['range']
+In [96]: dset = f["range"]
 
 In [97]: dset[...]
 Out[97]: array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -622,7 +622,7 @@ Out[98]: array([1, 2, 7])
 在之前的代码中，使用过`dset[data<0] = 0`这样的代码，这种表达式使用了类似`NumPy`中的广播(broadcasting)操作。这种操作能够极大地提升性能。
 
 ```Python
-In [99]: dset = f2['big']
+In [99]: dset = f2["big"]
 
 In [100]: dset.shape
 Out[100]: (100, 1000)
@@ -634,7 +634,7 @@ for idx in xrange(100):
     dset[idx,:] = data
 '''
 
-In [101]: dset[:,:] = dset[0,:]
+In [101]: dset[:, :] = dset[0, :]
 ```
 
 在例子中，如果需要复制第0行数据并填充剩下的所有行，尽管可以使用循环赋值，但是这样会进行之前所说的多次切片的行为，而且需要保证边际条件准确无误。使用广播则完全没有这方面的问题，同时在性能上也能有很好的提升。
@@ -691,7 +691,7 @@ In [112]: means = out.mean(axis=1)
 性能方面，(100, 50)的数组很难看出差异，但是当数据量提升后，会发现性能上的差异逐渐明显。
 
 ```Python
-In [113]: dset = f.create_dataset('perftest', (10000, 10000), dtype=np.float32)
+In [113]: dset = f.create_dataset("perftest", (10000, 10000), dtype=np.float32)
 
 In [114]: dset[:] = np.random.random(10000)  # note the use of broadcasting!
 
@@ -753,7 +753,7 @@ In [127]: %timeit b.mean
 前文已经讲到，当创建一个数据集后，数据集的类型就已经固定，并且不能改变。但是，数据集的形状是可以改变的。但是，尽管形状可以改变，仍然有诸多限制。
 
 ```Python
-In [128]: dset = f.create_dataset('fixed', (2,2))
+In [128]: dset = f.create_dataset("fixed", (2, 2))
 
 In [129]: dset.shape
 Out[129]: (2, 2)
@@ -776,7 +776,7 @@ TypeError: Only chunked datasets can be resized
 当设置了`maxshape`后，会发现resize的操作已经可以实现了。
 
 ```Python
-In [132]: dset = f.create_dataset('resizable', (2,2), maxshape=(2,2))
+In [132]: dset = f.create_dataset("resizable", (2, 2), maxshape=(2, 2))
 
 In [133]: dset.shape
 Out[133]: (2, 2)
@@ -806,7 +806,7 @@ ValueError: Unable to set extend dataset (dimension cannot exceed the existing m
 这个设定带来的一个问题在于，如果创建数据集时不确定最大使用的形状应该如何处理。显然，HDF5不会要求用户使用一个非常大的数定义`maxshape`，HDF5使用`None`标记无限制的状况。如果数据集的某轴被设置为`None`，则resize不会受形状上限的控制。
 
 ```Python
-In [140]: dset = f.create_dataset('unlimited', (2,2), maxshape=(2, None))
+In [140]: dset = f.create_dataset("unlimited", (2, 2), maxshape=(2, None))
 
 In [141]: dset.shape
 Out[141]: (2, 2)
@@ -814,7 +814,7 @@ Out[141]: (2, 2)
 In [142]: dset.maxshape
 Out[142]: (2, None)
 
-In [143]: dset.resize((2,3))
+In [143]: dset.resize((2, 3))
 
 In [144]: dset.shape
 Out[144]: (2, 3)
@@ -828,7 +828,7 @@ Out[146]: (2, 1073741824)
 无论如何改变数据集的形状，总维度是不能改变的，数据集的`rank`从一开始即被固定且永远不能被改变。
 
 ```Python
-In [147]: dset.resize((2,2,2))
+In [147]: dset.resize((2, 2, 2))
 TypeError: New shape length (3) must match dataset rank (2)
 ```
 
@@ -873,8 +873,7 @@ In [154]: print(a)
 这种操作在`NumPy`中非常普遍。但是，在HDF5中，`resize`会有完全不同的机制。通过创建一个新的数据集进行验证：
 
 ```Python
-In [155]: dset = f.create_dataset('sizetest', (2,2), dtype=np.int32, maxshape=(None,
-     ...:  None))
+In [155]: dset = f.create_dataset("sizetest", (2, 2), dtype=np.int32, maxshape=(None, None))
 
 In [156]: dset[...] = [[1, 2], [3, 4]]
 
@@ -888,18 +887,18 @@ array([[1, 2],
 如果对这个数据集使用类似与`NumPy`中同样的操作，会发现得出了完全不同的结果：
 
 ```Python
-In [158]: dset.resize((1,4))
+In [158]: dset.resize((1, 4))
 
 In [159]: dset[...]
 Out[159]: array([[1, 2, 0, 0]], dtype=int32)
 
-In [160]: dset.resize((1,10))
+In [160]: dset.resize((1, 10))
 
 In [161]: dset[...]
 Out[161]: array([[1, 2, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=int32)
 ```
 
-HDF5不会重新整理数据。如果将(2,2)的数据变形为(1,4)，则数据集中`[1,0]`和`[1,1]`的数据不会被重新整理，而是会直接消失。因此，在HDF5中，使用`resize`必须非常谨慎，套用NumPy中的经验会导致不可预知的后果。
+HDF5不会重新整理数据。如果将(2, 2)的数据变形为(1, 4)，则数据集中`[1, 0]`和`[1, 1]`的数据不会被重新整理，而是会直接消失。因此，在HDF5中，使用`resize`必须非常谨慎，套用NumPy中的经验会导致不可预知的后果。
 
 此外，新添加的数据被初始化为0，这个行为可以使用之前提过的`fillvalue`进行调整。
 
@@ -910,24 +909,23 @@ HDF5不会重新整理数据。如果将(2,2)的数据变形为(1,4)，则数据
 如果一个数据集每次需要储存1000个元素的数据，但是一开始并不知道会储存多少行，一种显而易见的方法是每次有1000个元素加入，数据集就增加一行。但是这样带来的问题在于，每一次数据的插入都会让数据集resize一次。当添加数据次数很大时，这种方法显得不那么合适。
 
 ```Python
-In [162]: dset1 = f.create_dataset('timetraces', (1,1000), maxshape=(None, 1000))
+In [162]: dset1 = f.create_dataset("timetraces1", (1, 1000), maxshape=(None, 1000))
 
 In [163]: def add_trace_1(arr):
      ...:     dset1.resize((dset1.shape[0] + 1, 1000))
-     ...:     dset1[-1,:] = arr
+     ...:     dset1[-1, :] = arr
 ```
 
 因此，另一种方式是记录追加的次数，在全部数据追加完成后，一次性进行resize：
 
 ```Python
-In [164]: dset2 = f.create_dataset('timetraces2', (5000, 1000), maxshape=(None, 1000
-     ...: ))
+In [164]: dset2 = f.create_dataset("timetraces2", (5000, 1000), maxshape=(None, 1000))
 
 In [165]: ntraces = 0
 
 In [166]: def add_trace_2(arr):
      ...:     global ntraces
-     ...:     dset2[ntraces,:] = arr
+     ...:     dset2[ntraces, :] = arr
      ...:     ntraces += 1
 
 In [167]: def done():
@@ -947,7 +945,7 @@ In [1]: import numpy as np
 
 In [2]: import h5py
 
-In [3]: a = np.array([["A", "B"], ["C", "D"]])
+In [3]: a = np.array([['A', 'B'], ['C', 'D']])
 
 In [4]: print(a)
 [['A' 'B']
@@ -968,7 +966,7 @@ Out[5]: 'D'
 ```Python
 In [6]: f = h5py.File("imagetest.hdf5")
 
-In [7]: dset = f.create_dataset("Images", (100, 480, 640), dtype='uint8')
+In [7]: dset = f.create_dataset("Images", (100, 480, 640), dtype="uint8")
 ```
 
 如果需要读取第一张图片的数据，则可以使用切片获取：
@@ -1002,7 +1000,7 @@ Out[11]: (64, 64)
 仍然以图片数据为例，同样是(100, 480, 640)的数据集，但是使用chunked格式进行保存，这需要在`create_dateset`方法中使用一个新的关键字`chunks`：
 
 ```Python
-In [12]: dset = f.create_dataset("chunked", (100, 480, 640), dtype='i1', chunks=(1, 64, 64))
+In [12]: dset = f.create_dataset("chunked", (100, 480, 640), dtype="i1", chunks=(1, 64, 64))
 ```
 
 *chunk shape*在数据集创建时便确定，并且不能进行更改，可以使用`chunks`属性确认chunk的形状，如果返回`None`，则说明数据集没有使用*chunked storage*。
@@ -1032,7 +1030,42 @@ array([[0, 0, 0, ..., 0, 0, 0],
 
 #### Auto-Chunking
 
+大部分情况下，`h5py`会自动选择chunk的形状，即`h5py`中的*auto-chunker*功能。只需要在`chunks`参数中用`True`替代指定的元组就可以让`h5py`进行自动推断：
+
+```Python
+In [15]: dset = f.create_dataset("Images2", (100, 480, 640), 'f', chunks=True)
+
+In [16]: dset.chunks
+Out[16]: (7, 30, 80)
+```
+
+*auto-chunker*会尽量选择在N维下在一定大小范围内最“方”的chunk，这个操作也会在没有明确指定chunk形状时使用。
+
+因为auto-chunker无法识别对后续数据集操作的方式，因此会选择最方形的chunk来做出权衡。因此如果只是想对文件进行压缩而不用考虑过多细节，同时没有对时间效率上的严格需求，那么使用自动chunk选择是比较合适的。同时，chunk的选择也会受到系统层面的影响（书中的chunk是(13, 60, 80)）。
+
+经过测试，当数据集形状不是很常见时（在测试中使用了质数参数），auto-chunker同样有效：
+
+```Python
+In [17]: dset = f.create_dataset("ImagesPrime", (101, 479, 641), 'f', chunks=True)
+
+In [18]: dset.chunks
+Out[18]: (7, 30, 81)
+```
+
 #### Manually Picking a Shape
+
+当需要手动选择chunk形状时，需要在以下三个限制条件中进行权衡：
+
+  1. 在给定的数据集下，更大的chunk会减少chunk B-tree的大小，从而使索引更加容易，提升找到和读取chunk的速度。
+  2. 因为chunk的使用是"all or nothing"的模式，即要么不读取这个chunk，要么就会读取整个chunk，即使只需要chunk中的部分数据。因此，更大的chunk可能会导致将不必要的数据读入内存。
+  3. HDF5 chunk的高速缓存(cache)只能容纳有限的chunk，大于1MiB的chunk不会被载入到缓存中。
+
+因此，当需要进行手动chunk设置时，需要考虑：
+
+- 是否有必要指定chunk大小。应当将手动指定chunk大小限制在只有确定对数据集的后续使用方法，同时使用contiguous storage或者auto-chunker会明显降低效率的情况下。
+- 尽量使用在数据处理时最自然的方式选择chunk。例如上文中图像处理的例子，使用N×64×64或N×128×128会是比较合理的选择。
+- chunk不要太小。由于HDF5是使用B-tree进行索引，因此如果chunk过小，比如1-byte，那么磁盘空间会被大量的元数据(metadata)占据。最好将chunk的大小设置在10KiB以上。
+- chunk不要太大。由于chunk的读取是一次读取一整个chunk，因此如果只需要部分数据，那么会有时间浪费在读取chunk中不需要的数据上。同时，由于大于1Mib的chunk不会被读入高速缓存中，而是每次直接从磁盘里读取，过大的chunk也会导致效率的降低。
 
 ### Performance Example: Resizable Datasets
 
