@@ -19,6 +19,7 @@
 **/*.spec
 **/*.log
 **/*.exe
+**/*.hdf5
 !**/.vscode/*
 !.gitignore
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
@@ -26,4 +27,4 @@
 !**/*.md
 !**/*.txt
 !**/*.h
-
+!**/*.hpp
