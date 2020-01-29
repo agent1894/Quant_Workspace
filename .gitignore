@@ -20,6 +20,8 @@
 **/*.log
 **/*.exe
 **/*.hdf5
+**/*.npy
+**/*.npz
 !**/.vscode/*
 !.gitignore
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
