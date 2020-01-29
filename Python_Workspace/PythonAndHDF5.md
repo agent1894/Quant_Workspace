@@ -2,12 +2,28 @@
 
 - [Python and HDF5 by Andrew Collette (O'Reilly)](#python-and-hdf5-by-andrew-collette-oreilly)
   - [Chapter1. Introduction](#chapter1-introduction)
+    - [Python and HDF5](#python-and-hdf5)
+      - [Organizing Data and Metadata](#organizing-data-and-metadata)
+      - [Coping with Large Data Volumes](#coping-with-large-data-volumes)
+    - [What Exactly Is HDF5?](#what-exactly-is-hdf5)
+      - [HDF5: The File](#hdf5-the-file)
+      - [HDF5: The Library](#hdf5-the-library)
+      - [HDF5: The Ecosystem](#hdf5-the-ecosystem)
   - [Chapter2. Getting Started](#chapter2-getting-started)
+    - [HDF5 Basics](#hdf5-basics)
     - [Setting Up](#setting-up)
+      - [Python 2 or Python 3?](#python-2-or-python-3)
+      - [Code Examples](#code-examples)
+      - [NumPy](#numpy)
+      - [HDF5 and h5py](#hdf5-and-h5py)
+      - [IPython](#ipython)
+      - [Timing and Optimization](#timing-and-optimization)
     - [The HDF5 Tools](#the-hdf5-tools)
       - [Command Line Tools](#command-line-tools)
     - [Your First HDF5 File](#your-first-hdf5-file)
+      - [Use as a Context Manager](#use-as-a-context-manager)
       - [File Drivers](#file-drivers)
+      - [The User Block](#the-user-block)
   - [Chapter3. Working with Datasets](#chapter3-working-with-datasets)
     - [Dataset Basics](#dataset-basics)
       - [Type and Shape](#type-and-shape)
@@ -49,26 +65,272 @@
       - [SHUFFLE Filter](#shuffle-filter)
       - [FLETCHER32 Filter](#fletcher32-filter)
     - [Third-Party Filters](#third-party-filters)
+  - [Chapter5. Groups, Links, and Iteration: The "H" in HDF5](#chapter5-groups-links-and-iteration-the-%22h%22-in-hdf5)
+    - [The Root Group and Subgroups](#the-root-group-and-subgroups)
+    - [Group Basics](#group-basics)
+      - [Dictionary-Style Access](#dictionary-style-access)
+      - [Special Properties](#special-properties)
+    - [Working with Links](#working-with-links)
+      - [Hard Links](#hard-links)
+      - [Free Space and Repacking](#free-space-and-repacking)
+      - [Soft Links](#soft-links)
+      - [External Links](#external-links)
+      - [A Note on Object Names](#a-note-on-object-names)
+      - [Using get to Determine Object Types](#using-get-to-determine-object-types)
+      - [Using require to Simplify Your Application](#using-require-to-simplify-your-application)
+    - [Iteration and Containership](#iteration-and-containership)
+      - [How Groups Are Actually Stored](#how-groups-are-actually-stored)
+      - [Dictionary-Style Iteration](#dictionary-style-iteration)
+      - [Containership Testing](#containership-testing)
+    - [Multilevel Iteration with the Visitor Pattern](#multilevel-iteration-with-the-visitor-pattern)
+      - [Visit by Name](#visit-by-name)
+      - [Multiple Links and Visit](#multiple-links-and-visit)
+      - [Visiting Items](#visiting-items)
+      - [Canceling Iteration: A Simple Search Mecha](#canceling-iteration-a-simple-search-mecha)
+    - [Copying Objects](#copying-objects)
+      - [Single-File Copying](#single-file-copying)
+    - [Object Comparison and Hashing](#object-comparison-and-hashing)
 
 ## Chapter1. Introduction
+
+### Python and HDF5
 
 HDF5即Hierarchical Data Format version 5, 是一种全新的分层数据格式。在数据使用量日益增大的当前，HDF5格式会在数据的读写和分析上获得广泛的使用。
 
 HDF5结构化，“自描述”的数据结构和Python的结合非常自然，目前较为成熟并得到广泛应用的是`h5py`和`PyTables`库。
 
-书中提出HDF5的“杀手级特性”，即：HDF5使用组(groups)和属性(attributes)以分层结构组织。组类似于文件管理系统中的文件夹，将相关的数据集(datasets)储存在一起。属性则将描述性的元数据(descriptive metadata)直接和描述的数据相关联，使用户可以非常直接的看到数据的相关信息，以对数据有一个整体的认识。
+#### Organizing Data and Metadata
 
-HDF5的另一个特性是可以使用类似于`NumPy array`的切片功能。这使得HDF5在海量数据的I/O上获得很大的优势。真实数据保留在硬盘中，通过切片，只有必要的数据才会被读取到内存中，因此极大地提升了性能和效率。同时，HDF5可以允许用户控制存储空间的分配。创建一个全新的数据集不会占用任何存储空间，只有当确实有数据写入时才会分配空间。
+在这节中会使用一个简单的案例讲解HDF5的特性在应用层面的作用。具体的细节会在后续章节中进行讨论，在此仅作为对HDF5的一个初步认识。
 
-HDF5在存储*具有相同类型的大型数值数组，有任意元数据作为标签的分层组织的数据模型*时有显著的优势。如果用户需要增强多表间的数据关联，或希望对数据使用JOINs方法，仍应当选取传统的关系型数据库。同样，对于小型的一维数据集，使用如CSV等文本格式储存会更加合理。因此，当用户不需要数据间具有强关系特性，需求高性能表现，部分I/O，分层组织结构和任意元数据时，HDF5会是非常好的工具。
+假设有一个`NumPy array`表示从一场实验中获取的数据：
 
-HDF5数据模型有三种基本元素：数据集(`datasets`)，将数值型数据存于硬盘中的类数组型对象；组(`groups`)，分层保存数据集和其他组；属性(`attributes`)，直接对应数据集和组的用户自定义的元数据。
+```Python
+In [1]: import numpy as np
+
+In [2]: temperature = np.random.random(1024)
+
+In [3]: temperature
+Out[3]:
+array([0.28831224, 0.3274355 , 0.49401725, ..., 0.90799347, 0.03337086,
+       0.34579398])
+```
+
+假设这些数据点是由一个每十秒采集一次温度的气象站所记录。为了使数据便于理解，需要记录下采样间隔，即"delta-T"。在Python中可以使用一个变量记录：
+
+```Python
+In [4]: dt = 10.0
+```
+
+数据采集在一个指定时间点开始，这个时间点也需要记录，而且需要知道这些数据来源于15号气象站：
+
+```Python
+In [5]: start_time = 1375204299  # in Unix time
+
+In [6]: station = 15
+```
+
+使用NumPy内建函数`np.savez`可以将这些数据保存至硬盘。这个函数将以`NumPy array`保存数据，并将相关名称打包至一个ZIP文件，然后使用`np.load`可以再次读取文件：
+
+```Python
+In [7]: np.savez("weather.npz", data=temperature, start_time=start_time, station=station)
+
+In [8]: out = np.load("weather.npz")
+
+In [9]: out["data"]
+Out[9]:
+array([0.28831224, 0.3274355 , 0.49401725, ..., 0.90799347, 0.03337086,
+       0.34579398])
+
+In [10]: out["start_time"]
+Out[10]: array(1375204299)
+
+In [11]: out["station"]
+Out[11]: array(15)
+```
+
+目前来看NumPy可以胜任这些任务，但是如果一个气象站中有多个数据：
+
+```Python
+In [12]: wind = np.random.random(2048)
+
+In [13]: dt_wind = 5.0  # Wind sampled every 5 seconds
+```
+
+甚至有不止一个气象站。在这种情况下，如何命名，是否使用多个文件保存，将给用户带来一些麻烦。
+
+而使用HDF5对数据进行存储：
+
+```Python
+In [14]: import h5py
+
+In [15]: f = h5py.File("weather.hdf5")
+
+In [16]: f["/15/temperature"] = temperature
+
+In [17]: f["/15/temperature"].attrs["dt"] = 10.0
+
+In [18]: f["/15/temperature"].attrs["start_time"] = 1375204299
+
+In [19]: f["/15/wind"] = wind
+
+In [20]: f["/15/wind"].attrs["dt"] = 5.0
+
+...
+
+In [...]: f["/20/temperature"] = temperature_from_station_20
+
+...
+
+# and so on
+```
+
+这个案例指出HDF5的“杀手级特性”，即：HDF5使用组(groups)和属性(attributes)以分层结构组织。组类似于文件管理系统中的文件夹，将相关的数据集(datasets)储存在一起。在上述案例中，来自同一个气象站的温度和风速数据可以直接保存在相同的组下，如`"/15", "/20"`等。属性则将描述性的元数据(descriptive metadata)**直接和描述的数据相关联**，使用户可以非常直接的看到数据的相关信息，以对数据有一个整体的认识。
+
+```Python
+In [21]: dataset = f["/15/temperature"]
+
+In [22]: for key, value in dataset.attrs.items():
+    ...:     print("%s: %s" % (key, value))
+dt: 10.0
+start_time: 1375204299
+```
+
+#### Coping with Large Data Volumes
+
+作为高级胶水语言，Python越来越多地用于大型数据集的快速可视化和整合以编译语言如C或FORTRAN运行的大规模计算。现在处理高达数百gigabytes甚至terabytes的数据集已经非常常见，HDF5本身可以处理exabytes数据。
+
+通常来说，直接将大型数据集全部载入到内存中是不现实的。HDF5的一大优势在于对数据的部分提取和I/O。仍以上例来说，这个称作`dataset`的对象是一个HDF5数据集的代号，它支持类数组的切片操作。
+
+```Python
+In [23]: dataset = f["/15/temperature"]
+
+In [24]: dataset[0:10]
+Out[24]:
+array([0.28831224, 0.3274355 , 0.49401725, 0.07706269, 0.29467911,
+       0.43153889, 0.0636959 , 0.80148648, 0.68665553, 0.30635717])
+
+In [25]: dataset[0:10:2]
+Out[25]: array([0.28831224, 0.49401725, 0.29467911, 0.0636959 , 0.68665553])
+
+```
+
+使用这种类似于`NumPy array`的切片功能使得HDF5在海量数据的I/O上获得很大的优势。真实数据保留在硬盘中，通过切片，只有必要的数据才会被读取到内存中，因此极大地提升了性能和效率。
+
+HDF5的另一优势在于可以允许用户控制存储空间的分配。除了元数据外，创建一个全新的数据集不会占用任何存储空间，只有当确实有数据写入时才会分配空间。例如可以在任何电脑上创建一个2-terabyte大小的数据集：
+
+```Python
+In [31]: big_dataset = f.create_dataset("big", shape=(1024, 1024, 1024, 512), dtype="float32", chunks)
+```
+
+由于没有任何空间被分配，因此整个数据集的全部空间都是对用户可用的，可以在数据集的任何地方写入数据，只有写入数据的部分才会占用磁盘空间：
+
+```Python
+In [32]: big_dataset[244, 678, 23, 36] = 42.0
+```
+
+实际上，在这里当使用`f.close()`关闭文件后，会发现已有2TB的空间被占用，关于如何解决这个问题参见第三章Creating Empty Datasets。
+
+当空间非常重要时，甚至可以进行基于dataset-by-dataset的压缩：
+
+```Python
+In [33]: compressed_dataset = f.create_dataset("comp", shape=(1024,), dtype="int32", compression="gzip")
+
+In [34]: compressed_dataset[:] = np.arange(1024)
+
+In [35]: compressed_dataset[:]
+Out[35]: array([   0,    1,    2, ..., 1021, 1022, 1023])
+```
+
+### What Exactly Is HDF5?
+
+HDF5在存储**具有相同类型的大型数值数组，有任意元数据作为标签的分层组织的数据模型**时有显著的优势。如果用户需要增强多表间的数据关联，或希望对数据使用JOINs方法，仍应当选取传统的关系型数据库。同样，对于小型的一维数据集，使用如CSV等文本格式储存会更加合理。因此，当用户不需要数据间具有强关系特性，需求高性能表现，部分I/O，分层组织结构和任意元数据时，HDF5会是非常好的工具。
+
+所以当需要定义HDF5时，可以认为它包含三个部分：
+
+- 一种文件规范和相关的数据模型。
+- 一个可以从C, C++, Java, Python等提供具有API访问权限的标准库。
+- 一个由使用HDF5的客户端程序和类似MATLAB, IDL和Python等分析平台共同构成的软件生态系统。
+
+#### HDF5: The File
+
+在上文的例子中，已经可以看到HDF5的三种基本元素：数据集(`datasets`)，将数值型数据存于硬盘中的类数组型对象；组(`groups`)，分层保存数据集和其他组；属性(`attributes`)，可附加到数据集和组的用户自定义的元数据。
+
+通过这些基本的抽象，用户可以构建特定的应用格式，以适合需要解决的问题的方式组织数据。在上例中，使用组对应每个气象站，用不同的数据集对应实验数据，用属性保存关于数据集的其他信息。在此基础上，HDF5作为处理跨平台的数据问题，类似和其他成员分享数据就变成非常简单的基于操作组、数据集和数据属性以获得结果的问题。因为所有的文件都是“自描述”的，因此即使时确认应用格式也不需要从文件中获取数据，只要通过文件浏览其内容即可：
+
+```Python
+In [36]: f.keys()
+Out[36]: <KeysViewHDF5 ['15', 'comp']>
+
+In [37]: f["/15"].keys()
+Out[37]: <KeysViewHDF5 ['temperature', 'wind']>
+```
+
+#### HDF5: The Library
+
+人们说的HDF5通常指用C编写，带有C++和Java的附加绑定的库。最流行的两个Python接口`PyTables`和`h5py`都是被设计使用HDF Group提供的C语言库。HDF5是主动维护的，并且注重向后兼容。
+
+#### HDF5: The Ecosystem
+
+HDF5几乎支持所有平台，具有非常完善的生态。
 
 ## Chapter2. Getting Started
 
+### HDF5 Basics
+
+HDF5的组织方式从上到下分为三层：
+
+- 使用HDF5的软件层：
+
+  - User code
+  - Middleware: h5py, PyTables, IDL, MATLAB, ...
+
+  大部分的用户代码，包括Python的包`h5py`和`PyTables`都位于此层，使用了原生C的API（HDF5本身用C编写）。C API，及其之上的Python代码，都是设计来处理HDF5数据模型中的三个公共抽象：数据集、组和属性。
+
+- HDF5库内部层：
+
+  - C API
+  - Public abstractions: datasets, groups, attributes
+  - Internal data structures: B-trees to index groups, "chunk" dataset storage, etc
+  - 1-D file "address space"
+  - Low-level drivers
+
+  HDF5使用多种内部数据结构来表示数据集、组和属性。例如组使用B-tree对其条目进行索引，从而使检索和创建组成员的速度非常快，即使有大量对象存储在组中也一样。通常只有涉及性能考虑时才会需要关心这些数据结构。例如当使用分块存储时，了解数据在磁盘上的实际组织方式非常重要。
+
+  后两层与数据如何访问磁盘有关。HDF5对象都位于一维逻辑地址中，但在这层和磁盘上实际字节中有额外的一层。HDF5驱动负责数据写入磁盘的机制，通过这个机制可以带来很多有趣的事。
+
+- 操作系统层：
+  - Bytes on disk
+
 ### Setting Up
 
-在提到性能问题时，作者指出，尽管HDF5通常出现在大数据集应用的场景中，但是本书不会过多讨论优化和基准问题。作为用户，只需要合理调用API，将性能问题交给HDF5即可。
+#### Python 2 or Python 3?
+
+书中使用Python2，在笔记中使用Python3。
+
+#### Code Examples
+
+书中使用Python IDLE进行代码演示。所有的代码假定已经导入`NumPy`和`h5py`两个包。
+
+#### NumPy
+
+书中所有的数组默认使用`NumPy array`类型。`h5py`包会自动将HDF5数据格式映射为`NumPy dtypes`，这种方式便于数据的交互和使用。在HDF5中借鉴了NumPy中的切片思想，并且支持载入部分数据集。
+
+由于NumPy中，切片数据是对原始数据的索引，而非深拷贝，因此对切片数据的操作会同样影响原始数据。因此，尽管切片数据非常快，但是在操作时必须非常小心。但是，HDF5没有继承这点。由于数据保存在磁盘上，因此从文件中读取的永远是原始数据的一份拷贝。
+
+#### HDF5 and h5py
+
+书中使用`h5py`包处理HDF5。这个包提供了对例如文件，组，数据集，属性等HDF5对象的高级封装。除了`h5py`之外，`PyTables`也是基于HDF5的包，而且提供了数据集索引和额外的文件系统。本书着重于讲述HDF5本身的结构和特性，因此主要使用`h5py`包，但是`PyTables`提供的一些特性也值得关注。
+
+#### IPython
+
+尽管书中使用Python IDLE，出于习惯，笔记中代码的编写和调试统一使用IPython环境。
+
+#### Timing and Optimization
+
+书中使用标准库中的`timeit.timeit()`方法进行性能检验。在笔记中，直接使用IPython中的`%timeit`魔法方法。
+
+在提到性能问题时，书中指出，尽管HDF5通常出现在大数据集应用的场景中，但是本书不会过多讨论优化和基准问题。作为用户，只需要合理调用API，将性能问题交给HDF5即可。
 
 建议：
 
@@ -82,7 +344,7 @@ HDF5数据模型有三种基本元素：数据集(`datasets`)，将数值型数�
 
 #### Command Line Tools
 
-除了使用图形化界面查看HDF5文件，使用命令行会是更加简单方便的方式。在这里，使用`h5ls`工具。这个工具可以非常方便的查看HDF5文件包含的数据结构，可以直接在命令行界面下使用如下代码：
+除了使用图形化界面（例如略过的两节提到的HDFView和ViTables）查看HDF5文件，使用命令行会是更加简单方便的方式。在这里，使用`h5ls`工具。这个工具可以非常方便的查看HDF5文件包含的数据结构，可以直接在命令行界面下使用如下代码：
 
 ```Shell
 $ h5ls demo.hdf5
@@ -95,7 +357,9 @@ scalar Dataset{SCALAR}
 
 ### Your First HDF5 File
 
-使用`h5py`操作HDF5文件和Python操作文件非常类似。`h5py`的`File`对象提供了创建数据集和组的功能。类似于Python操作文件，`File`对象同样提供`.mode`属性。
+使用`h5py`操作HDF5文件和Python操作文件非常类似。`h5py`的`File`对象提供了创建数据集和组的功能。类似于Python操作文件，`File`对象同样提供`.filename`和`.mode`属性。
+
+HDF5提供多种模式供文件的读写：
 
 ```Python
 f = h5py.File("name.hdf5", "w")   # New file overwriting any existing file
@@ -107,8 +371,16 @@ f = h5py.File("name.hdf5", "a")   # Open read-write (create if doesn't exist)
 此外，HDF5提供了额外的模式以避免覆盖已存在的文件。
 
 ```Python
-f = h5py.File("name.hdf5", "w-")  # Create a new file, but fail if a file of the same name already exists
+f = h5py.File("name.hdf5", "w-")
 ```
+
+这个模式会创建一个新的文件，但是如果已经有同名文件存在，则创建文件失败。
+
+当Python程序中断或崩溃时，HDF库会自动关闭所有当前打开的文件。
+
+#### Use as a Context Manager
+
+在Python 2.6之后提供了上下文管理器(context managers)的特性。使用这种特性可以自动处理并关闭文件，避免了使用传统`try/except/else/finally`模式的弊端。
 
 #### File Drivers
 
@@ -116,15 +388,55 @@ File drivers用于处理将HDF5文件的地址空间映射到磁盘的机制。�
 
 - core driver
 
-  Core driver将文件完全保存在内存中，同时提供`backing_store`选项，选择`True`将在文件关闭时保存。
+  Core driver将文件**完全**保存在内存中，同时提供`backing_store`选项，选择`True`将在文件关闭时保存。
+
+  ```Python
+  f = h5py.File("name.hdf5", driver="core")
+  f = h5py.File("name.hdf5", driver="core", backing_store=True)
+  ```
 
 - family driver
   
   当需要将文件拆分为子文件时使用。这个特性主要用来适应文件系统无法处理2GB以上大小文件时。
 
+  ```Python
+  # Split the file into 1-GB chunks
+  f = h5py.File("family.hdf5", driver="family", memb_size=1024**3)
+  ```
+
 - mpio driver
 
   mpio driver是Parallel HDF5的核心，会在后续章节进行讨论。
+
+#### The User Block
+
+HDF5的一个特性是所有的文件可以由任意用户数据预置。在打开文件时，HDF5库在文件开始处查找HDF5头，然后再文件第512字节处查找，然后第1024字节处查找……这些在文件开始处的空间被成为用户块(user block)，可以在当中存储任何数据。
+
+唯一的限制是块的大小必须为2的幂且必须大于512，同时在写入文件块时不能打开文件：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f= h5py.File("userblock.hdf5", 'w', userblock_size=512)
+
+In [4]: f.userblock_size
+Out[4]: 512
+
+In [5]: f.close()
+
+In [6]: with open("userblock.hdf5", "rb+") as f:
+   ...:     f.write("a" * 512)
+TypeError: a bytes-like object is required, not 'str'
+```
+
+注意这里会出现报错，原因在于Python2和Python3之间的兼容问题。需要将`str`类型转换成`bytes`类型：
+
+```Python
+In [7]: with open("userblock.hdf5", "rb+") as f:
+   ...:     f.write(str.encode("a") * 512)
+```
 
 ## Chapter3. Working with Datasets
 
@@ -774,9 +1086,9 @@ In [10]: %timeit time_direct
 这一节中提到了不同计算机系统间，关于不同字节序的问题。由于不同CPU架构下储存数据的方式不同，当存储数据在不同系统间交互的时候，可能会带来数据类型上的问题。现代Intel x86芯片都使用little-endian格式，但是由于HDF5同样支持big-endian格式，因此`h5py`会默认使用数据存储时使用的格式。根据书中的内容，在x86架构下，两种数据格式会在性能上有接近两倍的差距。
 
 ```Python
-In [11]: a = np.ones((1000,1000), dtype='<f4')  # Little-endian 4-byte float
+In [11]: a = np.ones((1000,1000), dtype="<f4")  # Little-endian 4-byte float
 
-In [12]: b = np.ones((1000,1000), dtype='>f4')  # Big-endian 4-byte float
+In [12]: b = np.ones((1000,1000), dtype=">f4")  # Big-endian 4-byte float
 
 In [13]: %timeit a.mean
 30.7 ns ± 1.59 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
@@ -823,7 +1135,7 @@ TypeError: Only chunked datasets can be resized
 
 当创建一个数据集时，除了确定数据集的形状，还可以确定数据集最大可以resize的维度。在`h5py`中，这个属性为`maxshape`，即上例中的另一个属性。
 
-类似于`shape`，`maxshape`同样是在数据集创建时确定，但是和`shape`不同，`maxshape`一旦被确定则不能修改。如果创建数据集时用户没有显式地指定`maxshape`，HDF5就会创建一个不可改变形状的数据集，同时设置`maxshape = shape`。同时，这个数据集也会使用*contiguous storage*，这个设置也会阻止resize。关于*contiguous storage*和*chunked storage*的区别会在后面章节讨论。
+类似于`shape`，`maxshape`同样是在数据集创建时确定，但是和`shape`不同，`maxshape`一旦被确定则不能修改。如果创建数据集时用户没有显式地指定`maxshape`，HDF5就会创建一个不可改变形状的数据集，同时设置`maxshape = shape`。同时，这个数据集也会使用连续存储(*contiguous storage*)，这个设置也会阻止resize。关于连续存储和分块存储(*chunked storage*)的区别会在后面章节讨论。
 
 当设置了`maxshape`后，会发现resize的操作已经可以实现了。
 
@@ -933,7 +1245,6 @@ In [48]: dset[...]
 Out[48]:
 array([[1, 2],
        [3, 4]], dtype=int32)
-
 ```
 
 如果对这个数据集使用类似与`NumPy`中同样的操作，会发现得出了完全不同的结果：
@@ -1049,15 +1360,15 @@ Out[11]: (64, 64)
 
 ### Chunked Storage
 
-解决上述问题的方法就是使用*chunking*。这种方式会让用户明确最符合数据读写需求的N维形状。当将数据写入磁盘时，HDF5先将数据分割为指定形状的chunk，将其摊平后再存入磁盘。这些chunk会被分别保存至文件系统不同的地方，使用B-tree进行索引。
+解决上述问题的方法就是使用分块(*chunking*)。这种方式会让用户明确最符合数据读写需求的N维形状。当将数据写入磁盘时，HDF5先将数据分割为指定形状的分块(*chunk*)，将其摊平后再存入磁盘。这些分块会被分别保存至文件系统不同的地方，使用B-tree进行索引。
 
-仍然以图片数据为例，同样是(100, 480, 640)的数据集，但是使用chunked格式进行保存，这需要在`create_dateset`方法中使用一个新的关键字`chunks`：
+仍然以图片数据为例，同样是(100, 480, 640)的数据集，但是使用分块格式进行保存，这需要在`create_dateset`方法中使用一个新的关键字`chunks`：
 
 ```Python
 In [12]: dset = f.create_dataset("chunked", (100, 480, 640), dtype="i1", chunks=(1, 64, 64))
 ```
 
-*chunk shape*在数据集创建时便确定，并且不能进行更改，可以使用`chunks`属性确认chunk的形状，如果返回`None`，则说明数据集没有使用*chunked storage*。
+分块形状(*chunk shape*)在数据集创建时便确定，并且不能进行更改，可以使用`chunks`属性确认分块的形状，如果返回`None`，则说明数据集没有使用分块存储。
 
 ```Python
 In [13]: dset.chunks
@@ -1074,17 +1385,17 @@ array([[0, 0, 0, ..., 0, 0, 0],
        [0, 0, 0, ..., 0, 0, 0]], dtype=int8)
 ```
 
-在chunked storage下，同样提取第一张图左上角64×64的数据，HDF5从`[0, 0, 0]`开始查找，随后查找`[0, 0, 64]`，直到`[99, 448, 512]`和`[99, 448, 576]`为止（因为一次查找一个chunk，即64×64）。在这里，只需读取一个chunk即可。
+在分块存储下，同样提取第一张图左上角64×64的数据，HDF5从`[0, 0, 0]`开始查找，随后查找`[0, 0, 64]`，直到`[99, 448, 512]`和`[99, 448, 576]`为止（因为一次查找一个分块，即64×64）。在这里，只需读取一个分块即可。
 
-更好的是，由于chunked数据已经使用整齐的方式存储，因此可以在读写时使用任一种操作。例如HDF5在压缩文件的压缩和解压缩时就使用了chunks。
+更好的是，由于分块数据已经使用整齐的方式存储，因此可以在读写时使用任一种操作。例如HDF5在压缩文件的压缩和解压缩时就使用了分块。
 
-使用chunking只需要知道这是一种存储方式，不需要在读写chunked数据集时做任何特殊操作，只需要使用标准`NumPy`切片代码，剩下的HDF5会自行处理。
+使用分块只需要知道这是一种存储方式，不需要在读写分块数据集时做任何特殊操作，只需要使用标准`NumPy`切片代码，剩下的HDF5会自行处理。
 
 ### Setting the Chunk Shape
 
 #### Auto-Chunking
 
-大部分情况下，`h5py`会自动选择chunk的形状，即`h5py`中的*auto-chunker*功能。只需要在`chunks`参数中用`True`替代指定的元组就可以让`h5py`进行自动推断：
+大部分情况下，`h5py`会自动选择分块的形状，即`h5py`中的自动分块(*auto-chunker*)功能。只需要在`chunks`参数中用`True`替代指定的元组就可以让`h5py`进行自动推断：
 
 ```Python
 In [15]: dset = f.create_dataset("Images2", (100, 480, 640), 'f', chunks=True)
@@ -1093,11 +1404,11 @@ In [16]: dset.chunks
 Out[16]: (7, 30, 80)
 ```
 
-*auto-chunker*会尽量选择在N维下在一定大小范围内最“方”的chunk，这个操作也会在没有明确指定chunk形状时使用。
+自动分块会尽量选择在N维下在一定大小范围内最“方”的分块，这个操作也会在没有明确指定分块形状时使用。
 
-因为auto-chunker无法识别对后续数据集操作的方式，因此会选择最方形的chunk来做出权衡。因此如果只是想对文件进行压缩而不用考虑过多细节，同时没有对时间效率上的严格需求，那么使用自动chunk选择是比较合适的。同时，chunk的选择也会受到系统层面的影响（书中的chunk是(13, 60, 80)）。
+因为自动分块无法识别对后续数据集操作的方式，因此会选择最方形的分块来做出权衡。因此如果只是想对文件进行压缩而不用考虑过多细节，同时没有对时间效率上的严格需求，那么使用自动分块选择是比较合适的。同时，分块的选择也会受到系统层面的影响（书中的分块形状是(13, 60, 80)）。
 
-经过测试，当数据集形状不是很常见时（在测试中使用了质数参数），auto-chunker同样有效：
+经过测试，当数据集形状不是很常见时（在测试中使用了质数参数），自动分块同样有效：
 
 ```Python
 In [17]: dset = f.create_dataset("ImagesPrime", (101, 479, 641), 'f', chunks=True)
@@ -1110,20 +1421,26 @@ In [19]: f.close()
 
 #### Manually Picking a Shape
 
-当需要手动选择chunk形状时，需要在以下三个限制条件中进行权衡：
+当需要手动选择分块形状时，需要在以下三个限制条件中进行权衡：
 
-  1. 在给定的数据集下，更大的chunk会减少chunk B-tree的大小，从而使索引更加容易，提升找到和读取chunk的速度。
-  2. 因为chunk的使用是"all or nothing"的模式，即要么不读取这个chunk，要么就会读取整个chunk，即使只需要chunk中的部分数据。因此，更大的chunk可能会导致将不必要的数据读入内存。
-  3. HDF5 chunk的高速缓存(cache)只能容纳有限的chunk，大于1MiB的chunk不会被载入到缓存中。
+  1. 在给定的数据集下，更大的分块会减少分块B-tree的大小，从而使索引更加容易，提升找到和读取分块的速度。
+  2. 因为分块的使用是"all or nothing"的模式，即要么不读取这个分块，要么就会读取整个分块，即使只需要分块中的部分数据。因此，更大的分块可能会导致将不必要的数据读入内存。
+  3. HDF5 的高速缓存(cache)只能容纳有限的分块，大于1MiB的分块不会被载入到缓存中。
 
-因此，当需要进行手动chunk设置时，需要考虑：
+因此，当需要进行手动分块设置时，需要考虑：
 
-- 是否有必要指定chunk大小。应当将手动指定chunk大小限制在只有确定对数据集的后续使用方法，同时使用contiguous storage或者auto-chunker会明显降低效率的情况下。
-- 尽量使用在数据处理时最自然的方式选择chunk。例如上文中图像处理的例子，使用N×64×64或N×128×128会是比较合理的选择。
-- chunk不要太小。由于HDF5是使用B-tree进行索引，因此如果chunk过小，比如1-byte，那么磁盘空间会被大量的元数据(metadata)占据。最好将chunk的大小设置在10KiB以上。
-- chunk不要太大。由于chunk的读取是一次读取一整个chunk，因此如果只需要部分数据，那么会有时间浪费在读取chunk中不需要的数据上。同时，由于大于1Mib的chunk不会被读入高速缓存中，而是每次直接从磁盘里读取，过大的chunk也会导致效率的降低。
+- 是否有必要指定分块大小。应当将手动指定分块大小限制在只有确定对数据集的后续使用方法，同时使用连续存储或者自动分块会明显降低效率的情况下。
+- 尽量使用在数据处理时最自然的方式选择分块。例如上文中图像处理的例子，使用N×64×64或N×128×128会是比较合理的选择。
+- 分块不要太小。由于HDF5是使用B-tree进行索引，因此如果分块过小，比如1-byte，那么磁盘空间会被大量的元数据(metadata)占据。最好将分块的大小设置在10KiB以上。
+- 分块不要太大。由于分块的读取是一次读取一整个分块，因此如果只需要部分数据，那么会有时间浪费在读取分块中不需要的数据上。同时，由于大于1Mib的分块不会被读入高速缓存中，而是每次直接从磁盘里读取，过大的分块也会导致效率的降低。
 
 ### Performance Example: Resizable Datasets
+
+在第三章中讨论了resizable数据集的性能问题，但是实际上HDF5要求这样的数据集都是以分块存储方式存储的。显然，因为连续存储方式存储的数据集，一旦对数据集形状进行改变，则必须要重写整个数据集。
+
+在使用分块对resizable数据集进行处理时，会有一些潜在的隐患，特别是当对性能要求极高时使用自动分块。
+
+使用第三章在`testfile.hdf5`文件中创建的数据集`timetraces1`和`timetraces2`。这两个数据集都是在行上可拓展的数据集，唯一的区别在于两个数据集的初始形状不同。
 
 ```Python
 In [1]: import numpy as np
@@ -1132,10 +1449,14 @@ In [2]: import h5py
 
 In [3]: f = h5py.File("testfile.hdf5")
 
-In [4]: dset1 = f["timetraces1"]
+In [4]: dset1 = f["timetraces1"]  # dset1 = f.create_dataset("timetraces1", (1, 1000), maxshape=(None, 1000))
 
-In [5]: dset2 = f["timetraces2"]
+In [5]: dset2 = f["timetraces2"]  # dset2 = f.create_dataset("timetraces2", (5000, 1000), maxshape=(None, 1000))
+```
 
+在第三章中提到，对数据集追加数据有两种方式：直接追加(`add_trace_1`)和全部追加后再重组(`add_trace_2` and `done`)。根据第三章的结论，方法二会快于方法一，因为方法二进行了更少次数的resize。
+
+```Python
 In [6]: def add_trace_1(arr):
    ...:     """ Add one trace to the dataset, expanding it as necessary """
    ...:     dset1.resize((dset1.shape[0] + 1, 1000))
@@ -1152,7 +1473,11 @@ In [8]: def add_trace_2(arr):
 In [9]: def done():
    ...:     """ After all calls to add_trace_2, trim the dataset to size """
    ...:     dset2.resize((ntraces, 1000))
+```
 
+通过`%timeit`测试运行时间：
+
+```Python
 In [10]: def setup():
     ...:     """ Re-initialize both datasets for the tests """
     ...:     global data, N, dset1, dset2, ntraces
@@ -1173,39 +1498,628 @@ In [12]: def test2():
     ...:         add_trace_2(data)
     ...:     done()
 
-In [13]: from timeit import timeit
+In [13]: setup()
 
-In [14]: timeit(test1, setup=setup, number=1)
-Out[14]: 1.0140969999999925
+In [14]: %timeit test1
+13.4 ns ± 0.0248 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
 
-In [15]: timeit(test2, setup=setup, number=1)
-Out[15]: 0.8608302000000094
+In [15]: setup()
 
-In [16]: dset1.chunks
-Out[16]: (1, 1000)
-
-In [17]: dset2.chunks
-Out[17]: (157, 63)
+In [16]: %timeit test2
+13.5 ns ± 0.034 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
 ```
+
+结果发现结果并不符合预期。（注意这里必须手动使用`setup()`对`global`变量进行重置，否则无法复现书中结果。即使使用`timeit.timeit()`函数中的`setup=`参数也同样无法复现。）
+
+此时再观察数据集的分块大小可以看出：
+
+```Python
+In [17]: dset1.chunks
+Out[17]: (1, 1000)
+
+In [18]: dset2.chunks
+Out[18]: (157, 63)
+```
+
+显然，由于自动分块时设置分块的形状是基于数据集初始化时的形状，无法适应当前程序下对分块形状的要求。如果在创建数据集时手动指定分块的大小后，结果会有所不同：
+
+```Python
+In [19]: dset1 = f.create_dataset("timetraces3", (1, 1000), maxshape=(None, 1000), chunks=(1, 1000))
+
+In [20]: dset2 = f.create_dataset("timetraces4", (5000, 1000), maxshape=(None, 1000), chunks=(1, 1000))
+
+In [21]: setup()
+
+In [22]: %timeit test1
+13.5 ns ± 0.0203 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+
+In [23]: setup()
+
+In [24]: %timeit test2
+13.4 ns ± 0.0323 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+
+In [25]: f.close()
+```
+
+此时发现，方法二的性能得到了提升（使用`timeit.timeit()`函数观察效果会更加明显）。
 
 ### Filters and Compression
 
+如果对使用连续存储的数据集进行压缩，显而易见会出现的问题是，每次写入一个元素时，都必须重复解压缩，写入，再压缩的过程。总之，如果需要进行压缩，必须要能够根据使用的数据产出不同大小的结果。
+
+使用分块可以对数据集更好的进行压缩。因为一旦数据集是使用分块保存，则每个分块的初始大小就会固定，而且因为每个分块由B-tree进行索引，因此可以分布在磁盘的任意位置，而非一个接着一个排列。换句话说，每个分块都可以自由放大或缩小而不涉及其他的分块。
+
 #### The Filter Pipeline
+
+HDF5使用了称作过滤器管道(filter pipeline)的概念，即写入每个分块时进行的一系列操作。每一个过滤器(filter)可以对分块中的数据进行任何处理。当文件读取时，每个filter会进行“反向操作”模式，重新构建原始数据。
+
+当使用`GZIP`和`SHUFFLE`过滤器处理一个数据集时：
+
+  1. `Numpy array` $\Longleftrightarrow$ `Dataset slice` $\Longleftrightarrow$ `HDF5 chunk tree`：即`Numpy array`、数据集切片和HDF5对分块构成的B-tree索引间互相转化。
+  2. `HDF5 chunk tree` $\Longleftrightarrow$ `chunk`：即通过B-tree找到对应的分块。
+  3. 在使用`GZIP`和`SHUFFLE`过滤器时：
+      - Writing: `chunk` $\longrightarrow$ `Shuffle` $\longrightarrow$ `GZIP compress` $\longrightarrow$ `DISK`
+      - Reading: `DISK` $\longrightarrow$ `GZIP decompress` $\longrightarrow$ `Unshuffle` $\longrightarrow$ `chunk`
+
+注意，在整个流程中，原子级的操作对象是**分块**，在读写任意一个数据，即使只有一个元素时，也是对整个分块的读写和压缩解压缩。这点在选择分块形状，或者决定是否使用压缩时必须要考虑。
 
 #### Compression Filters
 
+HDF5支持多种压缩过滤器，最常见的是GZIP过滤器，也被称作DEFLATE过滤器。
+
+在对一个浮点数数据集进行GZIP压缩时：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("testfile.hdf5")
+
+In [4]: dset = f.create_dataset("BigDataset", (1000, 1000), dtype="f", compression="gzip")
+
+In [5]: dset.compression
+Out[5]: 'gzip'
+```
+
+GZIP并不局限于浮点数，可以对所有固定长度的HDF5格式有效。同时数据也可以正常读写：
+
+```Python
+In [6]: dset[...] = 42.0
+
+In [7]: dset[0, 0]
+Out[7]: 42.0
+```
+
+同时可以看到数据集的一些属性：
+
+```Python
+In [8]: dset.compression_opts
+Out[8]: 4
+
+In [9]: dset.chunks
+Out[9]: (63, 125)
+```
+
+`compression_opts`属性显示了compression filter的设置，对应`create_dataset`时设置的关键字参数。在这里，默认的GZIP等级是4。同时自动分块选择了(63, 125)作为分块形状，在压缩时，数据被拆分为63 \* 125 \* (4 bytes) = 30 KiB大小的区块进行处理。
+
 #### GZIP/DEFLATE Compression
+
+使用GZIP过滤器进行处理时最简单且移植性最好的方式，因为所有的HDF5都含有这种过滤器，此外GZIP还有如下优点：
+
+- 支持所有的HDF5数据类型
+- HDF5内置，任何地方都能使用
+- 适中的压缩速度
+- 可以使用SHUFFLE过滤器提升性能
+
+对于GZIP压缩，`compression_opts`可以选择从0到9，默认值为4：
+
+```Python
+In [10]: dset = f.create_dataset("Dataset1", (1000,), compression="gzip")
+
+In [11]: dset = f.create_dataset("Dataset2", (1000,), compression=9)
+
+In [12]: dset.compression
+Out[12]: 'gzip'
+
+In [13]: dset.compression_opts
+Out[13]: 4
+```
 
 #### SZIP Compression
 
+SZIP是美国国家航空航天局(NASA)持有的专利压缩技术。通常只有当需要处理卫星数据时才会用到。由于专利限制，很多HDF5安装包禁止了这种压缩方式（但是没有限制解压缩）。
+
+```Python
+In [14]: dset = f.create_dataset("Dataset3", (1000,), compression="szip")
+
+In [15]: dset.compression
+Out[15]: 'szip'
+```
+
+SZIP的特性是：
+
+- 只支持整型(1, 2, 4, 8 byte; signed/unsigned)和浮点型(4/8 byte)数据类型
+- 高速压缩和解压缩
+- 通常都支持解压缩
+
 #### LZF Compression
+
+对于只在Python中处理的文件，使用LZF是一个非常好的选择。这种方式内置在`h5py`模块中，基于BSD开源许可协议，C源码可以在第三方程序中使用。相对于GZIP，LZF对在低压缩比下的超高速压缩进行了优化。LZF的最佳使用场景是数据集非常大且有非常多冗余数据点时。对于LZF没有`compression_opts`选项：
+
+```Python
+In [16]: dset = f.create_dataset("Dataset4", (1000,), compression="gzip")
+
+In [17]: dset.compression
+Out[17]: 'lzf'
+```
 
 #### Performance
 
+同样，应该进行性能测试以确定提升性能的关键点，书中针对不同的情况提供了一些案例。在这个实验中，一个单精度浮点值组成的4MB的数据集被用来测试LZF，GZIP和SZIP的性能差异，数据集使用了190KiB大小的分块。这些测试并不是绝对的，只是提供了一定的参考，因此在实际运用中还需要进行一定的性能测试。
+
+- 情况1：简单数据序列：
+
+  ```Python
+  data[...] = np.arange(1024000)
+  ```
+
+  | 压缩算法(Compressor) | 压缩时间(Compression time) (ms) | 解压缩时间(Decompression time) (ms) | 压缩量(Compressed by) |
+  |----------------------|:-------------------------------:|:-----------------------------------:|:---------------------:|
+  | None | 10.7 | 6.5 | 0.00% |
+  | LZF | 18.6 | 17.8 | 96.66% |
+  | GZIP | 58.1 | 40.5 | 98.53% |
+  | SZIP | 63.1 | 61.3 | 72.68% |
+
+- 情况2：加入噪音的正弦波：
+
+  ```Python
+  data[...] = np.sin(np.arange(1024000)/32.) + (np.random(1024000)*0.5 - 0.25)
+  ```
+
+  | 压缩算法(Compressor) | 压缩时间(Compression time) (ms) | 解压缩时间(Decompression time) (ms) | 压缩量(Compressed by) |
+  |----------------------|:-------------------------------:|:-----------------------------------:|:---------------------:|
+  | None | 10.8 | 6.5 | 0.00% |
+  | LZF | 65.5 | 24.4 | 15.54% |
+  | GZIP | 298.6 | 64.8 | 20.05% |
+  | SZIP | 115.2 | 102.5 | 16.29% |
+
+- 情况3：随机数：
+
+  ```Python
+  data[...] = np.random(1024000)
+  ```
+
+  | 压缩算法(Compressor) | 压缩时间(Compression time) (ms) | 解压缩时间(Decompression time) (ms) | 压缩量(Compressed by) |
+  |----------------------|:-------------------------------:|:-----------------------------------:|:---------------------:|
+  | None | 9.0 | 7.8 | 0.00% |
+  | LZF | 67.8 | 24.9 | 8.95% |
+  | GZIP | 305.4 | 67.2 | 17.05% |
+  | SZIP | 120.6 | 107.7 | 15.56% |
+
 ### Other Filters
+
+HDF5加入了一些其他的过滤器如连续性检查过滤器(consistency check filters)和重组(rearrangement(SHUFFLE) filters)来提升压缩性能。这些过滤器和任意指定的压缩过滤器都在HDF5中被集成进过滤器管道并一个个执行。
 
 #### SHUFFLE Filter
 
+SHUFFLE过滤器通常和GZIP或LZF等压缩过滤器同时使用。这个过滤器的机制基于很多数据集会在某几个只占用非常少空间的元素上有大量的冗余数据，例如一个4 byte unsigned integer构成的数据集当中可能有数千个0，大部分数据只占用了小于2 bytes的空间。
+
+SHUFFLE过滤器会将这些数据重组，将第一个字节上放在一起，然后第二个字节放在一起，以此类推。这种方式相对于基于字典的压缩方式如GZIP或LZF会在压缩大量相同数据时获得效率上的明显提升。
+
+```Python
+In [18]: dset = f.create_dataset("Data1", (1000,), compression="gzip", shuffle=True)
+
+In [19]: dset.shuffle
+Out[19]: True
+```
+
+SHUFFLE过滤器支持所有的HDF5版本，且效率非常高。但是只能和GZIP或LZF等搭配使用。
+
 #### FLETCHER32 Filter
 
+当存储或传输大量数据时，人们希望取出的数据和放入时的数据是完全一致的。因此HDF5使用了checksum过滤器检查写入和读取时的数据字节数是否相同。在每个分块写入时，checksum过滤器计算分块的字节大小并写入分块的元数据中。当分块被读取时，checksum过滤器会再运行一次。并对之前记录的数值进行对比，如果不匹配，则给出报错并使文件读取失败。
+
+```Python
+In [20]: dset = f.create_dataset("Data2", (1000,), fletcher32=True)
+
+In [21]: dset.fletcher32
+Out[21]: True
+
+In [22]: f.close()
+```
+
+FLETCHER32过滤器支持所有的HDF5版本，效率高且和所有无损过滤器兼容。
+
 ### Third-Party Filters
+
+除此以外还有一些第三方过滤器。例如在`PyTables`项目中使用的BLOSC压缩算法在速度上进行了优化，此外也有一些基于其他压缩系统的过滤器。
+
+此外在HDF5 1.8.11后加入了称为动态载入过滤器(dynamically loaded filters)的新特性。在之前的版本中，使用过滤器需要手动寄存，例如`h5py`在启动时寄存了LZF过滤器。新特性面对数据集未知过滤器类型时会自动从磁盘中导入过滤器模块。这个特性仍在改进中，有需要可以在`h5py`或者`PyTables`的项目网站查询最新进展。
+
+最后需要注意的是，如果需要使用过滤器，一定要保证接收数据方能够顺利的获取数据。
+
+## Chapter5. Groups, Links, and Iteration: The "H" in HDF5
+
+到目前为止，创建数据集的方式都是直接在文件中创建，例如`myfile["dataset1"]`等，但是这种方式类似于将所有的文件全部放在电脑桌面上，其缺点是显而易见的。
+
+组(*Groups*)作为HDF5的容器对象，类似于文件管理系统中的文件夹，可以存储数据集和其他组。通过组和子组(subgroups)从而创建一种干净清晰的分层结构。
+
+### The Root Group and Subgroups
+
+`File`对象本身就是一个组，作为根组(*root group*)存在，命名为`/`，是进入文件的入口。
+
+更加通用的组对象是`h5py.Group`，而`h5py.File`是它的子类。可以通过`create_group`方法轻松创建其他的组：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("Groups.hdf5")
+
+In [4]: subgroup = f.create_group("SubGroup")
+
+In [5]: subgroup
+Out[5]: <HDF5 group "/SubGroup" (0 members)>
+
+In [6]: subgroup.name
+Out[6]: '/SubGroup'
+```
+
+`create_group`方法对所有的组对象都有用，因此可以在子组中继续创建子组：
+
+```Python
+In [7]: subsubgroup = subgroup.create_group("AnotherGroup")
+
+In [8]: subsubgroup.name
+Out[8]: '/SubGroup/AnotherGroup'
+```
+
+此外，创建组也不需要每一层都手动创建，可以直接输入全路径，HDF5会自动创建其中缺失的组：
+
+```Python
+In [9]: out = f.create_group("/some/big/path")
+
+In [10]: out
+Out[10]: <HDF5 group "/some/big/path" (0 members)>
+```
+
+### Group Basics
+
+*组的工作机制基本类似于字典*。尽管并非完全如此，但是多数时候可以这样理解和使用。组是可迭代对象，而且继承标准Python字典API的子集。
+
+为后续案例创建数据：
+
+```Python
+In [11]: f["Dataset1"] = 1.0
+
+In [12]: f["Dataset2"] = 2.0
+
+In [13]: f["Dataset3"] = 3.0
+
+In [14]: subgroup["Dataset4"] = 4.0
+```
+
+#### Dictionary-Style Access
+
+对象可以使用类似字典的方式直接获取：
+
+```Python
+In [15]: dset1 = f["Dataset1"]
+```
+
+不同于Python字典，HDF5中可以直接使用路径进行索引，而不需要打开每层组对象：
+
+```Python
+In [16]: dset4 = f["SubGroup/Dataset4"]  # Right
+
+In [17]: dset4 = f["SubGroup"]["Dataset4"]  # Works, but inefficient
+```
+
+如果尝试访问空组对象会引发`KeyError`报错：
+
+```Python
+In [18]: f["BadName"]
+KeyError: "Unable to open object (object 'BadName' doesn't exist)"
+```
+
+另一种类似的方式是`get`方法，但是使用`get`方法访问空组对象并不会引发报错：
+
+```Python
+In [19]: out = f.get("BadName")
+
+In [20]: print(out)
+None
+```
+
+使用`len`方法可以获取组的长度，但是仅限于当前组下的文件和子组，也就是说，`len`方法并不会递归获取子组下的所有元素：
+
+```Python
+In [21]: len(f)
+Out[21]: 5
+
+In [22]: len(f["SubGroup"])
+Out[22]: 2
+
+In [23]: f.close()
+```
+
+`f`即HDF5文件`Groups.hdf5`，其中有三个数据集`Dataset1`，`Dataset2`和`Dataset3`，还有两个组`SubGroup`和`some`，而`Subgroup`下有数据集`Dataset4`和组`AnotherGroup`。
+
+#### Special Properties
+
+当使用分层数据结构时，HDF5在组和数据集对象上提供了一些有用的组件。
+
+第一个是`.file`属性。这个属性内置于每个对象，可以通过这个属性直接访问当前对象所位于的`File`对象：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("propdemo.hdf5", 'w')
+
+In [4]: grp = f.create_group("hello")
+
+In [5]: grp.file == f
+Out[5]: True
+```
+
+第二个是`.parent`属性。这个会返回包含当前对象的组对象：
+
+```Python
+In [6]: grp.parent
+Out[6]: <HDF5 group "/" (1 members)>
+
+In [7]: f.close()
+```
+
+使用这两个属性可以有效避免路径和格式相关的问题。
+
+### Working with Links
+
+根据之前的经验，一个对象的名字似乎是对象的一部分，就像`dtype`或`shape`之于数据集一样。但是实际上，在组对象和它的成员对象之间有一个中间层，这两者通过所谓的链接(*links*)概念连接在一起。
+
+#### Hard Links
+
+HDF5中的链接类似于现代文件管理系统。数据集对象和组对象本身并没有名字，但是它们有自己的地址(*address*)，HDF5根据地址查找文件。当在组中给一个对象指定名称时，对象地址在组中被记录，然后和指定的名称形成一个链接(*link*)。
+
+换句话说，一个HDF5文件中的对象可以有超过一个名字。实际上，只要存在指向对象的链接，就可以有对应的名称。系统会记录指向一个对象的链接的数量，当不再存在这样的链接时，这块对象使用的内存就会被释放。（个人理解为一种类似于Python垃圾回收机制的内存管理方法。）
+
+这种链接方式在HDF5中为默认方式，被称为硬链接(*hard link*)，用于和以后提到的其他链接方式区分。
+
+在下例中，创建了一个包含一个组的普通文件，然后创建了一个硬链接：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("linksdemo.hdf5", 'w')
+
+In [4]: grpx = f.create_group('x')
+
+In [5]: grpx.name
+Out[5]: '/x'
+```
+
+使用Python字典的赋值方式，可以创建指向这个组的第二个链接。当从第二个名称中获取这个组时，可以发现取到了相同的组：
+
+```Python
+In [6]: f['y'] = grpx
+
+In [7]: grpy = f['y']
+
+In [8]: grpx == grpy
+Out[8]: True
+```
+
+如果尝试使用`.name`去确认一个没有唯一名称的对象的名称，系统的返回值为：
+
+```Python
+In [9]: grpx.name
+Out[9]: '/x'
+
+In [10]: grpy.name
+Out[10]: '/y'
+```
+
+在这里HDF5尽量会返回使用的名称，但是并不一定会返回用户所希望的。事实上，HDF5完全允许创建一个没有名称的对象，例如：
+
+```Python
+In [11]: grpz = f.create_group(None)
+
+In [12]: print(grpz.name)
+None
+```
+
+在这种情况下，组`grpz`确实存在于文件中，但是没有任何方式可以通过根组去访问。通过创建链接可以避免`grpz`被删除和释放空间：
+
+```Python
+In [13]: f['z'] = grpz
+
+In [14]: grpz.name
+Out[14]: '/z'
+```
+
+多个名称的问题同样会影响`.parent`属性。为了强调这个，在`h5py`中，`obj.parent`被定义为根据`obj.name`得到的父对象。例如如果`obj.name`是`/foo/bar`，那么`obj.parent.name`会是`/foo`。
+
+如果需要移除链接，可以直接使用Python字典类型的语法`del group[name]`：
+
+```Python
+In [15]: del f['y']
+
+In [16]: del f['x']  # Last hard link; the group is deleted in the file
+
+In [17]: f.close()
+```
+
+#### Free Space and Repacking
+
+当一个对象被删除时，它在磁盘上占用的空间会被回收，供新的对象使用。但是，在写入文件前，HDF5并不会在文件打开/关闭周期中跟踪这些闲置空间。因此，如果在关闭文件时没有重新使用这些空间，那么文件中可能会保留无法回收的不可用空间。
+
+HDF项目正在重点解决这一问题。与此同时，如果存在明显异常庞大的文件，可以使用随HDF5一同的`h5repack`工具：
+
+```Shell
+$ h5repack bigfile.hdf5 out.hdf5
+```
+
+#### Soft Links
+
+类Unix用户会对软链接比较熟悉。相比于硬链接直接将名称和文件中的特定对象链接，软链接将路径(*path*)存放在对象中。
+
+首先创建一个包含一个数据集的组：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("test.hdf5", 'w')
+
+In [4]: grp = f.create_group("mygroup")
+
+In [5]: dset = grp.create_dataset("dataset", (100,))
+```
+
+如果在根组上创建链接至这个数据集的硬链接，那么将永远指向这个对象，即使这个数据集已经被移出或从当前组中取消链接：
+
+```Python
+In [6]: f["hardlink"] = dset
+
+In [7]: f["hardlink"] == grp["dataset"]
+Out[7]: True
+
+In [8]: grp.move("dataset", "new_dataset_name")
+
+In [9]: f["hardlink"] == grp["new_dataset_name"]
+Out[9]: True
+```
+
+现在将这个数据集移回，然后创建一个指向路径`/mygroup/dataset`的软链接。在HDF5中创建软链接的方式是分配类`h5py.SoftLink`的实例到文件中的一个名称上：
+
+```Python
+In [10]: grp.move("new_dataset_name", "dataset")
+
+In [11]: f["softlink"] = h5py.SoftLink("/mygroup/dataset")
+
+In [12]: f["softlink"] == grp["dataset"]
+Out[12]: True
+```
+
+`SoftLink`对象只有一个`.path`属性，保存了创建时提供的路径：
+
+```Python
+In [13]: softlink = h5py.SoftLink('/some/path')
+
+In [14]: softlink
+Out[14]: <SoftLink to "/some/path">
+
+In [15]: softlink.path
+Out[15]: '/some/path'
+```
+
+需要记住的是，`h5py.SoftLink`实例只是出于Python端便利性考虑，并非包含在任一HDF5中。在将其分配给文件中的一个名称之前，任何事情都不会发生。
+
+回到上例中，因为软链接只保留了路径，因此如果移动或替换数据集，软链接会指向新的对象：
+
+```Python
+In [16]: grp.move("dataset", "new_dataset_name")
+
+In [17]: dset2 = grp.create_dataset("dataset", (50,))
+
+In [18]: f["softlink"] == dset
+Out[18]: False
+
+In [19]: f["softlink"] == dset2
+Out[19]: True
+```
+
+由此可见，软链接非常适合于指向保存在**某个特定路径的对象而不是某个特定的对象**。
+
+软链接的值在创建时**并不会**进行检查。如果提供了无效路径，或者这个对象后续被删除或移出，读取会失败并且报出异常。HDF5给出这种异常的方式和当尝试读取不存在的文件时的报错相同，都是`KeyError`：
+
+```Python
+In [20]: f["broken"] = h5py.SoftLink("/some/nonexistent/object")
+
+In [21]: f["broken"]
+KeyError: 'Unable to open object (component not found)'
+
+In [22]: f.close()
+```
+
+此外，由于软链接只记录路径，并不会像硬链接保留在在计数索引中，因此如果有一个软链接`/softlink`指向一个已经硬链接过的对象`/a`，如果删除这个对象`del f["/a"]`，则这个对象会被销毁，同时软链接也会中断。如果使用`items()`或`values()`尝试获取已经中断的软链接，对象会返回`None`。
+
+#### External Links
+
+从HDF5 1.8开始，处理本地硬链接和软链接外，新增了新的链接方式。外链接(*external links*)允许引用其他文件中的对象。这是HDF5中非常酷的特性，但是由于其透明性，在跟踪方面比较棘手。
+
+一个外链接有两个部分组成，文件名称和文件中对象的绝对名称。类似于软链接，需要对对象创建一个标记，在这里是一个实例`h5py.ExternalLink`：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: with h5py.File("file_with_resource.hdf5", 'w') as f1:
+   ...:     f1.create_group("mygroup")
+
+In [4]: f2 = h5py.File("linking_file.hdf5", 'w')
+
+In [5]: f2["linkname"] = h5py.ExternalLink("file_with_resource.hdf5", "mygroup")
+```
+
+类似于软链接，外链接也是透明的，也就是说，如果链接没有断开，会得到他们指向的组或数据集，而非中间对象。因此如果访问刚刚创建的链接，会得到组作为返回：
+
+```Python
+In [6]: grp = f2["linkname"]
+
+In [7]: grp.name
+Out[7]: '/mygroup'
+```
+
+```Python
+In [8]: grp.file
+Out[8]: <HDF5 file "file_with_resource.hdf5" (mode r+)>
+
+In [9]: f2
+Out[9]: <HDF5 file "linking_file.hdf5" (mode r+)>
+
+In [10]: f2["/linkname"].parent == f2['/']
+Out[10]: False
+
+In [11]: f2["anotherlink"] = h5py.ExternalLink("missing.hdf5", '/')
+
+In [12]: exit
+```
+
+#### A Note on Object Names
+
+#### Using get to Determine Object Types
+
+#### Using require to Simplify Your Application
+
+### Iteration and Containership
+
+#### How Groups Are Actually Stored
+
+#### Dictionary-Style Iteration
+
+#### Containership Testing
+
+### Multilevel Iteration with the Visitor Pattern
+
+#### Visit by Name
+
+#### Multiple Links and Visit
+
+#### Visiting Items
+
+#### Canceling Iteration: A Simple Search Mecha
+
+### Copying Objects
+
+#### Single-File Copying
+
+### Object Comparison and Hashing
