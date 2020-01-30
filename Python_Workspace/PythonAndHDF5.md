@@ -84,12 +84,64 @@
       - [Containership Testing](#containership-testing)
     - [Multilevel Iteration with the Visitor Pattern](#multilevel-iteration-with-the-visitor-pattern)
       - [Visit by Name](#visit-by-name)
-      - [Multiple Links and Visit](#multiple-links-and-visit)
+      - [Multiple Links and visit](#multiple-links-and-visit)
       - [Visiting Items](#visiting-items)
-      - [Canceling Iteration: A Simple Search Mecha](#canceling-iteration-a-simple-search-mecha)
+      - [Canceling Iteration: A Simple Search Mechanism](#canceling-iteration-a-simple-search-mechanism)
     - [Copying Objects](#copying-objects)
       - [Single-File Copying](#single-file-copying)
     - [Object Comparison and Hashing](#object-comparison-and-hashing)
+  - [Chapter6. Storing Metadata with Attributes](#chapter6-storing-metadata-with-attributes)
+    - [Attribute Basics](#attribute-basics)
+      - [Type Guessing](#type-guessing)
+      - [Strings and File Compatibility](#strings-and-file-compatibility)
+      - [Python Objects](#python-objects)
+      - [Explicit Typing](#explicit-typing)
+    - [Real-World Example: Accelerator Particle Database](#real-world-example-accelerator-particle-database)
+      - [Application Format on Top of HDF5](#application-format-on-top-of-hdf5)
+      - [Analyzing the Data](#analyzing-the-data)
+  - [Chapter7. More About Types](#chapter7-more-about-types)
+    - [The HDF5 Type System](#the-hdf5-type-system)
+    - [Integers and Floats](#integers-and-floats)
+    - [Fixed-Length Strings](#fixed-length-strings)
+    - [Variable-Length Strings](#variable-length-strings)
+      - [The vlen String Data Type](#the-vlen-string-data-type)
+      - [Working with vlen String Datasets](#working-with-vlen-string-datasets)
+      - [Byte Versus Unicode Strings](#byte-versus-unicode-strings)
+      - [Using Unicode Strings](#using-unicode-strings)
+      - [Don't Store Binary Data in Strings!](#dont-store-binary-data-in-strings)
+      - [Future-Proofing Your Python 2 Application](#future-proofing-your-python-2-application)
+    - [Compound Types](#compound-types)
+    - [Complex Numbers](#complex-numbers)
+    - [Enumerated Types](#enumerated-types)
+    - [Booleans](#booleans)
+    - [The array Type](#the-array-type)
+    - [Opaque Types](#opaque-types)
+    - [Dates and Times](#dates-and-times)
+  - [Chapter8. Organizing Data with References, Types, and Dimension Scales](#chapter8-organizing-data-with-references-types-and-dimension-scales)
+    - [Object References](#object-references)
+      - [Creating and Resolving References](#creating-and-resolving-references)
+      - [References as "Unbreakable" Links](#references-as-%22unbreakable%22-links)
+      - [References as Data](#references-as-data)
+    - [Region References](#region-references)
+      - [Creating Region References and Reading](#creating-region-references-and-reading)
+      - [Fancy Indexing](#fancy-indexing)
+      - [Finding Datasets with Region References](#finding-datasets-with-region-references)
+    - [Named Types](#named-types)
+      - [The Datatype Object](#the-datatype-object)
+      - [Linking to Named Types](#linking-to-named-types)
+      - [Managing Named Types](#managing-named-types)
+    - [Dimension Scales](#dimension-scales)
+      - [Creating Dimension Scales](#creating-dimension-scales)
+      - [Attaching Scales to a Dataset](#attaching-scales-to-a-dataset)
+  - [Chapter9. Concurrency: Parallel HDF5, Threading, and Multiprocessing](#chapter9-concurrency-parallel-hdf5-threading-and-multiprocessing)
+    - [Python Parallel Basics](#python-parallel-basics)
+    - [Threading](#threading)
+    - [Multiprocessing](#multiprocessing)
+    - [MPI and Parallel HDF5](#mpi-and-parallel-hdf5)
+      - [A Very Quick Introduction to MPI](#a-very-quick-introduction-to-mpi)
+      - [MPI-Based HDF5 Program](#mpi-based-hdf5-program)
+      - [Collective Versus Independent Operations](#collective-versus-independent-operations)
+      - [Atomicity Gotchas](#atomicity-gotchas)
 
 ## Chapter1. Introduction
 
@@ -295,7 +347,7 @@ HDF5的组织方式从上到下分为三层：
   - 1-D file "address space"
   - Low-level drivers
 
-  HDF5使用多种内部数据结构来表示数据集、组和属性。例如组使用B-tree对其条目进行索引，从而使检索和创建组成员的速度非常快，即使有大量对象存储在组中也一样。通常只有涉及性能考虑时才会需要关心这些数据结构。例如当使用分块存储时，了解数据在磁盘上的实际组织方式非常重要。
+  HDF5使用多种内部数据结构来表示数据集、组和属性。例如组使用B树对其条目进行索引，从而使检索和创建组成员的速度非常快，即使有大量对象存储在组中也一样。通常只有涉及性能考虑时才会需要关心这些数据结构。例如当使用分块存储时，了解数据在磁盘上的实际组织方式非常重要。
 
   后两层与数据如何访问磁盘有关。HDF5对象都位于一维逻辑地址中，但在这层和磁盘上实际字节中有额外的一层。HDF5驱动负责数据写入磁盘的机制，通过这个机制可以带来很多有趣的事。
 
@@ -1360,7 +1412,7 @@ Out[11]: (64, 64)
 
 ### Chunked Storage
 
-解决上述问题的方法就是使用分块(*chunking*)。这种方式会让用户明确最符合数据读写需求的N维形状。当将数据写入磁盘时，HDF5先将数据分割为指定形状的分块(*chunk*)，将其摊平后再存入磁盘。这些分块会被分别保存至文件系统不同的地方，使用B-tree进行索引。
+解决上述问题的方法就是使用分块(*chunking*)。这种方式会让用户明确最符合数据读写需求的N维形状。当将数据写入磁盘时，HDF5先将数据分割为指定形状的分块(*chunk*)，将其摊平后再存入磁盘。这些分块会被分别保存至文件系统不同的地方，使用B树进行索引。
 
 仍然以图片数据为例，同样是(100, 480, 640)的数据集，但是使用分块格式进行保存，这需要在`create_dateset`方法中使用一个新的关键字`chunks`：
 
@@ -1423,7 +1475,7 @@ In [19]: f.close()
 
 当需要手动选择分块形状时，需要在以下三个限制条件中进行权衡：
 
-  1. 在给定的数据集下，更大的分块会减少分块B-tree的大小，从而使索引更加容易，提升找到和读取分块的速度。
+  1. 在给定的数据集下，更大的分块会减少分块B树的大小，从而使索引更加容易，提升找到和读取分块的速度。
   2. 因为分块的使用是"all or nothing"的模式，即要么不读取这个分块，要么就会读取整个分块，即使只需要分块中的部分数据。因此，更大的分块可能会导致将不必要的数据读入内存。
   3. HDF5 的高速缓存(cache)只能容纳有限的分块，大于1MiB的分块不会被载入到缓存中。
 
@@ -1431,7 +1483,7 @@ In [19]: f.close()
 
 - 是否有必要指定分块大小。应当将手动指定分块大小限制在只有确定对数据集的后续使用方法，同时使用连续存储或者自动分块会明显降低效率的情况下。
 - 尽量使用在数据处理时最自然的方式选择分块。例如上文中图像处理的例子，使用N×64×64或N×128×128会是比较合理的选择。
-- 分块不要太小。由于HDF5是使用B-tree进行索引，因此如果分块过小，比如1-byte，那么磁盘空间会被大量的元数据(metadata)占据。最好将分块的大小设置在10KiB以上。
+- 分块不要太小。由于HDF5是使用B树进行索引，因此如果分块过小，比如1-byte，那么磁盘空间会被大量的元数据(metadata)占据。最好将分块的大小设置在10KiB以上。
 - 分块不要太大。由于分块的读取是一次读取一整个分块，因此如果只需要部分数据，那么会有时间浪费在读取分块中不需要的数据上。同时，由于大于1Mib的分块不会被读入高速缓存中，而是每次直接从磁盘里读取，过大的分块也会导致效率的降低。
 
 ### Performance Example: Resizable Datasets
@@ -1547,7 +1599,7 @@ In [25]: f.close()
 
 如果对使用连续存储的数据集进行压缩，显而易见会出现的问题是，每次写入一个元素时，都必须重复解压缩，写入，再压缩的过程。总之，如果需要进行压缩，必须要能够根据使用的数据产出不同大小的结果。
 
-使用分块可以对数据集更好的进行压缩。因为一旦数据集是使用分块保存，则每个分块的初始大小就会固定，而且因为每个分块由B-tree进行索引，因此可以分布在磁盘的任意位置，而非一个接着一个排列。换句话说，每个分块都可以自由放大或缩小而不涉及其他的分块。
+使用分块可以对数据集更好的进行压缩。因为一旦数据集是使用分块保存，则每个分块的初始大小就会固定，而且因为每个分块由B树进行索引，因此可以分布在磁盘的任意位置，而非一个接着一个排列。换句话说，每个分块都可以自由放大或缩小而不涉及其他的分块。
 
 #### The Filter Pipeline
 
@@ -1555,8 +1607,8 @@ HDF5使用了称作过滤器管道(filter pipeline)的概念，即写入每个�
 
 当使用`GZIP`和`SHUFFLE`过滤器处理一个数据集时：
 
-  1. `Numpy array` $\Longleftrightarrow$ `Dataset slice` $\Longleftrightarrow$ `HDF5 chunk tree`：即`Numpy array`、数据集切片和HDF5对分块构成的B-tree索引间互相转化。
-  2. `HDF5 chunk tree` $\Longleftrightarrow$ `chunk`：即通过B-tree找到对应的分块。
+  1. `Numpy array` $\Longleftrightarrow$ `Dataset slice` $\Longleftrightarrow$ `HDF5 chunk tree`：即`Numpy array`、数据集切片和HDF5对分块构成的B树索引间互相转化。
+  2. `HDF5 chunk tree` $\Longleftrightarrow$ `chunk`：即通过B树找到对应的分块。
   3. 在使用`GZIP`和`SHUFFLE`过滤器时：
       - Writing: `chunk` $\longrightarrow$ `Shuffle` $\longrightarrow$ `GZIP compress` $\longrightarrow$ `DISK`
       - Reading: `DISK` $\longrightarrow$ `GZIP decompress` $\longrightarrow$ `Unshuffle` $\longrightarrow$ `chunk`
@@ -2079,47 +2131,584 @@ In [7]: grp.name
 Out[7]: '/mygroup'
 ```
 
+但是如果仔细观察可以发现，这两个对象位于不同的文件中：
+
 ```Python
 In [8]: grp.file
 Out[8]: <HDF5 file "file_with_resource.hdf5" (mode r+)>
 
 In [9]: f2
 Out[9]: <HDF5 file "linking_file.hdf5" (mode r+)>
+```
 
+需要注意的是，当使用`.parent`属性获取对象时，指向的是外部文件的根组，而非链接所在的文件：
+
+```Python
 In [10]: f2["/linkname"].parent == f2['/']
 Out[10]: False
+```
 
+使用外链接会同时检查文件名和对象名，因此如果HDF5无法找到文件，或者文件内的指定对象，HDF5将会抛出异常：
+
+```Python
 In [11]: f2["anotherlink"] = h5py.ExternalLink("missing.hdf5", '/')
 
-In [12]: exit
+In [12]: f2.close()
 ```
+
+但是实际测试未报错，原因暂不明确。
+
+使用外链接可能存在两个主要问题：
+
+1. 链接指向的文件可能在需要访问时并不存在。这个问题没有很好的解决方法，需要用户对文件进行良好组织，并且时刻注意什么链接向什么。
+2. 通过遍历文件链接，有可能导致读到其他文件。这个问题相对比较危险，特别是当使用一些"Pythonic"的方法获取组成员时，如迭代方法`items()`等，这些都会包含外链接。如果不希望程序超出文件边界，最好要使用`.file`属性检查文件的真实归属。
+
+目前`h5py`并没有设置搜索路径的方法。当遇到外部链接时，HDF5将首先查找与带有链接文件相同目录下的文件，然后会查询当前工作目录下的文件。
 
 #### A Note on Object Names
 
+当返回文件名时，返回的值是一个Python Unicode对象。在高版本的HDF5和Python 3中，文件中的对象名永远被认为是文本字符串，这表示它们永远表示字符序列。而之前使用的字节字符串("byte" string)是8-bit数字序列，存储的编码较少。
+
+这种方式的好处是所有对象名称支持国际化字符，不需要将名称全部ASCII化以适应HDF5系统。在后端，`h5py`会将名称字符串转化为HDF5可接受的UTF-8编码然后存储。但是尽管HDF5支持UTF-8编码字符，还是不建议使用不合规的对象名称。
+
 #### Using get to Determine Object Types
 
+在Dictionary-Style Access一节说明了将`get`方法用于组对象，并且如何处理缺失的组成员而不引发`KeyError`。相比于Python的`get`方法，HDF5提供的`get`方法有更多的功能。除了默认值以外，还有两个关键字`getclass`和`getlink`。
+
+`getclass`关键字允许检查对象的类型(*type*)而无需打开对象。在HDF5层面，这种操作只需要读取元数据，因此速度非常快：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("get_demo.hdf5", 'w')
+
+In [4]: f.create_group("subgroup")
+Out[4]: <HDF5 group "/subgroup" (0 members)>
+
+In [5]: f.create_dataset("dataset", (100,))
+Out[5]: <HDF5 dataset "dataset": shape (100,), type "<f4">
+
+In [6]: for name in f:
+   ...:     print(name, f.get(name, getclass=True))
+dataset <class 'h5py._hl.dataset.Dataset'>
+subgroup <class 'h5py._hl.group.Group'>
+```
+
+`getlink`关键字能让用户确定使用的链接的属性：
+
+```Python
+In [7]: f["softlink"] = h5py.SoftLink("/subgroup")
+
+In [8]: with h5py.File("get_demo_ext.hdf5", 'w') as f2:
+   ...:     f2.create_group("egroup")
+
+In [9]: f["extlink"] = h5py.ExternalLink("get_demo_ext.hdf5", "/egroup")
+
+In [10]: for name in f:
+    ...:     print(name, f.get(name, getlink=True))
+dataset <h5py._hl.group.HardLink object at 0x000001C90DC485C0>
+extlink <ExternalLink to "/egroup" in file "get_demo_ext.hdf5"
+softlink <SoftLink to "/subgroup">
+subgroup <h5py._hl.group.HardLink object at 0x000001C90DC485C0>
+```
+
+可以注意到这里返回了`SoftLink`和`ExternalLink`的实例以及路径信息。这是创建链接后检索此类信息的官方方式。
+
+对于`subgroup`和`dataset`中的硬链接，也存在一个`h5py.HardLink`的实例。这个只是为了支持`get`方法，没有其他的函数、属性或方法。
+
+如果只是关心链接的类型，而不在意所涉及的路径和文件的具体值，可以同时使用`getclass`和`getlink`关键字返回链接类：
+
+```Python
+In [11]: for name in f:
+    ...:     print(name, f.get(name, getclass=True, getlink=True))
+dataset <class 'h5py._hl.group.HardLink'>
+extlink <class 'h5py._hl.group.ExternalLink'>
+softlink <class 'h5py._hl.group.SoftLink'>
+subgroup <class 'h5py._hl.group.HardLink'>
+
+In [12]: f.close()
+```
+
 #### Using require to Simplify Your Application
+
+与Python字典不同的是，不能直接覆盖组成员，也不能直接手动创建硬链接对象：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("require_demo.hdf5", 'w')
+
+In [4]: f.create_group('x')
+Out[4]: <HDF5 group "/x" (0 members)>
+
+In [5]: f.create_group('y')
+Out[5]: <HDF5 group "/y" (0 members)>
+
+In [6]: f.create_group('y')
+ValueError: Unable to create group (name already exists)
+
+In [7]: f['y'] = f['x']
+RuntimeError: Unable to create link (name already exists)
+```
+
+这种设定是有意为之的，以避免意外的数据丢失。因为一旦从组中取消链接，则对象会被立刻删除。因此，如果需要删除链接，必须显式地进行：
+
+```python
+In [8]: del f['y']
+
+In [9]: f['y'] = f['x']
+```
+
+但是这个功能同样带来了一个问题，例如如下代码作为一整个分析的一部分，创建了一个文件并将结果写入数据集中：
+
+```Python
+data = do_large_calculation()
+with h5py.File("output.hdf5") as f:
+    f.create_dateset("result", data=data)
+```
+
+如果`output.hdf5`文件中有很多数据集和组，显然不能在每次代码运行到这里时覆盖整个文件，但是如果不使用`w`模式，那么程序只能在第一次运行，除非每次都手工删除产出的结果文件数据集`result`。
+
+为了解决这个问题，`create_group`和`create_dataset`方法提供了`require_group`和`require_dataset`的配套方法。它们执行完全相同的操作，只是会首先检查是否已有组或数据集存在，如果存在则返回它。这两种方法使用相同的参数和关键字，在`require_dataset`方法中还会针对提供的形状和`dtype`检查现有的数据集。如果不匹配也会返回`False`：
+
+```Python
+In [10]: f.create_dataset("dataset", (100,), dtype='i')
+Out[10]: <HDF5 dataset "dataset": shape (100,), type "<i4">
+
+In [11]: f.require_dataset("dataset", (100,), dtype='i')
+Out[11]: <HDF5 dataset "dataset": shape (100,), type "<i4">
+
+In [12]: f.require_dataset("dataset", (100,), dtype='f')
+TypeError: Datatypes cannot be safely cast (existing int32 vs new f)
+```
+
+此外还有一个细节在于，冲突只会发生在形状不匹配，或者要求的精度高于目前已存在的精度。也就是说，如果已经存在`int64`的数据集，使用`require_dataset`并要求精度位`int32`，则会匹配成功：
+
+```Python
+In [13]: f.create_dataset("int_dataset", (100,), dtype="int64")
+Out[13]: <HDF5 dataset "int_dataset": shape (100,), type "<i8">
+
+In [14]: f.require_dataset("int_dataset", (100,), dtype="int32")
+Out[14]: <HDF5 dataset "int_dataset": shape (100,), type "<i8">
+```
 
 ### Iteration and Containership
 
 #### How Groups Are Actually Stored
 
+在HDF5中使用B树的结构对组成员进行索引。在这里仅对其简单概括，详细内容见参考资料：
+
+> "从B树、B+树、B*树谈到R树" [CSDN](https://blog.csdn.net/v_JULY_v/article/details/6530142)
+>
+> "B树和B+树总结" [cnblogs](https://www.cnblogs.com/George1994/p/7008732.html)
+
+B树是一种数据结构，非常适合跟踪大量项目，同时仍可快速检索和添加元素。它们通过获取元素的集合，每个元素根据字符串名称或数字标识符等方案进行排序，以及构建类似树的索引来快速检索元素。所有这一切对用户都是透明的。HDF5文件中的每个组都附带一个按字母顺序跟踪成员的索引：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("iterationdemo.hdf5", 'w')
+
+In [4]: f.create_group('1')
+Out[4]: <HDF5 group "/1" (0 members)>
+
+In [5]: f.create_group('2')
+Out[5]: <HDF5 group "/2" (0 members)>
+
+In [6]: f.create_group("10")
+Out[6]: <HDF5 group "/10" (0 members)>
+
+In [7]: f.create_dataset("data", (100,))
+Out[7]: <HDF5 dataset "data": shape (100,), type "<f4">
+
+In [8]: f.keys()
+Out[8]: <KeysViewHDF5 ['1', '10', '2', 'data']>
+```
+
+这意味着`h5py`通常会按照字母表顺序对文件中的对象进行迭代，但是不同通常如此。在后台，HDF5实际是按照所谓的本机顺序检索对象，这通常来说意味着尽量快的速度。同时只要不修改组，顺序会保持不变。
+
 #### Dictionary-Style Iteration
+
+通常来说，组的工作方式类似于字典。对组进行迭代会返回成员名称，同时也支持`values()`和`items()`方法（在Python 2中是`itervalues()`和`iteritems()`。在Python 3中`values()`和`items()`返回的是可迭代对象，同时删除了Python 2的这两种方法）：
+
+```Python
+In [9]: [x for x in f]
+Out[9]: ['1', '10', '2', 'data']
+
+In [10]: [y for y in f.values()]
+Out[10]:
+[<HDF5 group "/1" (0 members)>,
+ <HDF5 group "/10" (0 members)>,
+ <HDF5 group "/2" (0 members)>,
+ <HDF5 dataset "data": shape (100,), type "<f4">]
+
+In [11]: [(x, y) for x, y in f.items()]
+Out[11]:
+[('1', <HDF5 group "/1" (0 members)>),
+ ('10', <HDF5 group "/10" (0 members)>),
+ ('2', <HDF5 group "/2" (0 members)>),
+ ('data', <HDF5 dataset "data": shape (100,), type "<f4">)]
+```
 
 #### Containership Testing
 
+有一个经常会带来性能问题的情况，**不**要将代码写作：
+
+```Python
+if "name" in group.keys():
+```
+
+因为这会在每次使用组成员时创建并抛出一个包含所有成员的列表。应当用HDF5对对象名称的索引替换标准Python的容器，这将会**大幅提高速度**：
+
+```Python
+if "name" in group:
+```
+
+严格来说，也可以使用拓展路径跨越多个组，但是这会影响效率，因为HDF5会查询所有的中间组：
+
+```Python
+if "some/big/path" in group:
+```
+
+但是注意，使用POSIX风格的路径如`..`代表父目录，在HDF5中并不能有效，而且也不会得到报错信息：
+
+```Python
+In [12]: "../1" in f["/1"]
+Out[12]: False
+```
+
+当然也可以使用Python标准库将其进行转换：
+
+```Python
+In [13]: grp = f["/1"]
+
+In [14]: path = "../1"
+
+In [15]: import posixpath as pp
+
+In [16]: path = pp.normpath(pp.join(grp.name, path))
+
+In [17]: path
+Out[17]: '/1'
+
+In [18]: path in grp
+Out[18]: True
+
+In [19]: f.close()
+```
+
 ### Multilevel Iteration with the Visitor Pattern
+
+基本迭代适用于单个组的内容，但是如果要迭代文件中的每一个对象，或者指定组下的所有对象，就需要使用HDF5中提供的`visitor`迭代器。用户提供一个可调用的对象然后HDF5调用它。
 
 #### Visit by Name
 
-#### Multiple Links and Visit
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("visit_test.hdf5", 'w')
+
+In [4]: f.create_dataset("top_dataset", data=1.0)
+Out[4]: <HDF5 dataset "top_dataset": shape (), type "<f8">
+
+In [5]: f.create_group("top_group_1")
+Out[5]: <HDF5 group "/top_group_1" (0 members)>
+
+In [6]: f.create_group("top_group_1/subgroup_1")
+Out[6]: <HDF5 group "/top_group_1/subgroup_1" (0 members)>
+
+In [7]: f.create_dataset("top_group_1/subgroup_1/sub_dataset_1", data=1.0)
+Out[7]: <HDF5 dataset "sub_dataset_1": shape (), type "<f8">
+
+In [8]: f.create_group("top_group_2")
+Out[8]: <HDF5 group "/top_group_2" (0 members)>
+
+In [9]: f.create_dataset("top_group_2/sub_dataset_2", data=1.0)
+Out[9]: <HDF5 dataset "sub_dataset_2": shape (), type "<f8">
+```
+
+上述代码创建了一个文件并在其中加入了组和数据集。
+
+现在创建一个可调用对象，它接受对象名称作为参数，然后将其提供给`Group`类下的`visit`方法：
+
+```Python
+In [10]: def printname(name):
+    ...:     print(name)
+
+In [11]: f.visit(printname)
+top_dataset
+top_group_1
+top_group_1/subgroup_1
+top_group_1/subgroup_1/sub_dataset_1
+top_group_2
+top_group_2/sub_dataset_2
+```
+
+`visit`方法同样支持在子组中使用：
+
+```Python
+In [12]: grp = f["top_group_1"]
+
+In [13]: grp.visit(printname)
+subgroup_1
+subgroup_1/sub_dataset_1
+```
+
+`visitor`模式和标准Python迭代器有所区别，但是非常强大和有用，例如如果要生成文件中每个对象的列表，可以直接写作：
+
+```Python
+In [14]: mylist = []
+
+In [15]: f.visit(mylist.append)
+
+In [16]: mylist
+Out[16]:
+['top_dataset',
+ 'top_group_1',
+ 'top_group_1/subgroup_1',
+ 'top_group_1/subgroup_1/sub_dataset_1',
+ 'top_group_2',
+ 'top_group_2/sub_dataset_2']
+```
+
+#### Multiple Links and visit
+
+**硬链接时组之间共享对象的好方法**。
+
+对一个硬链接使用`visit`方法：
+
+```Python
+In [17]: grp["hardlink"] = f["top_group_2"]
+
+In [18]: grp.visit(printname)
+hardlink
+hardlink/sub_dataset_2
+subgroup_1
+subgroup_1/sub_dataset_1
+```
+
+可以看到在`/top_group_2`中的组被挂载到`/top_group_1/hardlink`下，`visit`方法也正确返回了结果。
+
+但是如果现在删除刚刚的硬链接，同时重新硬链接到组自身的数据集：
+
+```Python
+In [19]: del grp["hardlink"]
+
+In [20]: grp["hardlink_to_dataset"] = grp["subgroup_1/sub_dataset_1"]
+
+In [21]: grp.visit(printname)
+hardlink_to_dataset
+subgroup_1
+```
+
+这时候发现`sub_dataset_1`没有出现在输出中。这是根据设计得到的。因为设计要求一个文件下的每个对象**只能被`visit`一次**，从而避免死循环的可能，例如`f["/root"] = f['/']`这种设计。
+
+这正如在介绍硬链接时讨论的，对象没有“真实”或“原始”名称，因此如果有多个链接指向数据集，使用`visit`可能无法得到需要的结果。
 
 #### Visiting Items
 
-#### Canceling Iteration: A Simple Search Mecha
+给定提供给回调函数的名称，只需要在迭代的组上使用`getitem`方法就可以检索对象：
+
+```Python
+In [22]: def printobj(name):
+    ...:     print(grp[name])
+```
+
+但是这带来一个问题：由于`visit`方法提供的`name`参数时提供的是*相对路径*，因此函数必须事先知道需要应用于哪个组，即函数`printobj`中硬编码的`grp[name]`，且这个函数只能适用于`grp`组。
+
+HDF5提供了更加通用的方法处理这个问题。方法`visititems`同时提供了每个对象的实例和相对名称：
+
+```Python
+In [23]: def printobj2(name, obj):
+    ...:     print(name, obj)
+
+In [24]: grp.visititems(printobj2)
+hardlink_to_dataset <HDF5 dataset "hardlink_to_dataset": shape (), type "<f8">
+subgroup_1 <HDF5 group "/top_group_1/subgroup_1" (1 members)>
+```
+
+由于`visititems`会打开每个对象，因此这会带来一定的开销。最好仅在真正需要访问每个对象（例如需要检查对象属性）时使用这个方法。
+
+也可以使用Python内置的方法令`visit`方法更加通用，例如使用`functools.partial`方法：
+
+```Python
+In [26]: import posixpath
+
+In [27]: from functools import partial
+
+In [28]: def print_abspath(somegroup, name):
+    ...:     """ Print*name* as an absolute path
+    ...:         somegroup: HDF5 base group (*name* is relative to this)
+    ...:         name: Object name relative to *somegroup*
+    ...:     """
+    ...:     print(posixpath.join(somegroup.name, name))
+
+In [29]: grp.visit(partial(print_abspath, grp))
+/top_group_1/hardlink_to_dataset
+/top_group_1/subgroup_1
+```
+
+#### Canceling Iteration: A Simple Search Mechanism
+
+在函数`printname`中，没有显式指定返回值，在Python里会返回`None`。如果有任何其他返回内容，那么`visit`或`visititems`方法会立刻中止并返回这个值：
+
+```Python
+In [30]: f["top_group_2/sub_dataset_2"].attrs["special"] = 42
+
+In [31]: def findspecial(name, obj):
+    ...:     if obj.attrs.get("special") == 42:
+    ...:         return obj
+
+In [32]: out = f.visititems(findspecial)
+
+In [33]: out
+Out[33]: <HDF5 dataset "sub_dataset_2": shape (), type "<f8">
+```
 
 ### Copying Objects
 
 #### Single-File Copying
 
+```Python
+In [34]: f = h5py.File("copytest.hdf5", 'w')
+
+In [35]: f.create_group("mygroup")
+Out[35]: <HDF5 group "/mygroup" (0 members)>
+
+In [36]: f.create_group("mygroup/subgroup")
+Out[36]: <HDF5 group "/mygroup/subgroup" (0 members)>
+
+In [37]: f.create_dataset("mygroup/apples", (100,))
+Out[37]: <HDF5 dataset "apples": shape (100,), type "<f4">
+
+In [38]: f.copy("/mygroup/apples", "/oranges")
+
+In [39]: f["oranges"] == f["mygroup/apples"]
+Out[39]: False
+
+In [40]: f.copy("mygroup", "mygroup2")
+
+In [41]: f.visit(printname)
+mygroup
+mygroup/apples
+mygroup/subgroup
+mygroup2
+mygroup2/apples
+mygroup2/subgroup
+oranges
+```
+
+
 ### Object Comparison and Hashing
+
+## Chapter6. Storing Metadata with Attributes
+
+### Attribute Basics
+
+#### Type Guessing
+
+#### Strings and File Compatibility
+
+#### Python Objects
+
+#### Explicit Typing
+
+### Real-World Example: Accelerator Particle Database
+
+#### Application Format on Top of HDF5
+
+#### Analyzing the Data
+
+## Chapter7. More About Types
+
+### The HDF5 Type System
+
+### Integers and Floats
+
+### Fixed-Length Strings
+
+### Variable-Length Strings
+
+#### The vlen String Data Type
+
+#### Working with vlen String Datasets
+
+#### Byte Versus Unicode Strings
+
+#### Using Unicode Strings
+
+#### Don't Store Binary Data in Strings!
+
+#### Future-Proofing Your Python 2 Application
+
+### Compound Types
+
+### Complex Numbers
+
+### Enumerated Types
+
+### Booleans
+
+### The array Type
+
+### Opaque Types
+
+### Dates and Times
+
+## Chapter8. Organizing Data with References, Types, and Dimension Scales
+
+### Object References
+
+#### Creating and Resolving References
+
+#### References as "Unbreakable" Links
+
+#### References as Data
+
+### Region References
+
+#### Creating Region References and Reading
+
+#### Fancy Indexing
+
+#### Finding Datasets with Region References
+
+### Named Types
+
+#### The Datatype Object
+
+#### Linking to Named Types
+
+#### Managing Named Types
+
+### Dimension Scales
+
+#### Creating Dimension Scales
+
+#### Attaching Scales to a Dataset
+
+## Chapter9. Concurrency: Parallel HDF5, Threading, and Multiprocessing
+
+### Python Parallel Basics
+
+### Threading
+
+### Multiprocessing
+
+### MPI and Parallel HDF5
+
+#### A Very Quick Introduction to MPI
+
+#### MPI-Based HDF5 Program
+
+#### Collective Versus Independent Operations
+
+#### Atomicity Gotchas
