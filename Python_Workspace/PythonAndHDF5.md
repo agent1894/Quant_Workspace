@@ -2577,26 +2577,35 @@ Out[33]: <HDF5 dataset "sub_dataset_2": shape (), type "<f8">
 
 #### Single-File Copying
 
+HDF5内置了复制功能，复制数据集会直接创建一个新的数据集，而非引用或链接：
+
 ```Python
-In [34]: f = h5py.File("copytest.hdf5", 'w')
+In [1]: import numpy as np
 
-In [35]: f.create_group("mygroup")
-Out[35]: <HDF5 group "/mygroup" (0 members)>
+In [2]: import h5py
 
-In [36]: f.create_group("mygroup/subgroup")
-Out[36]: <HDF5 group "/mygroup/subgroup" (0 members)>
+In [3]: f = h5py.File("copytest.hdf5", 'w')
 
-In [37]: f.create_dataset("mygroup/apples", (100,))
-Out[37]: <HDF5 dataset "apples": shape (100,), type "<f4">
+In [4]: f.create_group("mygroup")
+Out[4]: <HDF5 group "/mygroup" (0 members)>
 
-In [38]: f.copy("/mygroup/apples", "/oranges")
+In [5]: f.create_group("mygroup/subgroup")
+Out[5]: <HDF5 group "/mygroup/subgroup" (0 members)>
 
-In [39]: f["oranges"] == f["mygroup/apples"]
-Out[39]: False
+In [6]: f.create_dataset("mygroup/apples", (100,))
+Out[6]: <HDF5 dataset "apples": shape (100,), type "<f4">
 
-In [40]: f.copy("mygroup", "mygroup2")
+In [7]: f.copy("/mygroup/apples", "/oranges")
 
-In [41]: f.visit(printname)
+In [8]: f["oranges"] == f["mygroup/apples"]
+Out[8]: False
+
+In [9]: f.copy("mygroup", "mygroup2")
+
+In [10]: def printname(name):
+    ...:     print(name)
+
+In [11]: f.visit(printname)
 mygroup
 mygroup/apples
 mygroup/subgroup
@@ -2606,8 +2615,76 @@ mygroup2/subgroup
 oranges
 ```
 
+书中表示可以将数据集复制到组或文件对象中，但是实际结果会报错，原因不明：
+
+```Python
+In [12]: dset = f["/mygroup/apples"]
+
+In [13]: f.copy(dset, f)
+ValueError: Field names only allowed for compound types
+
+In [14]: f.close()
+```
 
 ### Object Comparison and Hashing
+
+在之前的示例中，一直使用的`==`判断两个对象是否“相同”，但是这并不代表两个对象时完全一致的：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("objectdemo.hdf5", 'w')
+
+In [4]: grpx = f.create_group('x')
+
+In [5]: grpy = f.create_group('y')
+
+In [6]: grpx == f['x']
+Out[6]: True
+
+In [7]: grpx == grpy
+Out[7]: False
+
+In [8]: id(grpx)  # Uniquely identifies the Python object "grpx"
+Out[8]: 2465987856984
+
+In [9]: id(f['x'])
+Out[9]: 2465984976376
+```
+
+在`h5py`中，相等性测试使用的是底层HDF5工具来确定那些引用指向磁盘中相同的组或数据集。这个还被用来计算对象的哈希值。这使得可以安全的使用组、文件和数据集对象作为字典的键或集合的成员：
+
+```Python
+In [10]: hash(grpx)
+Out[10]: 3632262033377125284
+
+In [11]: hash(f['x'])
+Out[11]: 3632262033377125284
+```
+
+在对对象使用`.file`属性时可能会遇到相等性测试的另一个问题，即当组实例表示根组时，文件实例和组实例会被认为时相同的，这是由于文件实例有着双重作用，既表示磁盘上的文件，也表示HDF5端的根组：
+
+```Python
+In [12]: f == f['/']
+Out[12]: True
+```
+
+最后使用布尔值可以判断一个HDF5对象现在是否存在：
+
+```Python
+In [13]: bool(grpx)
+Out[13]: True
+
+In [14]: f.close()
+
+In [15]: grpx
+Out[15]: <Closed HDF5 group>
+
+In [16]: bool(grpx)
+Out[16]: False
+```
 
 ## Chapter6. Storing Metadata with Attributes
 
