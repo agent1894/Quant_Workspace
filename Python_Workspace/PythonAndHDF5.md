@@ -5,14 +5,14 @@
     - [Python and HDF5](#python-and-hdf5)
       - [Organizing Data and Metadata](#organizing-data-and-metadata)
       - [Coping with Large Data Volumes](#coping-with-large-data-volumes)
-    - [What Exactly Is HDF5?](#what-exactly-is-hdf5)
+    - [What Exactly Is HDF5](#what-exactly-is-hdf5)
       - [HDF5: The File](#hdf5-the-file)
       - [HDF5: The Library](#hdf5-the-library)
       - [HDF5: The Ecosystem](#hdf5-the-ecosystem)
   - [Chapter2. Getting Started](#chapter2-getting-started)
     - [HDF5 Basics](#hdf5-basics)
     - [Setting Up](#setting-up)
-      - [Python 2 or Python 3?](#python-2-or-python-3)
+      - [Python 2 or Python 3](#python-2-or-python-3)
       - [Code Examples](#code-examples)
       - [NumPy](#numpy)
       - [HDF5 and h5py](#hdf5-and-h5py)
@@ -96,9 +96,6 @@
       - [Strings and File Compatibility](#strings-and-file-compatibility)
       - [Python Objects](#python-objects)
       - [Explicit Typing](#explicit-typing)
-    - [Real-World Example: Accelerator Particle Database](#real-world-example-accelerator-particle-database)
-      - [Application Format on Top of HDF5](#application-format-on-top-of-hdf5)
-      - [Analyzing the Data](#analyzing-the-data)
   - [Chapter7. More About Types](#chapter7-more-about-types)
     - [The HDF5 Type System](#the-hdf5-type-system)
     - [Integers and Floats](#integers-and-floats)
@@ -107,8 +104,8 @@
       - [The vlen String Data Type](#the-vlen-string-data-type)
       - [Working with vlen String Datasets](#working-with-vlen-string-datasets)
       - [Byte Versus Unicode Strings](#byte-versus-unicode-strings)
-      - [Using Unicode Strings](#using-unicode-strings)
-      - [Don't Store Binary Data in Strings!](#dont-store-binary-data-in-strings)
+      - [Using Unicode String](#using-unicode-string)
+      - [Don't Store Binary Data in Strings](#dont-store-binary-data-in-strings)
       - [Future-Proofing Your Python 2 Application](#future-proofing-your-python-2-application)
     - [Compound Types](#compound-types)
     - [Complex Numbers](#complex-numbers)
@@ -142,6 +139,15 @@
       - [MPI-Based HDF5 Program](#mpi-based-hdf5-program)
       - [Collective Versus Independent Operations](#collective-versus-independent-operations)
       - [Atomicity Gotchas](#atomicity-gotchas)
+
+笔记中使用编程环境为：
+
+- Python 3.7.4
+- IPython 7.8.0
+- NumPy 1.16.5
+- h5py 2.9.0
+
+NumPy相关内容可参考NumPy中文文档：[NumPy](https://www.numpy.org.cn/user/)
 
 ## Chapter1. Introduction
 
@@ -294,7 +300,7 @@ In [35]: compressed_dataset[:]
 Out[35]: array([   0,    1,    2, ..., 1021, 1022, 1023])
 ```
 
-### What Exactly Is HDF5?
+### What Exactly Is HDF5
 
 HDF5在存储**具有相同类型的大型数值数组，有任意元数据作为标签的分层组织的数据模型**时有显著的优势。如果用户需要增强多表间的数据关联，或希望对数据使用JOINs方法，仍应当选取传统的关系型数据库。同样，对于小型的一维数据集，使用如CSV等文本格式储存会更加合理。因此，当用户不需要数据间具有强关系特性，需求高性能表现，部分I/O，分层组织结构和任意元数据时，HDF5会是非常好的工具。
 
@@ -356,7 +362,7 @@ HDF5的组织方式从上到下分为三层：
 
 ### Setting Up
 
-#### Python 2 or Python 3?
+#### Python 2 or Python 3
 
 书中使用Python2，在笔记中使用Python3。
 
@@ -609,7 +615,7 @@ In [27]: !ls -lh testfile.hdf5
 此时验证无误。
 
 参考如下：
-> "Size on disk of a partly filled HDF5 dataset" [StackOverFlow](https://stackoverflow.com/questions/45145389/size-on-disk-of-a-partly-filled-hdf5-dataset?r=SearchResults)
+> Size on disk of a partly filled HDF5 dataset [StackOverFlow](https://stackoverflow.com/questions/45145389/size-on-disk-of-a-partly-filled-hdf5-dataset?r=SearchResults)
 
 #### Saving Space with Explicit Storage Types
 
@@ -2302,9 +2308,9 @@ Out[14]: <HDF5 dataset "int_dataset": shape (100,), type "<i8">
 
 在HDF5中使用B树的结构对组成员进行索引。在这里仅对其简单概括，详细内容见参考资料：
 
-> "从B树、B+树、B*树谈到R树" [CSDN](https://blog.csdn.net/v_JULY_v/article/details/6530142)
+> 从B树、B+树、B*树谈到R树 [CSDN](https://blog.csdn.net/v_JULY_v/article/details/6530142)
 >
-> "B树和B+树总结" [cnblogs](https://www.cnblogs.com/George1994/p/7008732.html)
+> B树和B+树总结 [cnblogs](https://www.cnblogs.com/George1994/p/7008732.html)
 
 B树是一种数据结构，非常适合跟踪大量项目，同时仍可快速检索和添加元素。它们通过获取元素的集合，每个元素根据字符串名称或数字标识符等方案进行排序，以及构建类似树的索引来快速检索元素。所有这一切对用户都是透明的。HDF5文件中的每个组都附带一个按字母顺序跟踪成员的索引：
 
@@ -2671,7 +2677,7 @@ In [12]: f == f['/']
 Out[12]: True
 ```
 
-最后使用布尔值可以判断一个HDF5对象现在是否存在：
+使用布尔值可以判断一个HDF5对象现在是否存在：
 
 ```Python
 In [13]: bool(grpx)
@@ -2688,57 +2694,808 @@ Out[16]: False
 
 ## Chapter6. Storing Metadata with Attributes
 
+属性是直接附加在文件对象上的元数据，它们是制作自描述文件的关键机制。
+
 ### Attribute Basics
+
+属性可以附加在HDF5树形结构上的任何一个对象，然后使用`.attrs`查看对象附加的属性：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("attrsdemo.hdf5", 'w')
+
+In [4]: dset = f.create_dataset("dataset", (100,))
+
+In [5]: dset.attrs
+Out[5]: <Attributes of HDF5 object at 2388966744136>
+```
+
+`attrs`对象也以类似Python字典的方式使用：
+
+```Python
+In [6]: dset.attrs["title"] = "Dataset from third round of experiments"
+
+In [7]: dset.attrs["sample_rate"] = 100e6  # 100 MHz digitizer setting
+
+In [8]: dset.attrs["run_id"] = 144
+
+In [9]: dset.attrs["title"]
+Out[9]: 'Dataset from third round of experiments'
+
+In [10]: dset.attrs["sample_rate"]
+Out[10]: 100000000.0
+
+In [11]: dset.attrs["run_id"]
+Out[11]: 144
+
+In [12]: [x for x in dset.attrs]
+Out[12]: ['run_id', 'sample_rate', 'title']
+```
+
+属性并不需要像组对象一样在删除时进行严格的判定，属性可以随意被覆盖，但是一旦被删除，属性会抛出`KeyError`异常，而检索被删除的组时并不会抛出异常。此外，上文提及过的`keys`, `items`和`values`方法同样适用，同样适用的也有`get`方法：
+
+```Python
+In [13]: dset.attrs["another_id"] = 42
+
+In [14]: dset.attrs["another_id"] = 100
+
+In [15]: dset.attrs["another_id"]
+Out[15]: 100
+
+In [16]: del dset.attrs["another_id"]
+
+In [17]: dset.attrs["another_id"]
+KeyError: "Can't open attribute (can't locate attribute: 'another_id')"
+
+In [18]: [(name, val) for name, val in dset.attrs.items()]
+Out[18]:
+[('run_id', 144),
+ ('sample_rate', 100000000.0),
+ ('title', 'Dataset from third round of experiments')]
+
+In [19]: dset.attrs.get("run_id")
+Out[19]: 144
+
+In [20]: print(dset.attrs.get("missing"))
+None
+```
 
 #### Type Guessing
 
+通常来说，在创建数据集时，会指定使用的`NumPy dtype`，但是当不指定时，一同回默认使用单精度浮点是。使用`.dtype`属性可以查看数据集的数据类型：对于HDF5文件的属性来说，这个dtype是会被隐藏的，但是仍然会通过提供的内容进行自动推断：
+
+```Python
+In [21]: dset.dtype
+Out[21]: dtype('<f4')
+
+In [22]: f.flush()
+
+In [23]: !h5ls -vlr attrsdemo.hdf5
+Opened "attrsdemo.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/dataset                 Dataset {100/100}
+    Attribute: run_id scalar
+        Type:      native int
+        Data:  144
+    Attribute: sample_rate scalar
+        Type:      native double
+        Data:  1e+08
+    Attribute: title scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Dataset from third round of experiments"
+    Location:  1:800
+    Links:     1
+    Storage:   400 logical bytes, 0 allocated bytes
+    Type:      native float
+```
+
+在进行类型推断时，系统通过将值传递给`np.array`然后存储结果对象。
+
+此外，类型也不仅限于标量值(scalar values)，存储整个`NumPy array`作为属性也是可行的：
+
+```Python
+In [24]: dset.attrs["ones"] = np.ones((100,))
+
+In [25]: dset.attrs["ones"]
+Out[25]:
+array([1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,
+       1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.])
+```
+
+但是这有一定的限制。在默认情况下，属性的大小被限制在64k以内，例如如果使用一个(100, 100)的数组，则会收到报错信息：
+
+```Python
+In [26]: dset.attrs["ones"] = np.ones((100, 100))
+RuntimeError: Unable to create attribute (object header message is too large)
+```
+
+在书中，返回的报错时`ValueError`，但是在当前的版本下，返回的报错已经变成`RuntimeError`，同时，书中表述一旦出现这个情况，之前对`ones`属性的赋值也会被抹去，但是现在这个属性会被保留。
+
+如果一定需要使用大型数组作为属性，可以将这个数组保存在数据集中，然后创建一个指向这个数据集的链接，然后就可以正常的检索和使用：
+
+```Python
+In [27]: ones_dset = f.create_dataset("ones_data", data=np.ones((100, 100)))
+
+In [28]: dset.attrs["ones"] = ones_dset.ref
+
+In [29]: dset.attrs["ones"]
+Out[29]: <HDF5 object reference>
+
+In [30]: ones_dset = f[dset.attrs["ones"]]
+
+In [31]: ones_dset[...]
+Out[31]:
+array([[1., 1., 1., ..., 1., 1., 1.],
+       [1., 1., 1., ..., 1., 1., 1.],
+       [1., 1., 1., ..., 1., 1., 1.],
+       ...,
+       [1., 1., 1., ..., 1., 1., 1.],
+       [1., 1., 1., ..., 1., 1., 1.],
+       [1., 1., 1., ..., 1., 1., 1.]])
+```
+
 #### Strings and File Compatibility
+
+针对字符串和文件的兼容性，HDF5存在一些细微的区别。在前文案例中，`title`属性的数据类型是一个变长ASCII字符串(*variable-length* ASCII string)，但是笔记中，已经被识别为UTF-8格式。通常来说这个不存在问题，但是一些基于FORTRAN的程序会无法识别变长ASCII字符串，因此也可以通过`np.string_`创建使用定长字符串。此外，自然可以使用UTF-8格式字符串进行赋值：
+
+```Python
+In [32]: dset.attrs["title_fixed"] = np.string_("Another title")
+
+In [33]: dset.attrs["Yet another title"] = u"String with accent (\u00E9)"
+
+In [34]: f.flush()
+
+In [35]: !h5ls -vlr attrsdemo.hdf5
+Opened "attrsdemo.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/dataset                 Dataset {100/100}
+    Attribute: Yet\ another\ title scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "String with accent (\37777777703\37777777651)"
+    Attribute: ones scalar
+        Type:      object reference
+        Data:  DATASET-1:1680
+    Attribute: run_id scalar
+        Type:      native int
+        Data:  144
+    Attribute: sample_rate scalar
+        Type:      native double
+        Data:  1e+08
+    Attribute: title scalar
+        Type:      variable-length null-terminated UTF-8 string
+        Data:  "Dataset from third round of experiments"
+    Attribute: title_fixed scalar
+        Type:      13-byte null-padded ASCII string
+        Data:  "Another title"
+    Location:  1:800
+    Links:     1
+    Storage:   400 logical bytes, 0 allocated bytes
+    Type:      native float
+/ones_data               Dataset {100/100, 100/100}
+    Location:  1:1680
+    Links:     1
+    Storage:   80000 logical bytes, 80000 allocated bytes, 100.00% utilization
+    Type:      native double
+```
+
+在之前的笔记中已经有涉及字节字符串(*byte* string)和文本字符串(*text* string)的区别，这主要在Python 3中体现的比较明显，因为Python 3对其进行了严格的区分。而且当从文件中读取属性时，对象格式会自动转换成HDF5支持的格式，因此如果存入一个`NumPy int32`，读取时会获得`int32`格式。这意味着在Python 3中，不标准的HDF5字符串会被读取为字节字符串，这就会带来一定处理上的问题。因此在Python 3中，所有的标量字符串在读取时全部会转换为文本字符串。
 
 #### Python Objects
 
+当然，也不能将任何对象保存为属性。
+
+```Python
+In [36]: dset.attrs["object"] = {}
+TypeError: Object dtype dtype('O') has no native HDF5 equivalent
+```
+
+正如报错信息指出，HDF5并没有本地内置类型来表示Python对象。但是如果一定要使用Python对象，那最好的方法是使用序列化方法转换为字符串：
+
+```Python
+In [37]: import pickle
+
+In [38]: pickled_object = pickle.dumps({"key": 42}, protocol=0)
+
+In [39]: pickled_object
+Out[39]: b'(dp0\nVkey\np1\nI42\ns.'
+
+In [40]: dset.attrs["object"] = pickled_object
+
+In [41]: obj = pickle.loads(dset.attrs["object"])
+
+In [42]: obj
+Out[42]: {'key': 42}
+
+In [43]: f.close()
+```
+
+这个时候需要手工确认那些对象进行了序列化，因此尽量避免使用这种情况。
+
 #### Explicit Typing
 
-### Real-World Example: Accelerator Particle Database
+除了使用默认的自动属性类型识别，有时为了保持外部兼容性，需要显式指定属性类型。HDF5提供了一些机制对其进行处理。`attrs`代理对象有一个`create`方法，可以接受传入名称、数值和类型：
 
-#### Application Format on Top of HDF5
+```Python
+In [1]: import numpy as np
 
-#### Analyzing the Data
+In [2]: import h5py
+
+In [3]: f = h5py.File("attrs_create.hdf5", 'w')
+
+In [4]: dset = f.create_dataset("dataset", (100,))
+
+In [5]: dset.attrs.create("two_byte_int", 190, dtype="i2")
+
+In [6]: dset.attrs["two_byte_int"]
+Out[6]: 190
+
+In [7]: f.flush()
+
+In [8]: !h5ls -vlr attrs_create.hdf5
+Opened "attrs_create.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/dataset                 Dataset {100/100}
+    Attribute: two_byte_int scalar
+        Type:      native short
+        Data:  190
+    Location:  1:800
+    Links:     1
+    Storage:   400 logical bytes, 0 allocated bytes
+    Type:      native float
+```
+
+在字符串方面，书本中说明默认使用的字符串是定长字符串，但是当前Python 3环境下无论是使用默认还是指定`vlen=str`，都会以变长字符串存储，而且也不存在使用ASCII字符串，统一使用UTF-8编码的变长字符串：
+
+```Python
+In [9]: dset.attrs["strings"] = ["Hello", "Another string"]
+
+In [10]: dset.attrs["strings"]
+Out[10]: array(['Hello', 'Another string'], dtype=object)
+
+In [11]: dt = h5py.special_dtype(vlen=str)
+
+In [12]: dset.attrs.create("more_strings", ["Hello", "Another string"], dtype=dt)
+
+In [13]: dset.attrs["more_strings"]
+Out[13]: array(['Hello', 'Another string'], dtype=object)
+
+In [14]: f.flush()
+
+In [15]: !h5ls -vlr attrs_create.hdf5
+Opened "attrs_create.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/dataset                 Dataset {100/100}
+    Attribute: two_byte_int scalar
+        Type:      native short
+        Data:  190
+    Location:  1:800
+    Links:     1
+    Storage:   400 logical bytes, 0 allocated bytes
+    Type:      native float
+```
+
+最后补充的一个方式是`modify`，这种方法也会保留属性的类型。但是如果属性类型无法容纳提供的数值，则会对数值进行裁剪：
+
+```Python
+In [16]: dset.attrs.modify("two_byte_int", 33)
+
+In [17]: dset.attrs["two_byte_int"]
+Out[17]: 33
+
+In [18]: dset.attrs.modify("two_byte_int", 40000)
+
+In [19]: dset.attrs["two_byte_int"]
+Out[19]: 32767
+
+In [20]: f.close()
+```
 
 ## Chapter7. More About Types
 
+HDF5的功能之一是它支持的多种数据类型。在某些情况下，HDF5的特性较NumPy更多，为了保持性能并创建可交互的文件，需要了解各种数据类型的使用情况。
+
 ### The HDF5 Type System
+
+与NumPy一样，HDF5中的所有数据都具有关联的类型。 HDF5类型系统非常灵活，并且包含了常见的对象，例如各种精度的整数和浮点数，以及字符串和向量类型。同时能够映射到NumPy当中：
+
+| Native HDF5 type | NumPy equivalent |
+|---------------------------|---------------------------------------------------------------------|
+| `Integer` | `dtype("i")` |
+| `Float` | `dtype("f")` |
+| `Strings(fixed width)` | `dtype("S10")` |
+| `Strings(variable width)` | `h5py.special_dtype(vlen=btyes)` |
+| `Compound` | `dtype([("field1": "i"), ("field2": "f")])` |
+| `Enum` | `h5py.special_dtype(enum=("i", {"RED": 0, "GREEN": 1, "BLUE": 2}))` |
+| `Array` | `dtype("(2,2)f")` |
+| `Opaque` | `dtype("V10")` |
+| `Reference` | `h5py.special_dtype(ref=h5py.Reference)` |
+
+此外`h5py`和`PyTables`包引入了额外的类型用以适配Python端：
+
+| Python type | NumPy expression | Stored as |
+|-------------|-----------------------|-----------------------------------|
+| `Boolean` | `np.dtype("bool")` | HDF5 enum with FALSE=0, TRUE=1 |
+| `Complex` | `np.dtype("complex")` | HDF5 compound with fields r and i |
 
 ### Integers and Floats
 
+HDF5支持所有的NumPy整型，但是如果将一个太大的数值保存到一个较小的数据集中，HDF5和NumPy会采取不同的处理方法，HDF5会直接截断数据：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("typesdemo.hdf5")
+
+In [4]: dset = f.create_dataset("smallint", (10,), dtype=np.int8)
+
+In [5]: dset[0] = 300
+
+In [6]: dset[0]
+Out[6]: 127
+
+In [7]: a = np.zeros((10,), dtype=np.int8)
+
+In [8]: a[0] = 300
+
+In [9]: a[0]
+Out[9]: 44
+```
+
+HDF5支持单精度和双精度浮点数。此外还有对一些不常见的浮点数精度的支持，例如半精度浮点数。这是一种2-byte浮点数，在NumPy中以`np.float16`表示，通常运用在图像和视频处理应用中的数据存储。因为这种精度仅占用等价单精度浮点数一半的存储空间，非常适合精度要求不高且动态范围比16位整数所能提供的范围更大的情况，例如数值介于$10^{-8}$和$60000$之间，同时对精度要求不高时，这种方式可以大幅节省磁盘空间。
+
+但是这种格式最好仅作为数据存储方式。如果需要直接在NumPy中进行运算，NumPy就会进行强制类型转换，从而影响性能。可以使用`Dataset.read_direct`，`Dataset.astype`等方法进行处理：
+
+```Python
+In [10]: dset = f.create_dataset("half_float", (100, 100, 100), dtype=np.float16)
+
+In [11]: a = dset[...]
+
+In [12]: a = a.astype(np.float32)
+```
+
 ### Fixed-Length Strings
+
+关于定长字符串的问题主要是来源于历史，例如从FORTRAN时代遗留的字符串格式。在本书完成时这仍然是一个问题，但是目前版本下基本不存在类似问题：
+
+```Python
+In [13]: dt = np.dtype("S10")  # 10-character byte string
+
+In [14]: dset = f.create_dataset("fixed_string", (100,), dtype=dt)
+
+In [15]: dset[0] = "Hello"
+TypeError: No conversion path for dtype: dtype('<U5')
+
+In [16]: dset[0] = "thisstringhasmorethan10characters"
+TypeError: No conversion path for dtype: dtype('<U33')
+```
+
+在书中，这两种赋值方式分别会得到`'Hello'`和`'thisstring'`，但是Python 3下已经直接使用变长字符串，且已经很好地支持了Unicode字符编码，因此会抛出`TypeError`。
 
 ### Variable-Length Strings
 
+NumPy的一个特性在于数组中所有的元素都有相同的大小，这在使用数值型时非常方便，例如双精度浮点数都是8字节宽，从而提升了性能。但是在面对字符串时无法保证每个字符串的长度都是固定的。当使用8字节ASCII字符串类型时，需要显式地指定字符串的长度，这带来的问题是会让超出长度的字符串被截断：
+
+```Python
+In [17]: dt = np.dtype("S3")
+
+In [18]: a = np.array(["a", "ab", "abc", "abcd"], dtype=dt)
+
+In [19]: a
+Out[19]: array([b'a', b'ab', b'abc', b'abc'], dtype='|S3')
+```
+
+通过返回值可以看出，当前版本下的NumPy已经默认使用了Unicode字符串，同时自动适配字符串长度：
+
+```Python
+In [20]: b = np.array(["a", "ab", "abc", "abcd", "abcde", "thisstringislongenoughandover32characters"])
+
+In [21]: b
+Out[21]:
+array(['a', 'ab', 'abc', 'abcd', 'abcde',
+       'thisstringislongenoughandover32characters'], dtype='<U41')
+```
+
 #### The vlen String Data Type
+
+在本书完成时，NumPy还完全不支持变长字符串，因此需要使用`h5py`提供的类型：
+
+```Python
+In [22]: dt = h5py.special_dtype(vlen=str)
+
+In [23]: dt
+Out[23]: dtype('O')
+
+In [24]: dt.kind
+Out[24]: 'O'
+```
+
+这使得NumPy将数据类型设置为Python的`object`类型，从而存储字符串。在目前来说这个问题已经不复存在。
 
 #### Working with vlen String Datasets
 
+使用基于`object`类型的字符串，就可以存储各类字符串数值：
+
+```Python
+In [25]: dset = f.create_dataset("vlen_dataset", (100,), dtype=dt)
+
+In [26]: dset[0] = "Hello"
+
+In [27]: dset[1] = np.string_("Hello2")
+
+In [28]: dset[2] = 'X' * 10000
+
+In [29]: out = dset[0]
+
+In [30]: type(out)
+Out[30]: str
+
+In [31]: dset[0:2]
+Out[31]: array(['Hello', 'Hello2'], dtype=object)
+
+In [32]: out = dset[0:1]
+
+In [33]: out.dtype
+Out[33]: dtype('O')
+```
+
 #### Byte Versus Unicode Strings
 
-#### Using Unicode Strings
+正如前卫所说，本书的示例都是基于Python 2，Python 2和Python 3对于字符串存在编码风格的差异。这种存储方式的不同可能会带来移植性和兼容性的问题。在Python 2中的字符串本质为字节字符串(*byte string*)，这在Python 2/3中都支持，只是在Python 2中作为默认`str`的类型，而Python 3中不是，这点可以从笔记和书中示例结果的不同看出。由于很多使用HDF5的第三方引用仅支持ASCII编码字符串，因此使用这种编码方式会带来最好的可移植性。
 
-#### Don't Store Binary Data in Strings!
+#### Using Unicode String
+
+在Python 3中，`str`恰恰对应的是Unicode字符（和Python 2颠倒了）。也就是说，之前的代码：
+
+```Python
+h5py.special_dtype(vlen=str)
+```
+
+在Python 2中，等价于
+
+```Python
+h5py.special_dtype(vlen=btyes)
+```
+
+但是在Python 3中则等价于`h5py.special_dtype(vlen=unicode)`，事实上，在当前版本下，已经没有`unicode`作为`vlen`参数的值了：
+
+```Python
+In [34]: dt = h5py.special_dtype(vlen=unicode)
+NameError: name 'unicode' is not defined
+```
+
+#### Don't Store Binary Data in Strings
+
+由于HDF5允许存放ASCII编码字符串，因此如果在字符串中存在二进制编码的数据，则会被直接处理而不进行任何反馈。例如如果字符串中存在`\x00`，即`NULL`，则会直接被截断。存放原始二进制数据的最好实现是后文提到的不透明类型(opaque type)。
 
 #### Future-Proofing Your Python 2 Application
 
+由于Python 2和Python 3之间存在的关于编码的问题，因此为了保证健壮性，尽量遵循一些一致的规则，例如始终牢记文本字符串和字节字符串之间的差异，当使用字节字符串时，永远使用`h5py.special_dtype(vlen=btyes)`的方式，同时注意观察字符串前的标识符，`'u'`对应Unicode而`'b'`对应bytes。
+
 ### Compound Types
+
+对于一些数据，需要使用复合数据类型，类似于C语言中的结构体或像SQL数据库、CSV文件一样的多列数据。NumPy支持结构化数组，关于结构化数组可以参考官方文档和：
+
+> 一文彻底搞懂numpy的结构化数组——structured array[CSDN](https://blog.csdn.net/qq_27825451/article/details/82425512)
+
+结构化数组的`NumPy dtype`包含了一系列的字段，这些字段包含自己的名称和格式，例如当创建一个100个包含气候监测实验结果的数据集，其中有气温、气压和风速三个数据：
+
+```Python
+In [35]: dt = np.dtype([("temp", np.float), ("pressure", np.float), ("wind", np.float)])
+
+In [36]: a = np.zeros((100,), dtype=dt)
+```
+
+可以直接使用字段名称作为索引获取数据，在单个字段上可以使用类字典的方式获取数据：
+
+```Python
+In [37]: out = a["temp"]
+
+In [38]: out.shape
+Out[38]: (100,)
+
+In [39]: out.dtype
+Out[39]: dtype('float64')
+
+In [40]: out = a[0]
+
+In [41]: out
+Out[41]: (0., 0., 0.)
+
+In [42]: out["temp"]
+Out[42]: 0.0
+```
+
+HDF5提供了更加灵活的操作方式，可以更加简单的使用切片，甚至混合使用字段和切片：
+
+```Python
+In [43]: dset = f.create_dataset("compound", (100,), dtype=dt)
+
+In [44]: out = dset["temp", "pressure"]
+
+In [45]: out.shape
+Out[45]: (100,)
+
+In [46]: out.dtype
+Out[46]: dtype([('temp', '<f8'), ('pressure', '<f8')])
+
+In [47]: out = dset["temp", 90:100]
+
+In [48]: out.shape
+Out[48]: (10,)
+
+In [49]: out.dtype
+Out[49]: dtype('<f8')
+```
+
+这仍然是一种非常高效的方式，因为HDF5只从磁盘中读取所需要的数据。因此，也可以选择只更新需要更新的字段：
+
+```Python
+In [50]: out[...] = 98.6
+
+In [51]: dset["temp", 90:100] = out
+```
 
 ### Complex Numbers
 
+NumPy和Python都支持复数。复数对象实际是由两个浮点数结合而成，一个表示实部，一个表示虚部。在NumPy中可以使用8位单精度，16位双精度和24位扩展精度的复数。
+
+尽管HDF5没有内置复数的数据格式，但是`h5py`配套了相关的标准，即使用`r`表示实部，使用`i`表示虚部：
+
+```Python
+In [52]: dset = f.create_dataset("single_complex", (100,), dtype="c8")
+
+In [53]: f.flush()
+
+In [54]: !h5ls -vlr typesdemo.hdf5
+Opened "typesdemo.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+
+...
+
+/single_complex          Dataset {100/100}
+    Location:  1:16544
+    Links:     1
+    Storage:   800 logical bytes, 0 allocated bytes
+    Type:      struct {
+                   "r"                +0    native float
+                   "i"                +4    native float
+               } 8 bytes
+
+...
+```
+
 ### Enumerated Types
+
+这一节介绍的是C语言用户所熟悉的枚举(*enumerated types* or *enums*)类型。由于NumPy不支持这个数据类型，因此又需要使用`h5py.special_dtype`进行处理。在这里，需要使用`enum`关键字，并同时提供一个基本类型和将名称映射至值的字典，然后就可以像正常的整型数据集一样处理，也可以像变长字符串一样读取数据类型：
+
+```Python
+In [55]: mapping = {"RED": 0, "GREEN": 1, "BLUE": 2}
+
+In [56]: dt = h5py.special_dtype(enum=(np.int8, mapping))
+
+In [57]: dset = f.create_dataset("enum", (100,), dtype=dt)
+
+In [58]: dset[0]
+Out[58]: 0
+
+In [59]: dset[0].dtype
+Out[59]: dtype('int8')
+```
+
+需要注意的是，无论是HDF5还是NumPy，**都不会对枚举中的数值进行检查**，也就是说，即使存入一个不符合枚举的值，HDF5同样会接受这个值：
+
+```Python
+In [60]: dset[0] = 100
+
+In [61]: dset[0]
+Out[61]: 100
+```
+
+因此使用枚举需要非常谨慎，同时保证用户都能正确理解这是枚举（而不是其他整型数值）。
 
 ### Booleans
 
+当存储布尔值时，常用方法是使用整数。NumPy本身支持布尔数组，即数据类型`np.bool`，但是在底层，布尔类型的数组存储为单字节整数。HDF5没有原生布尔类型，但是`h5py`提供一个通过枚举实现的数据类型（类似于复数），其基本类型为`np.int8`，映射为`{"FALSE": 0, "TRUE": 1}`。
+
+```Python
+In [62]: with h5py.File("bool.hdf5", 'w') as ff:
+    ...:     ff.create_dataset("bool", (100,), dtype=np.bool)
+
+In [63]: !h5ls -vlr bool.hdf5
+Opened "bool.hdf5" with sec2 driver.
+/                        Group
+    Location:  1:96
+    Links:     1
+/bool                    Dataset {100/100}
+    Location:  1:800
+    Links:     1
+    Storage:   100 logical bytes, 0 allocated bytes
+    Type:      enum native signed char {
+                   FALSE            = 0
+                   TRUE             = 1
+               }
+```
+
 ### The array Type
+
+如果需要在一个元素中存储多个相同类型的值，那么可以使数组类型，这种方式不同于使用复合类型，数组不存在字段，每个元素自身就是一个多维数组。
+
+```Python
+In [64]: dt = np.dtype("(2,2)f")
+
+In [65]: dt
+Out[65]: dtype(('<f4', (2, 2)))
+
+In [66]: dset = f.create_dataset("array", (100,), dtype=dt)
+
+In [67]: dset.dtype
+Out[67]: dtype(('<f4', (2, 2)))
+
+In [68]: dset.shape
+Out[68]: (100,)
+
+In [69]: out = dset[0]
+
+In [70]: out
+Out[70]:
+array([[0., 0.],
+       [0., 0.]], dtype=float32)
+```
+
+注意当这里重新读取一个元素时，数值类型已经不是一开始定义的数组类型，NumPy将数组自动提升为基本类型的完整数组，这也是`dset[...].dtype != dset.dtype`的情况之一。
+
+同样，如果使用原生NumPy数组，并令数据类型为数组类型，NumPy也会将多余的轴转化为NumPy多维数组：
+
+```Python
+In [71]: a = np.zeros((100,), dtype=dt)
+
+In [72]: a.dtype
+Out[72]: dtype('float32')
+
+In [73]: a.shape
+Out[73]: (100, 2, 2)
+```
+
+如果数组类型都会被自动转换，那么何时是适合的使用场景呢？通常来说，数组类型可以和复合类型结合，例如需要记录一个时间戳以及对应的(2,2)的传感器数据：
+
+```Python
+In [74]: dt_timestamp = np.dtype("uint64")
+
+In [75]: dt_sensor = np.dtype("(2,2)f")
+
+In [76]: dt = np.dtype([("time", dt_timestamp), ("sensor", dt_sensor)])
+```
+
+通过创建一个使用数组的复合数据类型，可以非常方便的记录这种数据：
+
+```Python
+In [77]: import time
+
+In [78]: dset = f.create_dataset("mydata", (100,), dtype=dt)
+
+In [79]: dset["time", 0] = time.time()
+
+In [80]: dset["sensor", 0] = ((1,2), (3,4))
+ValueError: When changing to a larger dtype, its size must be a divisor of the total size in bytes of the last axis of the array.
+```
+
+**注意**！如果原样输入书中的示例代码，这里会出现`ValueError`报错。由于网上并没有相关资料，经过尝试发现正确的做法为：
+
+```Python
+In [81]: dset["sensor", 0] = (1,2,3,4)
+
+In [82]: dset["sensor", 0]
+Out[82]:
+array([[1., 2.],
+       [3., 4.]], dtype=float32)
+```
+
+这样才能产出正确的数据。其原因实际上正如上文所说，在这里使用的数据类型并不是一开始定义好的数据类型（数组），NumPy自动将其提升为多维数组，因此如果在赋值时再使用多维数组赋值，就会导致数组大小不匹配，从而报错。正确的赋值方式应该是直接使用一维数组，转化为多维数组的操作应该交给NumPy自行处理。
+
+接下来就可以正常使用：
+
+```Python
+In [83]: out = dset[0]
+
+In [84]: out
+Out[84]: (1580741547, [[1., 2.], [3., 4.]])
+
+In [85]: out["sensor"]
+Out[85]:
+array([[1., 2.],
+       [3., 4.]], dtype=float32)
+```
+
+当用户使用的数据包含类似这种结构时，使用数组类型会优于在数据集中添加额外的维度，这不仅令获取数据更加简单，也使得整体的数据结构更加有直观含义。
 
 ### Opaque Types
 
+使用不透明类型(*opaque type*)的情况比较少见，主要适用于无法使用NumPy格式表示的数据结构，例如一些非数值形式的二进制数据。HDF5提供了一种处理这种问题的机制。
+
+NumPy的`void "V"`类型用来存储这类不透明数据。这种类型类似于定宽字符串类型`"S"`。例如要在NumPy中存储200字节长的不透明字段：
+
+```Python
+In [86]: dt = np.dtype("V200")
+
+In [87]: a = np.zeros((10,), dtype=dt)  # 10 elements each 200 bytes long
+
+In [88]: dset = f.create_dataset("opaque", (10,), dtype=dt)
+
+In [89]: dset.dtype
+Out[89]: dtype('V200')
+
+In [90]: dset.shape
+Out[90]: (10,)
+```
+
+当需要存储原始二进制数据时，应当考虑使用不透明数据类型。尽管可以将数据存储在字符串中，但是HDF5中的字符串仅能存储ASCII或Unicode编码类型。书中给出一个在HDF5不透明数据和Python字节字符串之间往返的案例，这里将二进制数据作为属性存放：
+
+```Python
+In [91]: binary_blob = b"A\x00B\x00"  # Try storing this directly! It won't work.
+
+In [92]: dset.attrs["name"] = np.void(binary_blob)  # "Void" type maps to HDF5 opaque
+
+In [93]: out = dset.attrs["name"]
+
+In [94]: out
+Out[94]: void(b'\x41\x00\x42\x00')
+
+In [95]: binary_blob = out.tostring()
+
+In [96]: binary_blob
+Out[96]: b'A\x00B\x00'
+
+In [97]: f.close()
+```
+
 ### Dates and Times
+
+在HDF5中存储日期和时间是非常常见的需求。尽管HDF5中有日期类型，但是基本没有人使用。通常表示时间的方式是使用Unix时间戳或POSIX时间戳，计算自1970年1月1日UTC时间至今经过的秒数。
+
+如果只需要精确至秒，使用整型就足够：
+
+```Python
+timestamp = np.dtype("u8")
+```
+
+也可以使用标准库中`time.time()`的双精度浮点数
+
+```Python
+In [1]: import time
+
+In [2]: time.time()
+Out[2]: 1580750916.2593997
+```
+
+标准库`datetime`提供的`datetime`对象提供ISO标准格式字符串以获得较好的阅读体验：
+
+```Python
+In [3]: import datetime
+
+In [4]: datetime.datetime.now().isoformat()
+Out[4]: '2020-02-04T01:30:01.490901'
+```
+
+这种格式是所谓的原始时间戳，即不包含时区或闰秒信息。如果程序不在一个时区内工作，或者对闰秒敏感，则需要在文件中存储适当的数据，例如使用复合数据类型。
 
 ## Chapter8. Organizing Data with References, Types, and Dimension Scales
 
