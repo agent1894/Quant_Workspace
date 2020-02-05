@@ -1,5 +1,14 @@
 # Python and HDF5 by Andrew Collette (O'Reilly)
 
+笔记中使用编程环境为：
+
+- Python 3.7.4
+- IPython 7.8.0
+- NumPy 1.16.5
+- h5py 2.9.0
+
+NumPy相关内容可参考NumPy中文文档：[NumPy](https://www.numpy.org.cn/user/)
+
 - [Python and HDF5 by Andrew Collette (O'Reilly)](#python-and-hdf5-by-andrew-collette-oreilly)
   - [Chapter1. Introduction](#chapter1-introduction)
     - [Python and HDF5](#python-and-hdf5)
@@ -135,19 +144,6 @@
     - [Threading](#threading)
     - [Multiprocessing](#multiprocessing)
     - [MPI and Parallel HDF5](#mpi-and-parallel-hdf5)
-      - [A Very Quick Introduction to MPI](#a-very-quick-introduction-to-mpi)
-      - [MPI-Based HDF5 Program](#mpi-based-hdf5-program)
-      - [Collective Versus Independent Operations](#collective-versus-independent-operations)
-      - [Atomicity Gotchas](#atomicity-gotchas)
-
-笔记中使用编程环境为：
-
-- Python 3.7.4
-- IPython 7.8.0
-- NumPy 1.16.5
-- h5py 2.9.0
-
-NumPy相关内容可参考NumPy中文文档：[NumPy](https://www.numpy.org.cn/user/)
 
 ## Chapter1. Introduction
 
@@ -3972,16 +3968,178 @@ In [91]: dset.dims[2].label = 'z'
 
 ### Python Parallel Basics
 
+广义上讲，有三种方法可以在Python中进行并发编程：线程，多进程模块`multiprocessing`，和对消息传递接口(Message Passing Interface, MPI)使用绑定。
+
+基于线程的代码非常适合GUI和调用不占用Python解释器的外部库的应用程序。由于GIL的存在，运行纯Python程序时只能使用一个内核。由于HDF5库将所有调用序列化，因此使用线程在HDF5方面也没有性能优势。
+
+多进程模块`multiprocessing`支持基于`fork()`的并行处理。主要限制在于HDF5库，即使以只读方式打开文件，并行进程也不能共享单个HDF5文件。基于多进程模块的代码非常适合长期运行、CPU受限且数据I/O占是主进程相对较小的程序。使用多进程模块是Python编写基于多个内核的并行代码的最简单方法，强烈建议用于通用计算。
+
+基于MPI的并行HDF5(MPI-based Parallel HDF5)是最好的选择。MPI是HDF5库官方支持的并行方式。可以有无限数量的进程，这些进程可以共享同一打开的HDF5文件，并支持读写，修改文件结构等操作。使用这种方式编写代码需要更加注意，但是是在并行运算中使用HDF5最优雅，性能最好的方式。
+
+除此之外还有第四中并行计算机制目前正逐步流行起来。IPython作为解释器接口，围绕ZeroMQ网络系统设计了自己的集群功能。它甚至可以在后端使用MPI来提高并行代码的性能。目前在IPython并行模型中使用`h5py`还不多见于实际场景，但是应该对其保持关注。
+
 ### Threading
+
+HDF5没有对线程级并行的原生支持，尽管可以在线程中使用HDF5和`h5py`，但是这不会带来性能上的提升。
+
+Python本身包含一个用于控制对解释器功能访问的主锁，称为全局解释器锁(Global Interpreter Lock, GIL)。GIL将对从多个线程到基本资源（如对象引用计数）的访问进行序列化。因此尽管在Python程序中可以具有任意多个线程，但是一次只能使用一个解释器。这在编写需要花费大量时间等待用户输入的GUI或基于Web的程序时不存在问题。因为可以在等待的时间释放GIL，同时让其他线程可以使用解释器。
+
+`h5py`使用类似的概念。使用锁定对HDF5的访问进行序列化，因此一次只有一个线程可以使用这个库。与Python中的其他I/O机制不同，对HDF5库的所有使用都是阻塞的，一旦对HDF5进行了调用，则GIL在完成之前不会释放。
+
+`h5py`是线程安全的，因此安全地在线程之间共享对象而不用担心对象损坏，并且没有一个全局状态可以使一个线程在另一个线程之上。但是对于某些高级操作并不能保证是原子操作。因此建议使用递归锁来管理对HDF5对象的访问。
+
+```Python
+In [1]: import threading
+
+In [2]: import time
+
+In [3]: import random
+
+In [4]: import numpy as np
+
+In [5]: import h5py
+
+In [6]: f = h5py.File("thread_demo.hdf5", 'w')
+
+In [7]: dset = f.create_dataset("data", (2, 1024), dtype='f')
+
+In [8]: lock = threading.RLock()
+
+In [9]: class ComputeThread(threading.Thread):
+    ...:     def __init__(self, axis):
+    ...:         self.axis = axis  # One thread does dset[0,:], the other dset[1, :].
+    ...:         threading.Thread.__init__(self)
+    ...:
+    ...:     def run(self):
+    ...:         for idx in range(1024):
+    ...:             random_number = random.random()*0.01
+    ...:             time.sleep(random_number)  # Perform computation
+    ...:             with lock:
+    ...:                 dset[self.axis, idx] = random_number     # Save to dataset
+
+In [10]: thread1 = ComputeThread(0)
+
+In [11]: thread2 = ComputeThread(1)
+
+In [12]: thread1.start()
+
+In [13]: thread2.start()
+
+In [14]: # Wait until both threads have finished
+
+In [15]: thread1.join()
+
+In [16]: thread2.join()
+
+In [17]: f.close()
+```
 
 ### Multiprocessing
 
+由于GIL的存在，任何一个基于线程的Python程序都不可能快过使用一个处理器的时间。在Python 2.6之后，Python提供了多进程模块用以进行并行处理。
+
+只要采取一些预防措施，就可以将多进程与HDF5一起使用。需要记住的最重要的一点是**子进程会从父进程中继承HDF5库的状态**，这会很容易导致多个进程在一个打开的文件中以互相“打架”结束。在本书完成时（2013年10月），即使对只读文件也会出现这个状况。这与如何在Linux/Unix操作系统上使用`fork()`系统调用实现多进程的细节有关。有必要在使用时查看当前版本相关的更新情况。
+
+为了避免这个问题，本书提供了三个建议：
+
+1. 在主过程中执行所有文件I/O，但在调用多进程模块时功能时保证没有文件打开。
+2. 多个子进程可以安全地从同一文件读取，但是**只在新进程后创建后再打开文件**。
+3. 让每个子进程写入不同的文件，在进程完成后进行合并。
+
+使用Pythonic的并行运算方式是使用进程池对进程进行管理，`multiprocessing.Pool`中的`map`方法基本类似于内置`map`方法：
+
+```Python
+In [1]: from multiprocessing import Pool
+
+In [2]: p = Pool(2)  # Create a 2-process pool
+
+In [3]: words_in = ["hello", "some", "words"]
+
+In [4]: words_out = p.map(str.upper, words_in)
+
+In [5]: print(words_out)
+['HELLO', 'SOME', 'WORDS']
+```
+
+假设有一个包含坐标对的一维数据集：
+
+```Python
+In [6]: import numpy as np
+
+In [7]: import h5py
+
+In [8]: with h5py.File("coords.hdf5", 'w') as f:
+   ...:     dset = f.create_dataset("coords", (1000, 2), dtype="f4")
+   ...:     dset[...] = np.random.random((1000, 2))
+```
+
+需要计算每个坐标点到原点的距离。这是一个非常简单的并行问题，因为每个计算间都是独立的。现在使用包含4个进程的进程池进行运算，需要注意的是在使用`map`时，没有任何文件是打开的：
+
+```Python
+import numpy as np
+from multiprocessing
+import Pool import h5py
+
+def distance(arr):
+    """ Compute distance from origin to the point (arr is a shape-(2,) array)
+    """
+    return np.sqrt(np.sum(arr**2))
+
+# Load data and close the input file
+with h5py.File('coords.hdf5', 'r') as f:
+    data = f['coords'][...]
+
+# Create a 4-process pool
+p = Pool(4)
+
+# Carry out parallel computation
+result = np.array(p.map(distance, data))
+
+# Write the result into a new dataset in the file
+with h5py.File('coords.hdf5') as f:
+    f['distances'] = result
+```
+
+实际上这段程序运行之后会持续抛出`RuntimeError`报错，且无法使用`<Ctrl>+C`终止程序，原因暂不确定。
+
+在更复杂的需求下，例如不能读取相同的文件时，那么需要要么显式在主进程中进行I/O，要么每个进程生成一个文件碎片然后将其合并：
+
+```Python
+import os
+import numpy as np
+from multiprocessing
+import Pool import h5py
+
+def distance_block(idx):
+    """ Read a 100-element coordinates block, compute distances, and write back out again to a process-specific file.
+    """
+    with h5py.File('coords.hdf5','r') as f:
+        data = f['coords'][idx:idx+100]
+
+    result = np.sqrt(np.sum(data**2, axis=1))
+
+    with h5py.File("result_index_%d.hdf5"%idx, 'w') as f:
+        f["result"] = result
+
+# Create out pool and carry out the computation
+p = Pool(4)
+p.map(distance_block, range(0, 1000, 100))
+
+with h5py.File('coords.hdf5') as f:
+    dset = f.create_dataset("distances", (1000,), dtype="f4")
+
+    # Loop over our 100-element "chunks" and merge the data into coords.hdf5
+    for idx in range(0, 1000, 100):
+        filename = "result_index_%d.hdf5"%idx
+        with h5py.File(filename, 'r') as f2:
+            data = f2["result"][...]
+
+        dset[idx:idx+100] = data
+        os.unlink(filename)  # no longer needed
+```
+
 ### MPI and Parallel HDF5
 
-#### A Very Quick Introduction to MPI
+基于MPI的应用程序通过启动Python解释器的多个并行实例来工作。这些实例通过MPI库相互通信。与多进程相比主要区别在于这些进程是对等的，而不是`Pool`使用的子进程。这意味着所有文件访问也必须通过MPI库进行协调。否则，多个进程将争夺磁盘上的同一文件。好在HDF5本身几乎处理了所有与此有关的细节。用户需要做的就是使用特殊的驱动程序打开共享文件，并遵循一些约束以确保数据一致性。
 
-#### MPI-Based HDF5 Program
-
-#### Collective Versus Independent Operations
-
-#### Atomicity Gotchas
+由于MPI的使用需要一些前置知识，笔记中暂不详述。
