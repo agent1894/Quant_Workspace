@@ -594,7 +594,7 @@ In [20]: dset[0:1024] = np.arange(1024)
 In [21]: f.flush()
 
 In [22]: !ls -lh testfile.hdf5
--rw-rw-r-- 1 1024 users 4.1G 1月 1 18:05 testfile.hdf5
+-rw-rw-r-- 1 1024 users 4.1G 1月 20 18:05 testfile.hdf5
 ```
 
 但是，实际发现此时硬盘空间已经真实消耗4G，并未实现书中的示例。查阅资料后发现，应使用如下代码：
@@ -609,7 +609,7 @@ In [25]: dset = f.create_dataset("big dataset", (1024**3,), dtype=np.float32, ch
 In [26]: f.flush()
 
 In [27]: !ls -lh testfile.hdf5
--rw-rw-r-- 1 1024 users 4.1K 1月 1 18:06 testfile.hdf5
+-rw-rw-r-- 1 1024 users 4.1K 1月 20 18:06 testfile.hdf5
 ```
 
 此时验证无误。
@@ -646,13 +646,13 @@ In [3]: with h5py.File("big1.hdf5",'w') as f1:
     ...:     f1["big"] = bigdata
 
 In [4]: !ls -lh big1.hdf5
--rwxrwxrwx 1 1024 users 784K 1月 1 18:14 big1.hdf5
+-rwxrwxrwx 1 1024 users 784K 1月 20 18:14 big1.hdf5
 
 In [5]: with h5py.File("big2.hdf5",'w') as f2:
     ...:     f2.create_dataset("big", data=bigdata, dtype=np.float32)
 
 In [6]: !ls -lh big2.hdf5
--rwxrwxrwx 1 1024 users 393K 1月 1 18:15 big2.hdf5
+-rwxrwxrwx 1 1024 users 393K 1月 20 18:15 big2.hdf5
 ```
 
 但是需要注意的是，一旦指定保存格式后，读取的数据也会变成指定保存的格式。
@@ -3499,35 +3499,474 @@ Out[4]: '2020-02-04T01:30:01.490901'
 
 ## Chapter8. Organizing Data with References, Types, and Dimension Scales
 
+通常来说，数据文件并不仅是组、数据集和属性的集合，HDF5提供了一些很好的特性可以表达数据间的关系。
+
+本章包含了HDF5中用以连接不同数据类型的三个最有用的构造。引用，即HDF5的指针类型，可以很好的将链接像数据一样存储。命名类型可以跨数据集实施类型一致性。 标尺尺度(*Dimension Scales*)是一种HDF5标准，让用户可以使用一种第三方程序可以理解的方式将有意义的数据轴附加到数据上。
+
 ### Object References
+
+在之前的章节中介绍了在组中链接如何定位对象。这里提供另一种进行链接的机制，同时还能作为数据存储在数据集和属性中。
 
 #### Creating and Resolving References
 
+创建一个包含两个组和一个数据集的文件：
+
+```Python
+In [1]: import numpy as np
+
+In [2]: import h5py
+
+In [3]: f = h5py.File("refs_demo.hdf5", 'w')
+
+In [4]: grp1 = f.create_group("group1")
+
+In [5]: grp2 = f.create_group("group2")
+
+In [6]: dset = f.create_dataset("mydata", shape=(100,))
+```
+
+这里发现`grp1`有一个新的属性`ref`。使用`ref`返回一个HDF5对象引用(*object reference*)，这是对于文件中对象的指针：
+
+```Python
+In [7]: grp1.ref
+Out[7]: <HDF5 object reference>
+```
+
+再次使用引用对象进行解除引用就能获取原始对象，引用的Python类型和`h5py.Reference`完全相同：
+
+```Python
+In [8]: out = f[grp1.ref]
+
+In [9]: out == grp1
+Out[9]: True
+
+In [10]: isinstance(grp1.ref, h5py.Reference)
+Out[10]: True
+```
+
+由于引用是定位对象的“绝对”方法，因此可以不局限于根组，而是可以在任何组中使用（但是这是一种个人感觉很奇怪的使用方式），同时显然也不能在超出所属文件的地方使用：
+
+```Python
+In [11]: out = grp2[grp1.ref]
+
+In [12]: out == grp1
+Out[12]: True
+
+In [13]: with h5py.File("anotherfile.hdf5", 'w') as f2:
+    ...:     out = f2[grp1.ref]
+ValueError: Unable dereference object (bad object header version number)
+```
+
 #### References as "Unbreakable" Links
+
+但就上例中给出的特性看，引用相比链接并没有任何提升。这里指出一个重要的区别在于，引用可以作为数据存储，且完全独立于后续可能的重命名。例如如果需要在一个组中加入一个指向数据集`mydata`的属性，可以直接将名称作为属性记录：
+
+```Python
+In [14]: grp1.attrs["dataset"] = dset.name
+
+In [15]: grp1.attrs["dataset"]
+Out[15]: '/mydata'
+
+In [16]: out = f[grp1.attrs["dataset"]]
+
+In [17]: out == dset
+Out[17]: True
+```
+
+这时候是完全一致的，但是一旦对数据集重命名，这种方式会立刻失效：
+
+```Python
+In [18]: f.move("mydata", "mydata2")
+
+In [19]: out = f[grp1.attrs["dataset"]]
+KeyError: "Unable to open object (object 'mydata' doesn't exist)"
+```
+
+但是如果使用引用，即使对数据集进行重命名也不会出现这样的问题：
+
+```Python
+In [20]: grp1.attrs["dataset"] = dset.ref
+
+In [21]: grp1.attrs["dataset"]
+Out[21]: <HDF5 object reference>
+
+In [22]: out = f[grp1.attrs["dataset"]]
+
+In [23]: out == dset
+Out[23]: True
+
+In [24]: f.move("mydata2", "mydata3")
+
+In [25]: out = f[grp1.attrs["dataset"]]
+
+In [26]: out == dset
+Out[26]: True
+```
 
 #### References as Data
 
+引用是HDF5的一种完整类型，可以在属性和数据集中自由使用。但是显然NumPy并不支持引用这一格式，因此需要使用`special_dtype`结合`ref`关键字：
+
+```Python
+In [27]: dt = h5py.special_dtype(ref=h5py.Reference)
+
+In [28]: dt
+Out[28]: dtype('O')
+```
+
+`dt`在这里直接作为一种常规对象类型显示。有了这个格式就可以创建引用类型数据集。但是由于这里的引用并没有初始化，因此如果试图检索其中的元素，会返回空值引用。同时，类似于C语言中的空指针，由于引用没有指向任何对象，因此试图对一个空值引用解除引用会抛出`ValueError`异常：
+
+```Python
+In [29]: ref_dset = f.create_dataset("references", (10,), dtype=dt)
+
+In [30]: out = ref_dset[0]
+
+In [31]: out
+Out[31]: <HDF5 object reference (null)>
+
+In [32]: f[out]
+ValueError: Invalid HDF5 object reference
+```
+
+而不适用异常捕获检查是否为空值引用的简单方式是进行布尔运算：
+
+```Python
+In [33]: bool(out)
+Out[33]: False
+
+In [34]: bool(grp1.ref)
+Out[34]: True
+```
+
+但是布尔运算返回`True`并不代表引用可以解析出某个对象，只是说明这个引用不是空值引用。例如对一个对象创建引用后再删除这个对象，使用布尔运算仍然可以得到`True`值，但是如果想要对其进行解除引用，则依然会抛出`ValueError`异常。
+
 ### Region References
+
+区域引用可以存储对数据集一部分创建的引用。
 
 #### Creating Region References and Reading
 
+对之前创建的数据集`dset`使用`regionref`属性：
+
+```Python
+In [35]: dset.name
+Out[35]: '/mydata3'
+
+In [36]: dset.shape
+Out[36]: (100,)
+
+In [37]: dset.regionref
+Out[37]: <h5py._hl.base._RegionProxy at 0x17ad7f44448>
+```
+
+使用这个对象就可以存储选择的区域。通过使用切片可以创建所需的区域引用：
+
+```Python
+In [38]: ref_out = dset.regionref[10:90]
+
+In [39]: ref_out
+Out[39]: <HDF5 region reference>
+```
+
+类似于对象引用，区域引用也是不透明的，通常只查看其形状和选择区域的形状：
+
+```Python
+In [40]: dset.regionref.shape(ref_out)
+Out[40]: (100,)
+
+In [41]: dset.regionref.selection(ref_out)
+Out[41]: (80,)
+```
+
+一旦使用了区域引用，就可以直接从数据集中检索数据：
+
+```Python
+In [42]: data = dset[ref_out]
+
+In [43]: data
+Out[43]:
+array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.], dtype=float32)
+
+In [44]: data.shape
+Out[44]: (80,)
+```
+
 #### Fancy Indexing
+
+一旦使用某种“花式”索引，例如布尔数组，则**形状将始终为一维**。这模仿了NumPy对于此类选择的行为。例如给定一个二维数组，选择其中大于0.5的值，可以对这个数组创建一个区域引用：
+
+```Python
+In [45]: dset_random = f.create_dataset("small_example", (3, 3))
+
+In [46]: dset_random[...] = np.random.random((3, 3))
+
+In [47]: dset_random[...]
+Out[47]:
+array([[0.37649217, 0.11262173, 0.6997954 ],
+       [0.5739028 , 0.28569105, 0.9787948 ],
+       [0.2525628 , 0.09163964, 0.2544896 ]], dtype=float32)
+
+In [48]: index_arr = dset_random[...] > 0.5
+
+In [49]: index_arr
+Out[49]:
+array([[False, False,  True],
+       [ True, False,  True],
+       [False, False, False]])
+
+In [50]: random_ref = dset_random.regionref[index_arr]
+
+In [51]: dset_random.regionref.selection(random_ref)
+Out[51]: (3,)
+```
+
+这里有三个符合的元素，这些元素被展开为一个含有三个元素的一维数组。如果查看这些元素，可以看见这些数按照从行到列的顺序读取，即`[0, 2], [1, 0], [1, 2]`的顺序：
+
+```Python
+In [52]: data = dset_random[random_ref]
+
+In [53]: data
+Out[53]: array([0.6997954, 0.5739028, 0.9787948], dtype=float32)
+```
 
 #### Finding Datasets with Region References
 
+使用区域引用的一个技巧是：区域引用可以当作对象引用来检索数据集。
+
+以之前的`(80,)`的区域`ref_out`为例，直接对文件使用可以获取这个数据集，然后就可以直接获取引用的区域对象：
+
+```Python
+In [54]: f[ref_out]
+Out[54]: <HDF5 dataset "mydata3": shape (100,), type "<f4">
+
+In [55]: f[ref_out]
+Out[55]: <HDF5 dataset "mydata3": shape (100,), type "<f4">
+
+In [56]: f[ref_out][ref_out]
+Out[56]:
+array([0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.,
+       0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.], dtype=float32)
+```
+
+这个技巧在将区域引用作为属性存储时非常有用。这意味着只要使用区域引用，就可以不需要额外保存对象引用来确定使用这个引用的位置。
+
 ### Named Types
+
+HDF5中还有一个链接概念，它比对象或区域引用都微妙得多。
+
+当创建数据集或属性时，是使用固定的数据类型创建的。如果一个文件中有多个数据，而用户需要使这些数据的类型完全相同。在这种情况下，HDF5原生提供了一种方式对这种类型进行保存，同时**完全独立于**任何数据集或属性。
 
 #### The Datatype Object
 
+创建一个命名类型，只需要将一个`NumPy dtype`赋值给文件中的一个名称即可：
+
+```Python
+In [57]: f["mytype"] = np.dtype("float32")
+```
+
+当打开这个名称时，不会得到数据类型的返回：
+
+```Python
+In [58]: out = f["mytype"]
+
+In [59]: out
+Out[59]: <HDF5 named type "mytype" (dtype <f4)>
+```
+
+类似于数据集对象，这里的`h5py.Datatype`也是一个允许用户访问HDF5数据类型的代理，最常见的属性是`Datatype.dtype`，会返回等价的`NumPy dtype`对象：
+
+```Python
+In [60]: out.dtype
+Out[60]: dtype('<f4')
+```
+
+由于这是一个完整的对象，因此还有一些其他的属性.也可以像数据集和组一样使用`.file`（`h5py.File`的示例），`.ref`（对象引用），属性等：
+
+```Python
+In [61]: out.name
+Out[61]: '/mytype'
+
+In [62]: out.parent
+Out[62]: <HDF5 group "/" (6 members)>
+
+In [63]: out.attrs["info"] = "This is an attribute on a named type object"
+```
+
 #### Linking to Named Types
+
+创建数据集或属性时使用命名类型只需要提供`Datatype`的示例作为`dtype`即可：
+
+```Python
+In [64]: dset = f.create_dataset("typedemo", (100,), dtype=f["mytype"])
+```
+
+在这里，HDF5不会将这个数据类型复制到数据集中，它实际上创建了一个指向这个数据类型的引用。因此使用这种方式可以在保持数据组织良好的情况下节省磁盘空间。
+
+对于属性，则需要通过`create`方法显式提供类型：
+
+```Python
+In [65]: f.attrs.create("attribute_demo", 1.0 ,dtype=f["mytype"])
+```
 
 #### Managing Named Types
 
+一旦命名类型创建完毕，则不能进行任何修改，但是可以将其从文件中取消链接：
+
+```Python
+In [66]: del f["mytype"]
+```
+
+但是取消链接后试图使用一个新的不同的类型再次赋值是不可行的。这个链接仍然在内部存在，直到所有使用这个命名类型的数据集和属性都被删除为止：
+
+```Python
+In [67]: f["mytype"] = np.dtype("int16")
+
+In [68]: dset = f["typedemo"]
+
+In [69]: dset.dtype
+Out[69]: dtype('<f4')
+```
+
 ### Dimension Scales
+
+真实世界数据通常会附加数据单位。假设如下场景，一个记录大气层温度数据的三维数据集：
+
+```Python
+In [70]: dset = f.create_dataset("temperatures", (100, 100, 100), dtype='f')
+```
+
+显然温度需要指定单位，在这里可以使用一个属性记录这个标尺：
+
+```Python
+In [71]: dset.attrs["temp_units"] = "C"
+```
+
+问题在于接下来。如果在$x, y, z$三个轴上的数据分辨率不同，例如$x$或$y$轴这个水平面上每10千米获取一个数据点，但是在$z$轴这个垂直层面上每100米就需要获取一个数据点，则需要加入新的属性说明步长存在不同：
+
+```Python
+In [72]: dset.attrs["steps"] = [10000, 10000, 100]
+```
+
+但是这个属性无法让人确定其是否是按照$x, y, z$这样的顺序排列的，因此还需要再加入一个属性说明数据轴的顺序：
+
+```Python
+In [73]: dset.attrs["axes"] = ["x", "y", "z"]
+```
+
+这样一系列的操作导致数据集显得很破碎，而且需要花费大量时间在用户间确认格式。
+
+基于这种情况，HDF5提供了标尺尺度(*Dimension Scales*)规范。就像之前的属性系统一样，它是基于HDF5构建的功能，以标准化的方式使用数据集，属性和引用的机制来构建更具表现力的对象。这些类似的特性由HDF组进行了一系列的标准化，使得第三方应用程序知道如何处理组、数据集、属性和引用的特定组合。
 
 #### Creating Dimension Scales
 
+可以看到数据集有一个之前没有使用过的属性`.dims`：
+
+```Python
+In [74]: for name in dset.attrs:
+    ...:     del dset.attrs[name]
+
+In [75]: dset.dims
+Out[75]: <Dimensions of HDF5 object at 1627110343688>
+```
+
+这个是使用标尺尺度的入口。在HDF5中，标尺尺度是一个带有某些元数据的单独的“轴”数据集，这个数据集使用引用链接到主数据集。在之前的案例上，需要创建三个标尺尺度，对于$x$轴和$y$轴，步长设置为10 km，对于$z$轴，步长设置为100 m。
+
+```Python
+In [76]: f.create_dataset("scale_x", data=np.arange(100)*10e3)
+Out[76]: <HDF5 dataset "scale_x": shape (100,), type "<f8">
+
+In [77]: f.create_dataset("scale_y", data=np.arange(100)*10e3)
+Out[77]: <HDF5 dataset "scale_y": shape (100,), type "<f8">
+
+In [78]: f.create_dataset("scale_z", data=np.arange(100)*100.0)
+Out[78]: <HDF5 dataset "scale_z": shape (100,), type "<f8">
+```
+
+然后就可以对`dset.dims`对象使用`create_scale`来将其创建为HDF5标尺尺度数据集。
+
+```Python
+In [79]: dset.dims.create_scale(f["scale_x"], "Simulation X (North) axis")
+
+In [80]: dset.dims.create_scale(f["scale_y"], "Simulation Y (East) axis")
+
+In [81]: dset.dims.create_scale(f["scale_y"], "Simulation Z (Vertical) axis")
+```
+
+如果查看数据集的属性可以看出，`create_scale`方式本质是在数据集中加入了标准化的属性名称和值：
+
+```Python
+In [82]: for key, val in f["scale_x"].attrs.items():
+    ...:     print(key, ':', val)
+CLASS : b'DIMENSION_SCALE'
+NAME : b'Simulation X (North) axis'
+```
+
 #### Attaching Scales to a Dataset
+
+在有了三个标尺之后，就可以将其关联至数据集。这这里，需要**将数据集每个轴和对应标尺关联**。这通过对`Dataset.dims`对象使用索引实现：
+
+```Python
+In [83]: dset.dims[0].attach_scale(f["scale_x"])
+
+In [84]: dset.dims[1].attach_scale(f["scale_y"])
+
+In [85]: dset.dims[2].attach_scale(f["scale_z"])
+```
+
+在这里`dims[N]`对象也是一个代理，可以确认使用的标尺尺度所关联的数据集的轴。同样，一个轴**可以**关联多个标尺尺度。
+
+`dims[N]`的工作方式类似于有序词典，并支持按名称和索引进行访问。在这种情况下，索引指的是标尺的添加顺序。 例如，要获取包含$x$标尺的数据集，我们可以选择数据集的维度0相关联的第一个比例尺：
+
+```Python
+In [86]: dset.dims[0][0]
+Out[86]: <HDF5 dataset "scale_x": shape (100,), type "<f8">
+```
+
+如果要获得轴上的真实数据，对数据集使用切片即可：
+
+```Python
+In [87]: dset.dims[0][0][...]
+Out[87]:
+array([     0.,  10000.,  20000.,  30000.,  40000.,  50000.,  60000.,
+        70000.,  80000.,  90000., 100000., 110000., 120000., 130000.,
+       140000., 150000., 160000., 170000., 180000., 190000., 200000.,
+       210000., 220000., 230000., 240000., 250000., 260000., 270000.,
+       280000., 290000., 300000., 310000., 320000., 330000., 340000.,
+       350000., 360000., 370000., 380000., 390000., 400000., 410000.,
+       420000., 430000., 440000., 450000., 460000., 470000., 480000.,
+       490000., 500000., 510000., 520000., 530000., 540000., 550000.,
+       560000., 570000., 580000., 590000., 600000., 610000., 620000.,
+       630000., 640000., 650000., 660000., 670000., 680000., 690000.,
+       700000., 710000., 720000., 730000., 740000., 750000., 760000.,
+       770000., 780000., 790000., 800000., 810000., 820000., 830000.,
+       840000., 850000., 860000., 870000., 880000., 890000., 900000.,
+       910000., 920000., 930000., 940000., 950000., 960000., 970000.,
+       980000., 990000.])
+```
+
+也可以使用在创建标尺时的名称通过字典方式获取。字典中的`items`，`keys`，`values`等方法都可以使用：
+
+```Python
+In [88]: dset.dims[0]["Simulation X (North) axis"]
+Out[88]: <HDF5 dataset "scale_x": shape (100,), type "<f8">
+```
+
+最后，还可以对数据集的每个轴添加标签，可以合理存放轴的名称：
+
+```Python
+In [89]: dset.dims[0].label = 'x'
+
+In [90]: dset.dims[1].label = 'y'
+
+In [91]: dset.dims[2].label = 'z'
+```
 
 ## Chapter9. Concurrency: Parallel HDF5, Threading, and Multiprocessing
 
