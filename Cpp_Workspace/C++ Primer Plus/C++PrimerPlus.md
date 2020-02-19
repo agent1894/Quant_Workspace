@@ -2500,3 +2500,83 @@
   7. 在示例中的`Vector`对象中存储了矢量的直角坐标和极坐标，这并不是一定的，因为公有接口不对对象中存储的极坐标产生依赖。同样可以在实现类时只保存`Vector`的`x`分量和`y`分量，当需要返回长度时，`magval()`方法可以通过分量计算出而不是从类中直接获取这个数据。储存极坐标的方式会占用更多的内存，且每次修改`Vector`对象时，都会更新直角坐标和极坐标表示，但是在读取数据时会较快。因此，当程序需要经常访问矢量的两种表示时，这种实现比较合适，而当只需要偶尔访问极坐标表示时，可以使用只保存分量的实现。
 
 ### Section6 类的自动转换和强制类型转换
+
+- C++本身提供对内置类型的转换。将一个标准类型变量赋值给另一种标准类型变量时，如果两种类型兼容，则C++会自动将值进行转换，同时，如果不兼容的类型则不会进行自动转换。例如：
+
+  ```C++
+  long count = 8; // int value 8 converted to type long
+  double time = 11; // int value 11 converted to type double
+  int side = 3.33; // double value 3.33 converted to type int 3
+  int * p = 10; // type clash
+  ```
+
+  在无法进行自动转换时，可以使用强制类型转换：
+
+  ```C++
+  int * p = (int *) 10; // ok, p and (int *) 10 both pointers
+  ```
+
+  在这里`10`被强制转换为`int *`，将指针设置为地址10，尽管并没有什么意义。
+
+- 在标准类型自动转换之外，C++支持对用户定义的类型进行转换。在书中的例子中，使用构造函数用作自动类型转换函数。注意，**只有接受一个参数的构造函数才能作为转换函数，除非给第二个（及以后）的参数提供默认值**。例如：
+
+  ```C++
+  Stonewt(int stn, double lbs); // not a conversion function
+  Stonewt(int stn, double lbs = 0); // int-to-Stonewt conversion
+  ```
+
+  尽管构造函数能够被用来处理自动类型转换，但是这带来了潜在的意外类型转换风险。因此，C++新增了关键字`explicit`，用于关闭这种特性。此时，使用这个关键字的构造函数无法进行隐式类型转换，但是仍然可以显式强制类型转换：
+
+  ```C++
+  explicit Stonewt(double lbs); // no implicit conversions allowed
+  Stone myCat; // create a Stonewt object
+  myCat = 19.6; // not valid if Stonewt(double) is declared as explicit
+  myCat = Stonewt(19.6); // ok, an explicit conversion
+  myCat = (Stonewt) 19.6; // ok, old form for explicit typecast
+  ```
+
+- 如果在声明中使用了关键字`explicit`，则`Stonewt(double)`将只用于显式强制类型转换，否则编译器将在以下情况下使用进行隐式转换：
+
+  - 将`Stonewt`对象初始化为`double`值时。
+  - 将`double`值赋给`Stonewt`对象时。
+  - 将`double`值传递给接受`Stonewt`参数的函数时。
+  - 返回值被声明为`Stonewt`的函数试图返回`double`值时。
+  - 在上述任意一种情况下，使用可转换为`double`类型的内置类型时。
+
+  最后一点中，函数原型提供参数匹配过程，允许使用`Stonewt(double)`构造函数来转换其他数值类型，例如：
+
+  ```C++
+  Stonewt Jumbo(7000); // uses Stonewt(double), converting int to double
+  Jumbo = 7300; // uses Stonewt(double), converting int to double
+  ```
+
+  但是这种情况仅适用于转换不存在二义性时。如果`Stonewt`类同时定义了构造函数`Stonewt(long)`，则编译器将拒绝这些语句。
+
+- 上例中将标准类型（数值）转换为自定义对象`Stonewt`，C++同样支持将`Stonewt`对象转换为标准类型。此时不能使用构造函数。因为构造函数只能适用于从某种类型转换为类类型，要进行相反的转换，需要使用特殊的C++运算符函数，即转换函数。
+  - 转换函数是用户定义的强制类型转换，因此可以像使用强制类型转换那样使用。例如，如果定义了从`Stonewt`到`double`的转换函数，就可以使用如下转换：
+
+    ```C++
+    Stonewt wolfe(285.7);
+    double host = double (wolfe); // syntax #1
+    double thinker = (double) wolfe; // syntax #2
+    Stonewt wells(20, 3);
+    double star = wells; // implicit use of conversion function
+    ```
+
+  - 如果需要创建转换为`typeName`类型的转换函数，需要如下定义：
+
+    ```C++
+    operator typeName();
+    ```
+
+    需要注意的是：
+    - 转换函数**必须是类方法**。需要通过类对象调用。
+    - 转换函数**不能指定返回类型**。因为`typeName`已经指明了要转换成的类型。
+    - 转换函数**不能有参数**。
+
+    因此，如果需要添加将`Stonewt`对象转换为`int`类型和`double`类型的函数，需要加入如下声明：
+
+    ```C++
+    operator int();
+    operator double();
+    ```
