@@ -21,13 +21,13 @@ class DivAdjType(Enum):
 class BaoStock(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, symbols: list, startDate: str, endDate: str, dividend_adjustment: str):
+    def __init__(self, symbols: list, startDate: str, endDate: str, dividendAdjustment: str):
         if not isinstance(symbols, list):
             raise TypeError("Symbols should be list type.")
-        self.symbols = symbols
-        self.startDate = startDate
-        self.endDate = endDate
-        self.dividend_adjustment = DivAdjType[dividend_adjustment].value
+        self._symbols = symbols
+        self._startDate = startDate
+        self._endDate = endDate
+        self._dividendAdjustment = DivAdjType[dividendAdjustment].value
         lg = bs.login()
         if lg.error_code != '0':
             print("login respond error_code: ", lg.error_code)
@@ -47,17 +47,17 @@ class BaoStock(object):
 
 class GetDailyBars(BaoStock):
     def __init__(self, symbols: list, startDate: str, endDate: str,
-                 dividend_adjustment: str = DivAdjType.Non.value):
-        super(GetDailyBars, self).__init__(symbols, startDate, endDate, dividend_adjustment)
+                 dividendAdjustment: str = DivAdjType.Non.value):
+        super(GetDailyBars, self).__init__(symbols, startDate, endDate, dividendAdjustment)
 
     def _get_k_bars(self) -> pd.DataFrame:
         data = []
-        for symbol in self.symbols:
+        for symbol in self._symbols:
             rs = bs.query_history_k_data_plus(symbol,
                                               "date, code, open, high, low, close, volume, amount, adjustflag, "
                                               "tradestatus, isST",
-                                              start_date=self.startDate, end_date=self.endDate, frequency='D',
-                                              adjustflag=self.dividend_adjustment)
+                                              start_date=self._startDate, end_date=self._endDate, frequency='D',
+                                              adjustflag=self._dividendAdjustment)
             dfResult = rs.get_data()
             dfResult = dfResult.loc[dfResult['tradestatus'] == '1']
             if not dfResult.empty:
@@ -80,18 +80,18 @@ class GetDailyBars(BaoStock):
 
 class GetMinuteBars(BaoStock):
     def __init__(self, symbols: list, startDate: str, endDate: str,
-                 dividend_adjustment: str = DivAdjType.Non.value,
+                 dividendAdjustment: str = DivAdjType.Non.value,
                  freq: str = '5'):
-        super(GetMinuteBars, self).__init__(symbols, startDate, endDate, dividend_adjustment)
+        super(GetMinuteBars, self).__init__(symbols, startDate, endDate, dividendAdjustment)
         self.freq = freq
 
     def _get_k_bars(self) -> pd.DataFrame:
         data = []
-        for symbol in self.symbols:
+        for symbol in self._symbols:
             rs = bs.query_history_k_data_plus(symbol,
                                               "date, time, code, open, high, low, close, volume, amount, adjustflag",
-                                              start_date=self.startDate, end_date=self.endDate, frequency=self.freq,
-                                              adjustflag=self.dividend_adjustment)
+                                              start_date=self._startDate, end_date=self._endDate, frequency=self.freq,
+                                              adjustflag=self._dividendAdjustment)
             dfResult = rs.get_data()
             if not dfResult.empty:
                 data.append(dfResult)
