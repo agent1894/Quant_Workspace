@@ -27,7 +27,7 @@ class BaoStock(object):
         self.symbols = symbols
         self.startDate = startDate
         self.endDate = endDate
-        self.dividend_adjustment = DivAdjType[dividend_adjustment.capitalize()].value
+        self.dividend_adjustment = DivAdjType[dividend_adjustment].value
         lg = bs.login()
         if lg.error_code != '0':
             print("login respond error_code: ", lg.error_code)
@@ -37,11 +37,11 @@ class BaoStock(object):
             print("BaoStock data subscription succeed.")
 
     @abstractmethod
-    def _get_k_bars(self):
+    def _get_k_bars(self) -> pd.DataFrame:
         raise NotImplementedError("Should implement get_k_bars()")
 
     @abstractmethod
-    def feed_k_bars(self):
+    def feed_k_bars(self) -> pd.DataFrame:
         raise NotImplementedError("Should implement feed_k_bars()")
 
 
@@ -50,12 +50,12 @@ class GetDailyBars(BaoStock):
                  dividend_adjustment: str = DivAdjType.Non.value):
         super(GetDailyBars, self).__init__(symbols, startDate, endDate, dividend_adjustment)
 
-    def _get_k_bars(self):
+    def _get_k_bars(self) -> pd.DataFrame:
         data = []
         for symbol in self.symbols:
             rs = bs.query_history_k_data_plus(symbol,
                                               "date, code, open, high, low, close, volume, amount, adjustflag, "
-                                              "tradestatus",
+                                              "tradestatus, isST",
                                               start_date=self.startDate, end_date=self.endDate, frequency='D',
                                               adjustflag=self.dividend_adjustment)
             dfResult = rs.get_data()
@@ -67,10 +67,10 @@ class GetDailyBars(BaoStock):
         else:
             raise ValueError("No sufficient data returned.")
 
-    def feed_k_bars(self):
+    def feed_k_bars(self) -> pd.DataFrame:
         df = self._get_k_bars()
         df.columns = ['Datetime', 'Code', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'AdjustFlag',
-                      'TradeStatus']
+                      'TradeStatus', 'isST']
         df[['Open', 'High', 'Low', 'Close', 'Volume', 'Amount']] = df[
             ['Open', 'High', 'Low', 'Close', 'Volume', 'Amount']].astype('float')
         df.index = df.Datetime.astype('datetime64')
@@ -85,7 +85,7 @@ class GetMinuteBars(BaoStock):
         super(GetMinuteBars, self).__init__(symbols, startDate, endDate, dividend_adjustment)
         self.freq = freq
 
-    def _get_k_bars(self):
+    def _get_k_bars(self) -> pd.DataFrame:
         data = []
         for symbol in self.symbols:
             rs = bs.query_history_k_data_plus(symbol,
@@ -100,7 +100,7 @@ class GetMinuteBars(BaoStock):
         else:
             raise ValueError("No sufficient data returned.")
 
-    def feed_k_bars(self):
+    def feed_k_bars(self) -> pd.DataFrame:
         df = self._get_k_bars()
         df.columns = ['Date', 'Time', 'Code', 'Open', 'High', 'Low', 'Close', 'Volume', 'Amount', 'AdjustFlag']
         df[['Open', 'High', 'Low', 'Close', 'Volume', 'Amount']] = df[
