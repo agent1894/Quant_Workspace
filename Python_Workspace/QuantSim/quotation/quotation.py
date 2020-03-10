@@ -5,30 +5,11 @@
 This module simulates the exchange. It standardizes the input and try to get stock data for both simulator and broker.
 """
 import re
-import datetime as dt
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import pandas as pd
 import source.baoStock as sbs
-
-
-class TradingDatetime(object):
-    def __init__(self, startDate: str, endDate: str, freq: str):
-        self._startDate = startDate
-        self._endDate = endDate
-        self._freq = freq
-
-    def trade_datetimes(self) -> list:
-        dates = pd.date_range(start=self._startDate, end=self._endDate, freq=self._freq)
-        dates = [date for date in dates if date.weekday() not in (5, 6)]
-        if self._freq.capitalize()[0:1] == 'D':
-            dates.sort()
-            return dates
-        else:
-            dates = [date for date in dates if
-                     dt.time(9, 30) < date.time() <= dt.time(11, 30) or dt.time(13, 0) < date.time() <= dt.time(15, 0)]
-            dates.sort()
-            return dates
+import utility.tradingDays as td
 
 
 class Quotation(object):
@@ -66,7 +47,7 @@ class QuotationDailyBar(Quotation):
         self.dividend_adjustment = dividendAdjustment.capitalize()
         obj = sbs.GetDailyBars(self.symbols, self.startDate, self.endDate, self.dividend_adjustment)
         self.baseData = obj.feed_k_bars()
-        self.tradings = TradingDatetime(startDate=self.startDate, endDate=self.endDate, freq='D').trade_datetimes()
+        self.tradings = td.TradingDatetime(startDate=self.startDate, endDate=self.endDate, freq='D').trade_datetimes()
 
     def push_bars(self) -> pd.DataFrame:
         for datetime in self.tradings:
@@ -93,8 +74,8 @@ class QuotationMinuteBar(Quotation):
             raise TypeError("Now only support 5/15/30/60 minutes bars.")
         obj = sbs.GetMinuteBars(self.symbols, self.startDate, self.endDate, self.dividend_adjustment, freq)
         self.baseData = obj.feed_k_bars()
-        self.tradings = TradingDatetime(startDate=self.startDate, endDate=self.endDate,
-                                        freq=freq[0:1] + 'T').trade_datetimes()
+        self.tradings = td.Trading(startDate=self.startDate, endDate=self.endDate,
+                                   freq=freq + 'T').trade_datetimes()
 
     def push_bars(self) -> pd.DataFrame:
         for datetime in self.tradings:
@@ -108,6 +89,7 @@ class QuotationMinuteBar(Quotation):
         return deepcopy(self.baseData)
 
 
+# TODO: add tick data quotation
 class QuotationTick(Quotation):
     def __init__(self, symbols, startDate: str, endDate: str):
         super(QuotationTick, self).__init__(startDate=startDate, endDate=endDate)
