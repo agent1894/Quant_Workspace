@@ -6,10 +6,8 @@ This module simulates the broker. The broker have all historical data and calcul
 If the broker uses the tick data, the matching of transactions should take book depth into consideration.
 """
 
-# TODO: Calculate TWAP/VWAP
-
 import datetime as dt
-import random
+from random import randint
 import numpy as np
 import pandas as pd
 import quotation.quotation as qt
@@ -18,19 +16,19 @@ import utility.tradingDays as td
 
 class Broker(object):
     def __init__(self, symbols: list, startDate: str, endDate: str, dividendAdjustment: str, freq: str,
-                 commission: float, slipper: float):
+                 commission: float = 7e-4, slippage: float = 0.0015):
         self.symbols = symbols
         self.startDate = startDate
         self.endDate = endDate
         self.dividendAdjustment = dividendAdjustment
         self._commission = commission
-        self._slipper = slipper
+        self._slippage = slippage
         if freq.capitalize()[0:1] == 'D':
             obj = qt.QuotationDailyBar(self.symbols, self.startDate, self.endDate, self.dividendAdjustment)
             self._tradingDatetime = td.Trading(startDate=self.startDate, endDate=self.endDate,
                                                freq='D').trade_datetimes()
         elif freq.capitalize() == "Tick":
-            # TODO: add Tick data trading time
+            # TODO: add tick data trading time
             obj = qt.QuotationTick(self.symbols, self.startDate, self.endDate)
         elif freq.startswith(("5", "15", "30", "60")):
             obj = qt.QuotationMinuteBar(self.symbols, self.startDate, self.endDate, self.dividendAdjustment, freq)
@@ -39,7 +37,7 @@ class Broker(object):
         else:
             raise ValueError("Now only support tick or 5/15/30/60 minutes or daily data.")
         self._baseData = obj.push_data()
-        self._baseData["Mid"] = self._baseData[['High', 'Low', 'Close']].mean(axis=1).round(2)
+        self._baseData["Mid"] = self._baseData[['High', 'Low', 'Close']].mean(axis=1)
         self._transInfo = dict()
 
     @property
@@ -51,33 +49,28 @@ class Broker(object):
         self._commission = value
 
     @property
-    def slipper(self):
-        return self._slipper
+    def slippage(self):
+        return self._slippage
 
-    @slipper.setter
-    def slipper(self, value: float):
-        self._slipper = value
+    @slippage.setter
+    def slippage(self, value: float):
+        self._slippage = value
 
-    # TODO: order by 1. shares, 2. lots, 3. value, 4. percent, 5. target_value
     def market_order(self, datetime: dt.datetime, symbol: str, orderSize: int, orderDirection: int,
                      completeInstant: bool = True, useWap: str = None, completeBars: int = 0):
 
-        def instantlyComplete(size, maxSize, basePrice, direction, slipper):
-            self._transInfo["Order Price"] = basePrice + direction * slipper
-            if size < maxSize:
-                self._transInfo["Order Status"] = "Completed"
-                self._transInfo["Order Size"] = size
-            else:
-                self._transInfo["Order Status"] = "Partial Completed"
-                self._transInfo["Order Size"] = maxSize
+        def instantlyComplete(basePrice: pd.DataFrame, direction: int = 1, slippage: float = 0):
+            self._transInfo["Order Price"] = round(basePrice.Mid * (1 + direction * slippage), 2)
 
-        def graduallyComplete():
-            if not (useWap and completeBars <= 0):
+        def graduallyComplete(basePrice: pd.DataFrame, direction: int = 1, slippage: float = 0):
+            if not (useWap and completeBars > 0):
                 raise KeyError("Should implement useWap and completeBars, completeBars should greater than 0.")
             if useWap.upper() == "TWAP":
-                pass
+                self._transInfo["Order Price"] = round(basePrice.Mid.mean() * (1 + direction * slippage), 2)
             elif useWap.upper() == "VWAP":
-                pass
+                self._transInfo["Order Price"] = round(
+                    sum(basePrice["Mid"] * basePrice["Volume"]) / basePrice["Volume"].sum() * (
+                                1 + direction * slippage), 2)
             else:
                 raise KeyError("Order price should be simulated by TWAP or VWAP.")
 
@@ -85,22 +78,63 @@ class Broker(object):
         self._transInfo["Symbol"] = symbol
         self._transInfo["Order Type"] = "Market Order"
         self._transInfo["Commission Fee"] = self._commission
-        self._transInfo["Order ID"] = random.randint(1, 1e8)
-        orderTimeIndex = self._tradingDatetime[self._tradingDatetime == pd.Timestamp(datetime)].index
+        self._transInfo["Order ID"] = randint(1, 1e8)
+        orderTimeIndex = self._tradingDatetime[self._tradingDatetime == pd.Timestamp(datetime)].index.values[0]
+
         if completeInstant:
             completeTime = self._tradingDatetime[orderTimeIndex + 1]
         else:
             completeTime = self._tradingDatetime[orderTimeIndex + 1: orderTimeIndex + 1 + completeBars]
+
         marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
 
         if not marketMaker.empty:
-            maxMarketVolume = np.floor(marketMaker.Volume.sum() / 3.0)
-            self._transInfo["Completion Time"] = marketMaker.index[-1]
+            maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
             self._transInfo["Order Direction"] = orderDirection
             if completeInstant:
-                instantlyComplete(orderSize, maxMarketVolume, marketMaker.Mid, orderDirection, self._slipper)
+                self._transInfo["Completion Time"] = marketMaker.name
+                instantlyComplete(basePrice=marketMaker, direction=orderDirection, slippage=self._slippage)
             else:
-                graduallyComplete()
+                self._transInfo["Completion Time"] = marketMaker.index[-1]
+                graduallyComplete(basePrice=marketMaker, direction=orderDirection, slippage=self._slippage)
+            if orderSize < maxMarketVolume:
+                self._transInfo["Order Status"] = "Completed"
+                self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
+            else:
+                self._transInfo["Order Status"] = "Partial Completed"
+                self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
+        else:
+            self._transInfo["Completion Time"] = datetime
+            self._transInfo["Order Price"] = 0.0
+            self._transInfo["Order Status"] = "Rejected"
+            self._transInfo["Order Size"] = 0.0
+            self._transInfo["Order Direction"] = 0
+
+        return self._transInfo
+
+    # TODO: transaction completion probability
+    def limit_order(self, datetime: dt.datetime, symbol: str, orderPrice: float, orderSize: int, orderDirection: int,
+                    completeBars: int = 3):
+        self._transInfo["Order Time"] = datetime
+        self._transInfo["Symbol"] = symbol
+        self._transInfo["Order Type"] = "Limit Order"
+        self._transInfo["Commission Fee"] = self._commission
+        self._transInfo["Order ID"] = randint(1, 1e8)
+        orderTimeIndex = self._tradingDatetime[self._tradingDatetime == pd.Timestamp(datetime)].index.values[0]
+        completeTime = self._tradingDatetime[orderTimeIndex + 1: orderTimeIndex + 1 + completeBars]
+        marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
+        if not marketMaker.empty and marketMaker.Low.min() <= orderPrice <= marketMaker.High.max():
+            maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
+            self._transInfo["Order Price"] = orderPrice
+            self._transInfo["Order Direction"] = orderDirection
+            if orderSize < maxMarketVolume:
+                self._transInfo["Completion Time"] = marketMaker.index[-1]
+                self._transInfo["Order Status"] = "Completed"
+                self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
+            else:
+                self._transInfo["Completion Time"] = marketMaker.index[-1]
+                self._transInfo["Order Status"] = "Partial Completed"
+                self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
         else:
             self._transInfo["Completion Time"] = datetime
             self._transInfo["Order Price"] = 0.0
@@ -108,38 +142,7 @@ class Broker(object):
             self._transInfo["Order Size"] = 0
             self._transInfo["Order Direction"] = 0
 
-        # if completeInstant:
-        #     marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
-        #     if not marketMaker.empty:
-        #         maxMarketVolume = marketMaker.Volume[0] * 0.25
-        #         theoMarketPrice = round((marketMaker.High[0] + marketMaker.Low[0] + marketMaker.Close[0]) / 3.0, 2)
-        #         self._transInfo["Completion Time"] = marketMaker.index[0]
-        #         self._transInfo["Order Price"] = theoMarketPrice + self._slipper
-        #         if orderSize < maxMarketVolume:
-        #             self._transInfo["Order Status"] = "Completed"
-        #             self._transInfo["Order Size"] = orderSize
-        #             self._transInfo["Order Direction"] = orderDirection
-        #         else:
-        #             self._transInfo["Order Status"] = "Partial Completed"
-        #             self._transInfo["Order Size"] = maxMarketVolume
-        #             self._transInfo["Order Direction"] = orderDirection
-        #     else:
-        #         self._transInfo["Order Status"] = "Rejected"
-        #         self._transInfo["Order Size"] = 0
-        #         self._transInfo["Order Direction"] = 0
-        #     return self._transInfo
-        # else:
-        #     if not (useWap and completeBars <= 0):
-        #         raise KeyError("Should implement useWap and completeBars, completeBars should greater than 0.")
-        #     if useWap.upper() == "TWAP":
-        #         pass
-        #     elif useWap.upper() == "VWAP":
-        #         pass
-        #     else:
-        #         raise KeyError("Order price should be simulated by TWAP or VWAP.")
-
-    def limit_order(self, orderSize: int, orderDirection: int, useWap: bool):
-        pass
+        return self._transInfo
 
 
 class Report(object):

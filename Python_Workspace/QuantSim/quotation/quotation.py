@@ -47,7 +47,7 @@ class QuotationDailyBar(Quotation):
         self.dividend_adjustment = dividendAdjustment.capitalize()
         obj = sbs.GetDailyBars(self.symbols, self.startDate, self.endDate, self.dividend_adjustment)
         self.baseData = obj.feed_k_bars()
-        self.tradings = td.TradingDatetime(startDate=self.startDate, endDate=self.endDate, freq='D').trade_datetimes()
+        self.tradings = td.Trading(startDate=self.startDate, endDate=self.endDate, freq='D').trade_datetimes()
 
     def push_bars(self) -> pd.DataFrame:
         for datetime in self.tradings:
