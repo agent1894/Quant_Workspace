@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 """
-This module simulates the exchange. It standardizes the input and try to get stock data for both simulator and broker.
+This module simulates the exchange. It standardizes the input and try to get stock data for both strategy and broker.
 """
 import re
 from abc import ABCMeta, abstractmethod
