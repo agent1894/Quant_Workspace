@@ -267,8 +267,9 @@ class Trading(object):
 
     def trade_datetimes(self) -> pd.Series:
         dates = pd.date_range(start=self._startDate, end=self._endDate, freq=self._freq)
-        dates = {date for date in dates if date.weekday() not in (5, 6)}
-        dates = list(dates - holidaysCH)
+        dates = {date.strftime("%Y-%m-%d") for date in dates if date.weekday() not in (5, 6)}
+        dates = [dt.datetime.strptime(update, "%Y-%m-%d") for update in
+                 dates - {date.strftime("%Y-%m-%d") for date in holidaysCH}]
         if self._freq.capitalize()[0:1] == 'D':
             return pd.Series(dates).sort_values().reset_index(drop=True)
         else:
