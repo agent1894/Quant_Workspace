@@ -2,20 +2,14 @@
 # -*- encoding: utf-8 -*-
 
 import datetime as dt
-import numpy as np
-import pandas as pd
-import broker.broker as bk
 
 
 class Stock(object):
-    def __init__(self, symbol: str = '', totalPosition: int = 0, todayLong: int = 0, todayShort: int = 0,
-                 availableSell: int = 0, currentPrice: float = 0):
+    def __init__(self, symbol: str = '', totalPosition: int = 0, availableSell: int = 0, orderCosts: float = 0):
         self._symbol = symbol
         self._totalPosition = totalPosition
-        self._todayLong = todayLong
-        self._todayShort = todayShort
         self._availableSell = availableSell
-        self._currentPrice = currentPrice
+        self._orderCosts = orderCosts
 
     @property
     def symbol(self):
@@ -26,28 +20,21 @@ class Stock(object):
         return self._totalPosition
 
     @property
-    def todayLong(self):
-        return self._todayLong
-
-    @property
-    def todayShort(self):
-        return self._todayShort
-
-    @property
     def availableSell(self):
         return self._availableSell
 
     @property
-    def currentPrice(self):
-        return self._currentPrice
+    def orderCosts(self):
+        return self._orderCosts
 
 
 class Portfolio(object):
-    def __init__(self, initDatetime: dt.datetime, stock: Stock, cash: float = 1000000):
-        self._datetime = initDatetime
-        if stock is None:
-            self._stock = dict()
+    def __init__(self, initDatetime: dt.datetime, cash: float = 1000000, stock: dict = None):
+        self._datetime = initDatetime  # datetime of opening position
         self._cash = cash
+        if stock is None:
+            stock = dict()
+        self._stock = stock
         self._fees = 0
 
     @property
@@ -63,15 +50,17 @@ class Portfolio(object):
     def update_datetime(self, datetime: dt.datetime):
         self._datetime = datetime
 
-    def update_positions(self, transInfo: dict, stock):
+    def update_positions(self, transInfo: dict):
         symbol = transInfo["Symbol"]
-        orderTime = transInfo["Completion Time"]
-        orderType = transInfo["Order Type"]
         orderPrice = transInfo["Order Price"]
         orderSize = transInfo["Order Size"]
-        orderTime = transInfo["Order Time"]
         fees = transInfo["Commission Fee"]
+        self._stock[symbol]["totalPosition"] += orderSize
+        if orderSize < 0:
+            self._stock[symbol]["availableSell"] += orderSize
+        self._stock[symbol]["currentPrice"] = orderPrice
+        self._fees += fees
 
     def reset_available_sell(self):
-        for stock in self._stock.items():
-            pass
+        for stock in self._stock.keys():
+            self._stock[stock]["availableSell"] = self._stock[stock]["totalPosition"]
