@@ -86,9 +86,14 @@ class Broker(object):
         else:
             completeTime = self._tradingDatetime[orderTimeIndex + 1: orderTimeIndex + 1 + completeBars]
 
-        marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
-
-        if not marketMaker.empty:
+        try:
+            marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
+        except KeyError:
+            self._transInfo["Completion Time"] = datetime
+            self._transInfo["Order Price"] = 0.0
+            self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
+            self._transInfo["Order Size"] = 0.0
+        else:
             maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
             if completeInstant:
                 self._transInfo["Completion Time"] = marketMaker.name
@@ -102,13 +107,28 @@ class Broker(object):
             else:
                 self._transInfo["Order Status"] = "Order received and try to partial execute."
                 self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
-        else:
-            self._transInfo["Completion Time"] = datetime
-            self._transInfo["Order Price"] = 0.0
-            self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
-            self._transInfo["Order Size"] = 0.0
 
         return self._transInfo
+
+        # if not marketMaker.empty:
+        #     maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
+        #     if completeInstant:
+        #         self._transInfo["Completion Time"] = marketMaker.name
+        #         instantlyComplete(basePrice=marketMaker, slippage=self._slippage)
+        #     else:
+        #         self._transInfo["Completion Time"] = marketMaker.index[-1]
+        #         graduallyComplete(basePrice=marketMaker, slippage=self._slippage)
+        #     if abs(orderSize) < maxMarketVolume:
+        #         self._transInfo["Order Status"] = "Order received and try to execute."
+        #         self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
+        #     else:
+        #         self._transInfo["Order Status"] = "Order received and try to partial execute."
+        #         self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
+        # else:
+        #     self._transInfo["Completion Time"] = datetime
+        #     self._transInfo["Order Price"] = 0.0
+        #     self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
+        #     self._transInfo["Order Size"] = 0.0
 
     # TODO: transaction completion probability
     def limit_order(self, datetime: dt.datetime, symbol: str, orderPrice: float, orderSize: int,
@@ -120,25 +140,49 @@ class Broker(object):
         self._transInfo["Order ID"] = randint(1, 1e8)
         orderTimeIndex = self._tradingDatetime[self._tradingDatetime == pd.Timestamp(datetime)].index.values[0]
         completeTime = self._tradingDatetime[orderTimeIndex + 1: orderTimeIndex + 1 + completeBars]
-        marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
-        if not marketMaker.empty and marketMaker.Low.min() <= orderPrice <= marketMaker.High.max():
-            maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
-            self._transInfo["Order Price"] = orderPrice
-            if abs(orderSize) < maxMarketVolume:
-                self._transInfo["Completion Time"] = marketMaker.index[-1]
-                self._transInfo["Order Status"] = "Order received and try to execute."
-                self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
-            else:
-                self._transInfo["Completion Time"] = marketMaker.index[-1]
-                self._transInfo["Order Status"] = "Order received and try to partial execute."
-                self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
-        else:
+        try:
+            marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
+        except KeyError:
             self._transInfo["Completion Time"] = datetime
             self._transInfo["Order Price"] = 0.0
             self._transInfo["Order Size"] = 0
-            if marketMaker.empty:
-                self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
-            if abs(orderPrice) < marketMaker.Low.min() or abs(orderPrice) > marketMaker.High.max():
+            self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
+        else:
+            if not marketMaker.empty and marketMaker.Low.min() <= orderPrice <= marketMaker.High.max():
+                maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
+                self._transInfo["Order Price"] = orderPrice
+                if abs(orderSize) < maxMarketVolume:
+                    self._transInfo["Completion Time"] = marketMaker.index[-1]
+                    self._transInfo["Order Status"] = "Order received and try to execute."
+                    self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
+                else:
+                    self._transInfo["Completion Time"] = marketMaker.index[-1]
+                    self._transInfo["Order Status"] = "Order received and try to partial execute."
+                    self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
+            else:
+                self._transInfo["Completion Time"] = datetime
+                self._transInfo["Order Price"] = 0.0
+                self._transInfo["Order Size"] = 0
                 self._transInfo["Order Status"] = "Order rejected, order price is not acceptable."
+
+        # if not marketMaker.empty and marketMaker.Low.min() <= orderPrice <= marketMaker.High.max():
+        #     maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
+        #     self._transInfo["Order Price"] = orderPrice
+        #     if abs(orderSize) < maxMarketVolume:
+        #         self._transInfo["Completion Time"] = marketMaker.index[-1]
+        #         self._transInfo["Order Status"] = "Order received and try to execute."
+        #         self._transInfo["Order Size"] = int(orderSize / 100.0) * 100
+        #     else:
+        #         self._transInfo["Completion Time"] = marketMaker.index[-1]
+        #         self._transInfo["Order Status"] = "Order received and try to partial execute."
+        #         self._transInfo["Order Size"] = int(maxMarketVolume / 100.0) * 100
+        # else:
+        #     self._transInfo["Completion Time"] = datetime
+        #     self._transInfo["Order Price"] = 0.0
+        #     self._transInfo["Order Size"] = 0
+        #     if marketMaker.empty:
+        #         self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
+        #     if abs(orderPrice) < marketMaker.Low.min() or abs(orderPrice) > marketMaker.High.max():
+        #         self._transInfo["Order Status"] = "Order rejected, order price is not acceptable."
 
         return self._transInfo
