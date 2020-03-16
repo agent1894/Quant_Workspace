@@ -85,35 +85,26 @@ class QuantSim(object):
 
     def backtesting(self):
         log = []
-        for bar in self._quotation.push_bars():
-            log.append(self._strategy.execute(bar))
-        return log
-        # if self._freq[0:1].upper() == "D" or bar.datetime.time() == dt.time(9, 30):
-        #     self._portfolio.reset_available_sell()
-        # print(transInfo)
-        # self._portfolio.update_positions(transInfo)
+        for bar in tqdm(self._quotation.push_bars()):
+            if self._freq[0:1].upper() == "D" or bar.datetime.time() == dt.time(9, 30):
+                self._portfolio.reset_available_sell()
+            order = self._strategy.execute(bar)
+            return order
 
 
 class MyStrategy(stg.Strategy):
     def __init__(self, symbols: list):
-        super(MyStrategy, self).__init__(symbols=symbols)
-        # self._bars = []
+        super(MyStrategy, self).__init__()
+        self._symbols = symbols
+        self._bars = []
 
     def execute(self, bar):
-        if bar["Open"][-1] > bar["Close"][-1]:
-            return self.market_order(bar.index[-1], bar.Code[-1], size=100)
-        # self._bars.append(bar)
-        # if len(df) >= 20:
-        #     ma5 = df["Close"].rolling(5).mean()
-        #     ma20 = df["Close"].rolling(20).mean()
-        #     if ma5 > ma20:
-        #         return self.market_order(size=100)
-        #     else:
-        #         # self.market_order(percent=-1)
-        #         return self.market_order(size=-100)
-
-
-if __name__ == "__main__":
-    stra = MyStrategy(['sh.600000'])
-    test = QuantSim(['sh.600000'], '20190101', '20190301', 'non', stra, None)
-    print(test.backtesting())
+        self._bars.append(bar)
+        df = pd.concat(self._bars)
+        if len(df) >= 20:
+            ma5 = df.loc[:, "Close"].iloc[-6:-1].mean()
+            ma20 = df.loc[:, "Close"].iloc[-21:-1].mean()
+            if ma5 > ma20:
+                return self.market_order(bar.index[-1], bar.Code[-1], size=100)
+            else:
+                return self.market_order(bar.index[-1], bar.Code[-1], size=-100)

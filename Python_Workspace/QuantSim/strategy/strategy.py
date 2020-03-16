@@ -8,7 +8,7 @@ import broker.broker as bk
 class Strategy(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, symbols: list):
+    def __init__(self):
         self._broker = None
 
     def set_broker(self, broker: bk.Broker):

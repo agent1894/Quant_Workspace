@@ -1,18 +1,39 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
+from abc import ABCMeta, abstractmethod
+
 
 class Report(object):
-    pass
+    __metaclass__ = ABCMeta
+
+    def __init__(self, report: dict):
+        self._report = report
+
+    @abstractmethod
+    def parse_report(self):
+        pass
 
 
 class Order(Report):
-    pass
+    def __init__(self, report: dict):
+        super(Order, self).__init__(report=report)
+
+    def parse_report(self):
+        pass
 
 
 class Execute(Report):
-    pass
+    def __init__(self, report: dict):
+        super(Execute, self).__init__(report=report)
+
+    def parse_report(self):
+        pass
 
 
 class Portfolio(Report):
-    pass
+    def __init__(self, report: dict):
+        super(Portfolio, self).__init__(report=report)
+
+    def parse_report(self):
+        pass
