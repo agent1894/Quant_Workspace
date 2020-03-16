@@ -10,51 +10,31 @@ import datetime as dt
 from random import randint
 import numpy as np
 import pandas as pd
-import quotation.quotation as qt
 import utility.tradingDays as td
 
 
 class Broker(object):
-    def __init__(self, symbols: list, startDate: str, endDate: str, dividendAdjustment: str, freq: str,
-                 commission: float = 7e-4, slippage: float = 0.0015):
+    def __init__(self, symbols: list, startDate: str, endDate: str, freq: str, data: pd.DataFrame, commission: float,
+                 slippage: float):
         self.symbols = symbols
-        self.startDate = startDate
-        self.endDate = endDate
-        self.dividendAdjustment = dividendAdjustment
+        self._startDate = startDate
+        self._endDate = endDate
         self._commission = commission
         self._slippage = slippage
         if freq.capitalize()[0:1] == 'D':
-            obj = qt.QuotationDailyBar(self.symbols, self.startDate, self.endDate, self.dividendAdjustment)
-            self._tradingDatetime = td.Trading(startDate=self.startDate, endDate=self.endDate,
+            self._tradingDatetime = td.Trading(startDate=self._startDate, endDate=self._endDate,
                                                freq='D').trade_datetimes()
-        elif freq.capitalize() == "Tick":
-            # TODO: add tick data trading time
-            obj = qt.QuotationTick(self.symbols, self.startDate, self.endDate)
         elif freq.startswith(("5", "15", "30", "60")):
-            obj = qt.QuotationMinuteBar(self.symbols, self.startDate, self.endDate, self.dividendAdjustment, freq)
-            self._tradingDatetime = td.Trading(startDate=self.startDate, endDate=self.endDate,
+            self._tradingDatetime = td.Trading(startDate=self._startDate, endDate=self._endDate,
                                                freq=freq + 'T').trade_datetimes()
+        # TODO: add tick data trading time
+        elif freq.capitalize() == "Tick":
+            pass
         else:
             raise ValueError("Now only support tick or 5/15/30/60 minutes or daily data.")
-        self._baseData = obj.push_data()
+        self._baseData = data
         self._baseData["Mid"] = self._baseData[['High', 'Low', 'Close']].mean(axis=1)
         self._transInfo = dict()
-
-    @property
-    def commission(self):
-        return self._commission
-
-    @commission.setter
-    def commission(self, value: float):
-        self._commission = value
-
-    @property
-    def slippage(self):
-        return self._slippage
-
-    @slippage.setter
-    def slippage(self, value: float):
-        self._slippage = value
 
     def market_order(self, datetime: dt.datetime, symbol: str, orderSize: int, completeInstant: bool = True,
                      useWap: str = None, completeBars: int = 0) -> dict:
@@ -140,6 +120,7 @@ class Broker(object):
         self._transInfo["Order ID"] = randint(1, 1e8)
         orderTimeIndex = self._tradingDatetime[self._tradingDatetime == pd.Timestamp(datetime)].index.values[0]
         completeTime = self._tradingDatetime[orderTimeIndex + 1: orderTimeIndex + 1 + completeBars]
+
         try:
             marketMaker = self._baseData.loc[self._baseData['Code'] == symbol].loc[completeTime]
         except KeyError:
@@ -165,6 +146,8 @@ class Broker(object):
                 self._transInfo["Order Size"] = 0
                 self._transInfo["Order Status"] = "Order rejected, order price is not acceptable."
 
+        return self._transInfo
+
         # if not marketMaker.empty and marketMaker.Low.min() <= orderPrice <= marketMaker.High.max():
         #     maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
         #     self._transInfo["Order Price"] = orderPrice
@@ -184,5 +167,3 @@ class Broker(object):
         #         self._transInfo["Order Status"] = "Order rejected, no sufficient quote."
         #     if abs(orderPrice) < marketMaker.Low.min() or abs(orderPrice) > marketMaker.High.max():
         #         self._transInfo["Order Status"] = "Order rejected, order price is not acceptable."
-
-        return self._transInfo

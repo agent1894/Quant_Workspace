@@ -32,8 +32,7 @@ class Stock(object):
 
 
 class Portfolio(object):
-    def __init__(self, strategy: stg.Strategy, broker: bk.Broker, initDatetime: dt.datetime, cash: float = 1000000,
-                 stock: dict = None):
+    def __init__(self, initDatetime: dt.datetime, cash: float = 1000000, stock: dict = None):
         self._datetime = initDatetime  # datetime of portfolio opening position
         self._cash = cash
         if stock is None:
@@ -42,14 +41,14 @@ class Portfolio(object):
         self._fees = 0
         print("Portfolio initialized, opening status: Cash holding: {}, Stocks holding: {}".format(self._cash,
                                                                                                    self._stock))
-        self._strategy = strategy
-        print("Strategy initialized.")
-        self._broker = broker
-        print("Broker online.")
 
     @property
     def positions(self):
         return {"Cash": self._cash, "Stock": self._stock}
+
+    @property
+    def symbols(self):
+        return set(self._stock.keys())
 
     def cash_change(self, value: float):
         if value < 0 and abs(value) > self._cash:
