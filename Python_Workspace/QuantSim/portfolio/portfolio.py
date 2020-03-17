@@ -2,9 +2,6 @@
 # -*- encoding: utf-8 -*-
 
 import datetime as dt
-import strategy.strategy as stg
-import quotation.quotation as qt
-import broker.broker as bk
 
 
 class Stock(object):

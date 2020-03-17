@@ -1,4 +1,4 @@
 #!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
 
-__all__ = ["tradingDays", "resample"]
+__all__ = ["tradingDays", "resample", "tradingLog"]

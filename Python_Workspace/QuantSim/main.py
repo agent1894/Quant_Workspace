@@ -95,7 +95,7 @@ class QuantSim(object):
 class MyStrategy(stg.Strategy):
     def __init__(self, symbols: list):
         super(MyStrategy, self).__init__()
-        self._symbols = symbols
+        self._symbols = symbols if isinstance(symbols, list) else [symbols]
         self._bars = []
 
     def execute(self, bar):

@@ -8,7 +8,7 @@ import re
 from abc import ABCMeta, abstractmethod
 from copy import deepcopy
 import pandas as pd
-import source.baoStock as sbs
+import data.baoStock as sbs
 import utility.tradingDays as td
 
 
