@@ -16,7 +16,7 @@ Entry-level for C++ programming, now based on *C++ Primer Plus 6th Edition by St
 
 - [x] Grokking Algorithms by *Aditya Bhargava*
 - [x] Python and HDF5 by *Andrew Collette*
-- [x] Intermidiate Python by *yasoob@GitHub*
+- [x] Intermediate Python by *@yasoob*
 - [ ] C++ Primier Plus by *Stephen Prata*
 - [ ] Volatility Trading by *Euan Sinclair*
 - [ ] Python for Data Analysis by *Wes McKinney*
