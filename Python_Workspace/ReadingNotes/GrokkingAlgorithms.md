@@ -1,5 +1,7 @@
 # Grokking Algorithms by Aditya Bhargava
 
+译者：袁国忠
+
 - [Grokking Algorithms by Aditya Bhargava](#grokking-algorithms-by-aditya-bhargava)
   - [算法简介](#%e7%ae%97%e6%b3%95%e7%ae%80%e4%bb%8b)
     - [算法复杂度](#%e7%ae%97%e6%b3%95%e5%a4%8d%e6%9d%82%e5%ba%a6)

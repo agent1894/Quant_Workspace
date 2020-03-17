@@ -1,6 +1,6 @@
 # Volatility Traindg by Euan Sinclair
 
-- 《Volatility Traindg》读书笔记，交叉参照英文原版及机械工业出版社翻译版。
+- *Volatility Traindg* 读书笔记，交叉参照英文原版及机械工业出版社翻译版，译者王琦
 - 使用Python3编程环境
 - 阅读进度
 

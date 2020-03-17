@@ -1,4 +1,4 @@
-# Python and HDF5 by Andrew Collette (O'Reilly)
+# Python and HDF5 by Andrew Collette
 
 笔记中使用编程环境为：
 
@@ -22,7 +22,7 @@ NumPy相关内容可参考NumPy中文文档：[NumPy](https://www.numpy.org.cn/u
 - [x] Chapter9 Concurrency: Parallel HDF5, Treading, and Multiprocessing
 - [x] Chapter10 Next Steps
 
-- [Python and HDF5 by Andrew Collette (O'Reilly)](#python-and-hdf5-by-andrew-collette-oreilly)
+- [Python and HDF5 by Andrew Collette](#python-and-hdf5-by-andrew-collette)
   - [Chapter1. Introduction](#chapter1-introduction)
     - [Python and HDF5](#python-and-hdf5)
       - [Organizing Data and Metadata](#organizing-data-and-metadata)
