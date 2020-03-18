@@ -4155,4 +4155,10 @@ with h5py.File('coords.hdf5') as f:
 
 基于MPI的应用程序通过启动Python解释器的多个并行实例来工作。这些实例通过MPI库相互通信。与多进程相比主要区别在于这些进程是对等的，而不是`Pool`使用的子进程。这意味着所有文件访问也必须通过MPI库进行协调。否则，多个进程将争夺磁盘上的同一文件。好在HDF5本身几乎处理了所有与此有关的细节。用户需要做的就是使用特殊的驱动程序打开共享文件，并遵循一些约束以确保数据一致性。
 
-由于MPI的使用需要一些前置知识，笔记中暂不详述。
+MPI并行和`mpi4py`相关资料参考：
+
+> Python 并行计算 [简书](https://www.jianshu.com/c/5019bb7bada6)
+>
+> MPI使用-python [CSDN](https://blog.csdn.net/u012526003/article/details/80299113?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+>
+> Python多核编程mpi4py实践 [CSDN](https://blog.csdn.net/zouxy09/article/details/49031845)
