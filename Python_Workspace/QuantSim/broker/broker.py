@@ -37,23 +37,24 @@ class Broker(object):
         self._baseData["Mid"] = self._baseData[['High', 'Low', 'Close']].mean(axis=1)
         self._transInfo = dict()
 
+    def __instantlyComplete(self, basePrice: pd.DataFrame, orderSize: int, slippage: float = 0):
+        self._transInfo["Order Price"] = round(basePrice.Mid * (1 + np.sign(orderSize) * slippage), 2)
+
+    def __graduallyComplete(self, basePrice: pd.DataFrame, orderSize: int, useWap: str, completeBars: int,
+                            slippage: float = 0):
+        if not (useWap and completeBars > 0):
+            raise KeyError("Should implement useWap and completeBars, completeBars should greater than 0.")
+        if useWap.upper() == "TWAP":
+            self._transInfo["Order Price"] = round(basePrice.Mid.mean() * (1 + np.sign(orderSize) * slippage), 2)
+        elif useWap.upper() == "VWAP":
+            self._transInfo["Order Price"] = round(
+                sum(basePrice["Mid"] * basePrice["Volume"]) / basePrice["Volume"].sum() * (
+                        1 + np.sign(orderSize) * slippage), 2)
+        else:
+            raise KeyError("Order price should be simulated by TWAP or VWAP.")
+
     def market_order(self, datetime: dt.datetime, symbol: str, orderSize: int, completeInstant: bool = True,
                      useWap: str = None, completeBars: int = 0):
-
-        def instantlyComplete(basePrice: pd.DataFrame, slippage: float = 0):
-            self._transInfo["Order Price"] = round(basePrice.Mid * (1 + np.sign(orderSize) * slippage), 2)
-
-        def graduallyComplete(basePrice: pd.DataFrame, slippage: float = 0):
-            if not (useWap and completeBars > 0):
-                raise KeyError("Should implement useWap and completeBars, completeBars should greater than 0.")
-            if useWap.upper() == "TWAP":
-                self._transInfo["Order Price"] = round(basePrice.Mid.mean() * (1 + np.sign(orderSize) * slippage), 2)
-            elif useWap.upper() == "VWAP":
-                self._transInfo["Order Price"] = round(
-                    sum(basePrice["Mid"] * basePrice["Volume"]) / basePrice["Volume"].sum() * (
-                            1 + np.sign(orderSize) * slippage), 2)
-            else:
-                raise KeyError("Order price should be simulated by TWAP or VWAP.")
 
         self._transInfo["Order Time"] = datetime
         self._transInfo["Symbol"] = symbol
@@ -81,10 +82,11 @@ class Broker(object):
             maxMarketVolume = np.floor(marketMaker.Volume.sum() / 4.0)
             if completeInstant:
                 self._transInfo["Completion Time"] = marketMaker.name
-                instantlyComplete(basePrice=marketMaker, slippage=self._slippage)
+                self.__instantlyComplete(basePrice=marketMaker, slippage=self._slippage, orderSize=orderSize)
             else:
                 self._transInfo["Completion Time"] = marketMaker.index[-1]
-                graduallyComplete(basePrice=marketMaker, slippage=self._slippage)
+                self.__graduallyComplete(basePrice=marketMaker, slippage=self._slippage, orderSize=orderSize,
+                                         useWap=useWap, completeBars=completeBars)
             if abs(orderSize) < maxMarketVolume:
                 self._transInfo["Order Status"] = "Order received and try to execute."
                 self._transInfo["Order Size"] = int(orderSize / 100.0) * 100

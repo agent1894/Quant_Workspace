@@ -7,7 +7,6 @@ Main entrance of programme.
 
 import re
 import datetime as dt
-import pandas as pd
 from tqdm import tqdm
 import strategy.strategy as stg
 import quotation.quotation as qt
@@ -58,6 +57,7 @@ class QuantSim(object):
                                  freq=self._freq, data=pushData, commission=self._commission, slippage=self._slippage)
         print("Broker is online.")
         self._strategy.set_broker(self._broker)
+        self._strategy.set_portfolio(self._portfolio)
 
     @property
     def freq(self):
@@ -84,27 +84,17 @@ class QuantSim(object):
         self._slippage = value
 
     def backtesting(self):
-        log = []
         for bar in tqdm(self._quotation.push_bars()):
+            self._portfolio.check_positions()
             if self._freq[0:1].upper() == "D" or bar.datetime.time() == dt.time(9, 30):
                 self._portfolio.reset_available_sell()
-            order = self._strategy.execute(bar)
-            return order
-
-
-class MyStrategy(stg.Strategy):
-    def __init__(self, symbols: list):
-        super(MyStrategy, self).__init__()
-        self._symbols = symbols if isinstance(symbols, list) else [symbols]
-        self._bars = []
-
-    def execute(self, bar):
-        self._bars.append(bar)
-        df = pd.concat(self._bars)
-        if len(df) >= 20:
-            ma5 = df.loc[:, "Close"].iloc[-6:-1].mean()
-            ma20 = df.loc[:, "Close"].iloc[-21:-1].mean()
-            if ma5 > ma20:
-                return self.market_order(bar.index[-1], bar.Code[-1], size=100)
-            else:
-                return self.market_order(bar.index[-1], bar.Code[-1], size=-100)
+            self._strategy.execute(bar)
+        print(self._portfolio.positions)
+        print(self._portfolio.positions['Stock']["sh.600000"].totalPosition,
+              self._portfolio.positions['Stock']["sh.600000"].availableSell,
+              self._portfolio.positions['Stock']["sh.600000"].orderCosts)
+        print(self._portfolio.positions['Stock']["sz.000001"].totalPosition,
+              self._portfolio.positions['Stock']["sz.000001"].availableSell,
+              self._portfolio.positions['Stock']["sz.000001"].orderCosts)
+        print(self._portfolio._log)
+        print(self._strategy._log)
