@@ -2,38 +2,43 @@
 # -*- encoding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
+import prettytable
 
 
 class Report(object):
     __metaclass__ = ABCMeta
 
-    def __init__(self, report: dict):
-        self._report = report
+    def __init__(self):
+        self._report = list()
+        self._table = prettytable.PrettyTable()
 
     @abstractmethod
     def parse_report(self):
-        pass
+        raise NotImplementedError("Should implement parse_report().")
+
+    @abstractmethod
+    def append_report(self, report):
+        raise NotImplementedError("Should implement append_report().")
 
 
 class Order(Report):
-    def __init__(self, report: dict):
-        super(Order, self).__init__(report=report)
+    def __init__(self):
+        super(Order, self).__init__()
+
+    def append_report(self, report):
+        self._report.append(report)
 
     def parse_report(self):
-        pass
+        self._table.field_name = ["Order ID", "Symbol", "Order Time", "Order Type", "Order Status", "Completion Time",
+                                  "Order Price", "Order Size", "Commission Fees"]
 
 
 class Execute(Report):
-    def __init__(self, report: dict):
-        super(Execute, self).__init__(report=report)
+    def __init__(self):
+        super(Execute, self).__init__()
+
+    def append_report(self, report):
+        self._report.append(report)
 
     def parse_report(self):
-        pass
-
-
-class Portfolio(Report):
-    def __init__(self, report: dict):
-        super(Portfolio, self).__init__(report=report)
-
-    def parse_report(self):
-        pass
+        self._table.field_name = []
