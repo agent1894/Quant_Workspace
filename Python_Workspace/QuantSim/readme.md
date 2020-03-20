@@ -9,6 +9,7 @@ This library integrates basic functions of a backtesting framework based on stoc
 - [ ] Support limit order.
 - [ ] Support exporting trading log and performance analysis.
 - [ ] Support exporting basic plots and figures.
+- [ ] Add risk control modules.
 - [ ] Support multiprocessing for better time cost.
 - [ ] Add optimization module for performance enhancement.
 - [ ] Add up and down limit for stocks trading.
