@@ -90,11 +90,5 @@ class QuantSim(object):
                 self._portfolio.reset_available_sell()
             self._strategy.execute(bar)
         print(self._portfolio.positions)
-        print(self._portfolio.positions['Stock']["sh.600000"].totalPosition,
-              self._portfolio.positions['Stock']["sh.600000"].availableSell,
-              self._portfolio.positions['Stock']["sh.600000"].orderCosts)
-        print(self._portfolio.positions['Stock']["sz.000001"].totalPosition,
-              self._portfolio.positions['Stock']["sz.000001"].availableSell,
-              self._portfolio.positions['Stock']["sz.000001"].orderCosts)
-        print(self._portfolio._log)
-        print(self._strategy._log)
+        self._portfolio.report()
+        self._strategy.report()

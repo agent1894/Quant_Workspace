@@ -17,6 +17,9 @@ class Strategy(object):
         self._bars = []
         self._log = tlog.Order()
 
+    def report(self):
+        self._log.print_report()
+
     def set_broker(self, broker: bk.Broker):
         self._broker = broker
 

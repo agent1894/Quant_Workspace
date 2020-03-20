@@ -20,7 +20,7 @@ class MyStrategy(stg.Strategy):
         df = pd.concat(self._bars)
         if self.__count >= 20:
             for symbol in self._symbols:
-                dfSymbol = df.loc[df["Code"] == symbol]
+                # dfSymbol = df.loc[df["Code"] == symbol]
                 # ma5 = dfSymbol.loc[:, "Close"].iloc[-6:-1].mean()
                 # ma20 = dfSymbol.loc[:, "Close"].iloc[-21:-1].mean()
                 # if ma5 > ma20:

@@ -17,6 +17,7 @@ class Stock(object):
         if newTotalPosition < 0:
             return "Over-sell is illegal, order cancelled."
         self._totalPosition += position
+        return "Current position is: {}".format(newTotalPosition)
 
     def update_availableSell(self, position: int):
         newAvailableSell = self._availableSell + position
@@ -71,17 +72,15 @@ class Portfolio(object):
     def symbols(self):
         return set(self._stock.keys())
 
+    def report(self):
+        self._log.print_report()
+
     def update_cash(self, value: float):
         if value < 0 and abs(value) > self._cash:
             self._log.append_report("Over-sell is illegal, order cancelled.")
         else:
             self._cash += value
-            if value < 0:
-                self._log.append_report("Withdraw cash: {}".format(value))
-            elif value > 0:
-                self._log.append_report("Deposit cash: {}".format(value))
-            else:
-                self._log.append_report("No cash change made.")
+            self._log.append_report("Cash change: {}".format(value))
 
     def update_datetime(self, datetime: dt.datetime):
         self._datetime = datetime

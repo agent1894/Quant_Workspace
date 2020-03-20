@@ -20,6 +20,10 @@ class Report(object):
     def append_report(self, report):
         raise NotImplementedError("Should implement append_report().")
 
+    @abstractmethod
+    def print_report(self):
+        raise NotImplementedError("Should implement print_report().")
+
 
 class Order(Report):
     def __init__(self):
@@ -32,6 +36,9 @@ class Order(Report):
         self._table.field_name = ["Order ID", "Symbol", "Order Time", "Order Type", "Order Status", "Completion Time",
                                   "Order Price", "Order Size", "Commission Fees"]
 
+    def print_report(self):
+        print(self._report)
+
 
 class Execute(Report):
     def __init__(self):
@@ -42,3 +49,6 @@ class Execute(Report):
 
     def parse_report(self):
         self._table.field_name = []
+
+    def print_report(self):
+        print(self._report)
