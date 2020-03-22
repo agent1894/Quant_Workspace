@@ -15,9 +15,10 @@ class Stock(object):
     def update_positions(self, position: int):
         newTotalPosition = self._totalPosition + position
         if newTotalPosition < 0:
-            return "Over-sell is illegal, order cancelled."
-        self._totalPosition += position
-        return "Current position is: {}".format(newTotalPosition)
+            return "Over-sell is illegal, order cancelled. Current position is: {}.".format(self._totalPosition), False
+        else:
+            self._totalPosition += position
+            return "Current position is: {}.".format(newTotalPosition), True
 
     def update_availableSell(self, position: int):
         newAvailableSell = self._availableSell + position
@@ -47,6 +48,10 @@ class Stock(object):
     def orderCosts(self):
         return self._orderCosts
 
+    @property
+    def currentPrice(self):
+        return self._currentPrice
+
 
 class Portfolio(object):
     def __init__(self, initDatetime: dt.datetime, cash: float = 100000, stock: dict = None):
@@ -66,21 +71,23 @@ class Portfolio(object):
 
     @property
     def positions(self):
-        return {"Cash": self._cash, "Stock": self._stock}
+        return {"Cash": self._cash,
+                "Stock": {x: (y.totalPosition, y.orderCosts, y.currentPrice) for x, y in self._stock.items()}}
 
     @property
     def symbols(self):
         return set(self._stock.keys())
 
-    def report(self):
-        self._log.print_report()
+    @property
+    def datetime(self):
+        return self._datetime
 
-    def update_cash(self, value: float):
-        if value < 0 and abs(value) > self._cash:
-            self._log.append_report("Over-sell is illegal, order cancelled.")
-        else:
-            self._cash += value
-            self._log.append_report("Cash change: {}".format(value))
+    @property
+    def fees(self):
+        return self._fees
+
+    def report(self):
+        return self._log.print_report()
 
     def update_datetime(self, datetime: dt.datetime):
         self._datetime = datetime
@@ -97,15 +104,23 @@ class Portfolio(object):
         if self._stock.get(symbol) is None:
             self._stock[symbol] = Stock()
         stock = self._stock[symbol]
-        result = stock.update_positions(orderSize)
-        self._log.append_report(result)
-        if orderSize < 0:
-            stock.update_availableSell(orderSize)
-        stock.update_currentPrice(orderPrice)
-        fees = feeRate * orderPrice * orderSize
-        fees = fees if fees >= 5.0 else 5.0
-        stock.update_cost(fees)
-        self._fees += fees
+        result, isTrade = stock.update_positions(orderSize)
+        self._log.append_report(symbol + ": " + result)
+        if isTrade:
+            if orderSize < 0:
+                stock.update_availableSell(orderSize)
+            stock.update_currentPrice(orderPrice)
+            if orderSize > 0 and abs(orderSize * orderPrice) > self._cash:
+                self._log.append_report("Do not have enough cash, order cancelled.")
+            else:
+                self._cash += -1 * orderSize * orderPrice
+                self._log.append_report("Cash change: {:.2f}".format(-1 * orderSize * orderPrice))
+            fees = feeRate * orderPrice * orderSize
+            fees = fees if fees >= 5.0 else 5.0
+            stock.update_cost(fees)
+            self._fees += fees
+        else:
+            self._log.append_report("No cash change made.")
 
     def check_positions(self):
         if self._cash < 0:
@@ -114,3 +129,11 @@ class Portfolio(object):
             for key in self._stock:
                 if self._stock[key].totalPosition < 0 or self._stock[key].availableSell < 0:
                     raise RuntimeError("The {} stock has incorrect position.".format(key))
+
+    def check_value(self):
+        value = self._cash
+        stocks = self._stock
+        if stocks is not None:
+            for key in stocks:
+                value += stocks[key].totalPosition * stocks[key].currentPrice
+        return value

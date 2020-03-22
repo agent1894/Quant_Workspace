@@ -8,10 +8,12 @@ Main entrance of programme.
 import re
 import datetime as dt
 from tqdm import tqdm
+import prettytable
 import strategy.strategy as stg
 import quotation.quotation as qt
 import broker.broker as bk
 import portfolio.portfolio as pf
+import utility.pnl as pnl
 
 
 class QuantSim(object):
@@ -21,6 +23,7 @@ class QuantSim(object):
         print("Strategy initialized.")
         self._portfolio = portfolio
         print("Portfolio initialized.")
+        self.__initialValue = self._portfolio.check_value()
 
         self._dividendAdjustment = dividendAdjustment
         self._commission = commission
@@ -58,6 +61,7 @@ class QuantSim(object):
         print("Broker is online.")
         self._strategy.set_broker(self._broker)
         self._strategy.set_portfolio(self._portfolio)
+        self.__pnl = []
 
     @property
     def freq(self):
@@ -89,6 +93,66 @@ class QuantSim(object):
             if self._freq[0:1].upper() == "D" or bar.datetime.time() == dt.time(9, 30):
                 self._portfolio.reset_available_sell()
             self._strategy.execute(bar)
-        print(self._portfolio.positions)
-        self._portfolio.report()
-        self._strategy.report()
+            self.__pnl.append(self._portfolio.check_value())
+
+    def report(self):
+        totalPosition = self._portfolio.positions
+        strategyReport = self._strategy.report()
+        portfolioReport = self._portfolio.report()
+
+        strategyTable = prettytable.PrettyTable()
+        strategyTable.field_names = ["Order ID", "Order Time", "Symbol", "Order Type", "Commission Fee", "Order Price",
+                                     "Order Status", "Order Size"]
+        for data in strategyReport:
+            strategyTable.add_row(
+                [data["Order ID"], data["Order Time"], data["Symbol"], data["Order Type"], data["Commission Fee"],
+                 data["Order Price"], data["Order Status"], data["Order Size"]])
+
+        portfolioTable = prettytable.PrettyTable()
+        portfolioTable.field_names = ["Symbol", "Status", "Current Position", "Cash Change"]
+        tempPortfolioReport = [portfolioReport[i:i + 2] for i in range(0, len(portfolioReport), 2)]
+        for data in tempPortfolioReport:
+            symbol = data[0].split(':')[0]
+            status = data[0].split(':')[1].split('.')[0]
+            status = status if "cancelled" in status else "Transaction succeed."
+            position = data[0].split('.')[1].split(' ')[-1]
+            change = data[1].split(':')[-1]
+            portfolioTable.add_row([symbol, status, position, change])
+
+        totalTable = prettytable.PrettyTable()
+        totalTable.field_names = ["Instrument", "Position", "Order Costs", "Value"]
+        totalTable.add_row(["Cash", totalPosition["Cash"], 0, totalPosition["Cash"]])
+        stocks = totalPosition["Stock"]
+        for key in stocks.keys():
+            position = stocks[key][0]
+            cost = stocks[key][1]
+            value = stocks[key][0] * stocks[key][2]
+            totalTable.add_row([key, position, cost, value])
+
+        print("Total Portfolio positions at the end of backtesting: ")
+        print(totalTable)
+        print("The strategy gives orders: ")
+        print(strategyTable)
+        print("The executions: ")
+        print(portfolioTable)
+
+    def analyse(self):
+        pnlTable = prettytable.PrettyTable()
+        pnlTable.field_names = ["Field", "Data"]
+        pnlTable.add_row(['Start', self._startDate])
+        pnlTable.add_row(['End', self._endDate])
+        pnlTable.add_row(['Initial Balance', self.__initialValue])
+        pnlTable.add_row(['End Balance', self._portfolio.check_value()])
+        pnlTable.add_row(['Total Return', "{:.2%}".format(self._portfolio.check_value() / self.__initialValue - 1)])
+        pnlTable.add_row(['Total PnL', self._portfolio.check_value() - self.__initialValue])
+        pnlTable.add_row(['Net Return', "{:.2%}".format(
+            (self._portfolio.check_value() - self._portfolio.fees) / self.__initialValue - 1)])
+        pnlTable.add_row(['Net PnL', self._portfolio.check_value() - self.__initialValue - self._portfolio.fees])
+        profit = pnl.PeriodReturns(self.__initialValue, self.__pnl)
+        sharpe = profit.calculate_sharpe()
+        sortino = profit.calculate_sortino()
+        pnlTable.add_row(['Sharpe Ratio', "{:.2f}".format(sharpe)])
+        pnlTable.add_row(['Sortino Ratio', "{:.2f}".format(sortino)])
+        print(pnlTable)
+
+        profit.plot_pnl()

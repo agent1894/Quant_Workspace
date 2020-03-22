@@ -18,7 +18,7 @@ class Strategy(object):
         self._log = tlog.Order()
 
     def report(self):
-        self._log.print_report()
+        return self._log.print_report()
 
     def set_broker(self, broker: bk.Broker):
         self._broker = broker
@@ -34,7 +34,6 @@ class Strategy(object):
         result = self._broker.market_order(datetime, symbol, orderSize=size)
         if result is not None:
             self._log.append_report(result)
-            self._portfolio.update_cash(-1 * result["Order Size"] * result["Order Price"])
             self._portfolio.update_positions(result)
             self._portfolio.update_datetime(result["Completion Time"])
 

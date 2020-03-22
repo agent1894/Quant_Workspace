@@ -2,7 +2,6 @@
 # -*- encoding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
-import prettytable
 
 
 class Report(object):
@@ -10,11 +9,6 @@ class Report(object):
 
     def __init__(self):
         self._report = list()
-        self._table = prettytable.PrettyTable()
-
-    @abstractmethod
-    def parse_report(self):
-        raise NotImplementedError("Should implement parse_report().")
 
     @abstractmethod
     def append_report(self, report):
@@ -32,12 +26,8 @@ class Order(Report):
     def append_report(self, report):
         self._report.append(report)
 
-    def parse_report(self):
-        self._table.field_name = ["Order ID", "Symbol", "Order Time", "Order Type", "Order Status", "Completion Time",
-                                  "Order Price", "Order Size", "Commission Fees"]
-
     def print_report(self):
-        print(self._report)
+        return self._report
 
 
 class Execute(Report):
@@ -47,8 +37,5 @@ class Execute(Report):
     def append_report(self, report):
         self._report.append(report)
 
-    def parse_report(self):
-        self._table.field_name = []
-
     def print_report(self):
-        print(self._report)
+        return self._report
