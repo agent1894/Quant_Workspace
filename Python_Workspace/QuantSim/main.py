@@ -127,7 +127,7 @@ class QuantSim(object):
             position = stocks[key][0]
             cost = stocks[key][1]
             value = stocks[key][0] * stocks[key][2]
-            totalTable.add_row([key, position, cost, value])
+            totalTable.add_row([key, position, cost, "{:.2f}".format(value)])
 
         print("Total Portfolio positions at the end of backtesting: ")
         print(totalTable)
