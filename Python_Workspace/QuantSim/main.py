@@ -88,7 +88,7 @@ class QuantSim(object):
         self._slippage = value
 
     def backtesting(self):
-        for bar in tqdm(self._quotation.push_bars()):
+        for bar in tqdm(self._quotation.push_bars(), total=len(self._quotation.push_data())):
             self._portfolio.check_positions()
             if self._freq[0:1].upper() == "D" or bar.datetime.time() == dt.time(9, 30):
                 self._portfolio.reset_available_sell()
