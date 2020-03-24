@@ -182,13 +182,91 @@ StopIteration:
 >
 > python 生成器和迭代器有这篇就够了 [CSDN](https://blog.csdn.net/weixin_30416497/article/details/99356788?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
 
+检查一个对象是否是可迭代对象或迭代器，需要导入`collections`库：
+
+```Python
+In [12]: from collections import Iterator, Iterable
+
+In [13]: isinstance(string, Iterator)
+Out[13]: False
+
+In [14]: isinstance(string, Iterable)
+Out[14]: True
+
+In [15]: isinstance(string_iter, Iterator)
+Out[15]: True
+
+In [16]: isinstance(string_iter, Iterable)
+Out[16]: True
+```
+
 ## `Map`, `Filter`和`Reduce`
 
 `map`，`filter`，`reduce`主要用来处理函数式编程相关的操作。
 
+`map`将函数映射至输入的一个可迭代对象后返回，其基本格式为：
+
+```Python
+map(function_to_apply, list_of_inputs)
+```
+
+通常会使用匿名函数`lambda`配合`map`，甚至可迭代对象可以是函数的列表：
+
+```Python
+In [1]: def multiply(x):
+    ...:     return x * x
+
+In [2]: def add(x):
+    ...:     return x + x
+
+In [3]: funcs = [multiply, add]
+
+In [4]: for i in range(5):
+    ...:     value = map(lambda x: x(i), funcs)
+    ...:     print(list(value))
+[0, 0]
+[1, 2]
+[4, 4]
+[9, 6]
+[16, 8]
+```
+
+`filter`使用和`map`相同的格式，会对传入可迭代对象的元素进行过滤，并返回所有符合要求的元素。这里`filter`类似于`for`循环，但是由于是内置函数，所以有更好的性能。
+
+```Python
+In [5]: number_list = range(-5, 5)
+
+In [6]: less_than_zero = filter(lambda x: x < 0, number_list)
+
+In [7]: print(list(less_than_zero))
+[-5, -4, -3, -2, -1]
+```
+
+由于Python3中`map`，`filter`会返回迭代器，因此需要使用`list`进行转换。
+
+Python3中将`reduce`从内置函数中移除，如果需要使用必须导入：
+
+```Python
+In [8]: from functools import reduce
+```
+
+> [廖雪峰](https://www.liaoxuefeng.com/wiki/1016959663602400/1017329367486080) `reduce`会把一个函数作用在一个序列上，这个函数必须接受两个参数，然后`reduce`把结果继续和序列的下一个元素做累积计算，其效果就是：`reduce(f, [x1, x2, x3, x4]) = f(f(f(x1, x2), x3), x4)`
+
 ## `set`数据结构
 
+`set`是一种无序不重复的数据结构。
+
+创建空集合必须使用`set()`而不能使用`{}`，大括号创建的是一个字典。
+
+使用`set_x.intersecton(set_y)`可以得出两个集合的交集，使用`set_x.difference(set_y)`可以得出两个集合的差集，也可以用`set_x & set_y`计算交集，`set_x | set_y`计算并集，`set_x - set_y`计算差集。
+
 ## 三元运算符
+
+常用的三元表达式为 `condition_is_true if condition else condition_is_false`。
+
+还有一种元组条件表达式：`(if_test_is_false, if_test_is_true)[test]`
+
+这种方式较为晦涩，且性能较弱，不推荐使用。
 
 ## 装饰器
 
