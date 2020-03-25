@@ -176,8 +176,6 @@ In [11]: next(obj)
 StopIteration:
 ```
 
-参考：
-
 > Python3中yield理解与使用（一遍就懂系列，绝不反驳）[CSDN](https://blog.csdn.net/u011318077/article/details/93749143?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
 >
 > python 生成器和迭代器有这篇就够了 [CSDN](https://blog.csdn.net/weixin_30416497/article/details/99356788?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
@@ -269,6 +267,129 @@ In [8]: from functools import reduce
 这种方式较为晦涩，且性能较弱，不推荐使用。
 
 ## 装饰器
+
+装饰器可以在不修改原有函数的基础上，增加或改变函数的功能。由于在python中一切皆对象，函数本身也可以赋值给一个变量。同时，由于函数内部可以嵌套函数，因此在函数内部定义另一个函数或返回一个函数，都是合法的。
+
+在外部函数调用内部函数时，返回时使用`return inner_function()`则会在返回时调用内部函数，而使用`return inner_function`则会返回函数本身，此时这个函数可以被传递至其他地方，或赋值给别的变量而不去执行。
+
+对于装饰器来说，装饰器接收一个函数作为参数，其返回值也是一个函数对象。
+
+在没有`@`语法糖时，装饰器需要通过如下方式实现：
+
+```Python
+In [1]: def decorator(func):
+    ...:
+    ...:     def wrapper():
+    ...:         print("Before func()")
+    ...:         func()
+    ...:         print("After func()")
+    ...:
+    ...:     return wrapper
+
+In [2]: def function_requiring_decoration():
+    ...:     print("The function requiring decoration")
+
+In [3]: function_requiring_decoration()
+The function requiring decoration
+
+In [4]: new_function = decorator(function_requiring_decoration)
+
+In [5]: new_function()
+Before func()
+The function requiring decoration
+After func()
+```
+
+在这个例子中，装饰器对传入的函数进行了封装，并返回了装饰器函数本身。使用`@`语法糖之后，代码实现为：
+
+```Python
+In [6]: @decorator
+    ...: def function_requiring_decoration():
+    ...:     """This function is under a decorator"""
+    ...:     print("The function requiring decoration")
+
+In [7]: function_requiring_decoration()
+Before func()
+The function requiring decoration
+After func()
+```
+
+在这里使用一个例子讨论装饰器的工作机制。当使用`__name__`打印被装饰函数的函数名时，显示的是装饰器的函数名：
+
+```Python
+In [8]: print(function_requiring_decoration.__name__)
+wrapper
+```
+
+这种情况是不符合预期的。原因在于使用装饰器之后会对被装饰函数的名称和注释文档进行覆盖。因此，如果需要解决这个问题，需要导入`functools.wraps`：
+
+```Python
+In [9]: from functools import wraps
+
+In [10]: def new_decorator(func):
+    ...:
+    ...:     @wraps(func)
+    ...:     def wrapper():
+    ...:         print("Before func()")
+    ...:         func()
+    ...:         print("After func()")
+    ...:
+    ...:     return wrapper
+
+In [11]: @new_decorator
+    ...: def function_requiring_decoration():
+    ...:     """This function is under a decorator"""
+    ...:     print("The function requiring decoration")
+
+In [12]: function_requiring_decoration()
+Before func()
+The function requiring decoration
+After func()
+
+In [13]: print(function_requiring_decoration.__name__)
+function_requiring_decoration
+
+In [14]: print(function_requiring_decoration.__doc__)
+This function is under a decorator
+```
+
+`@wraps`接受一个函数进行装饰，会使用传入函数的名称，注释文档，参数列表等。
+
+因此，一个装饰器的应用模板应该为：
+
+```Python
+from functools import wraps
+
+def decorator_name(f):
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not can_run:
+            return "Function will not run"
+        return f(*args, **kwargs)
+
+    return decorated
+
+@decorator_name
+def func():
+    return("Function is running")
+
+can_run = True
+print(func())
+# Output: Function is running
+
+can_run = False
+print(func())
+# Output: Function will not run
+```
+
+> [说说Python中的闭包](https://www.cnblogs.com/cicaday/p/python-closure.html)
+>
+> [详解Python的装饰器](https://www.cnblogs.com/cicaday/p/python-decorator.html)
+>
+> [Python中装饰器超详细讲解,看不懂尽管来砍我!](https://blog.csdn.net/weixin_44014228/article/details/85268112?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+>
+> [Python装饰器的实现和万能装饰器](https://blog.csdn.net/weixin_43790276/article/details/90728864?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
 
 ## `Global`和`Return`
 
