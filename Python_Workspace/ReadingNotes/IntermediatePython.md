@@ -13,7 +13,7 @@
   - [三元运算符](#%e4%b8%89%e5%85%83%e8%bf%90%e7%ae%97%e7%ac%a6)
   - [装饰器](#%e8%a3%85%e9%a5%b0%e5%99%a8)
   - [`Global`和`Return`](#global%e5%92%8creturn)
-  - [对象变动`Mutation`](#%e5%af%b9%e8%b1%a1%e5%8f%98%e5%8a%a8mutation)
+  - [对象变动(Mutation)](#%e5%af%b9%e8%b1%a1%e5%8f%98%e5%8a%a8mutation)
   - [`__slots__`魔法](#slots%e9%ad%94%e6%b3%95)
   - [虚拟环境](#%e8%99%9a%e6%8b%9f%e7%8e%af%e5%a2%83)
   - [容器(Collections)](#%e5%ae%b9%e5%99%a8collections)
@@ -383,17 +383,289 @@ print(func())
 # Output: Function will not run
 ```
 
-> [说说Python中的闭包](https://www.cnblogs.com/cicaday/p/python-closure.html)
+关于装饰器的案例，书中给出两个示范，分别是使用装饰器进行授权验证(authorization)：
+
+```Python
+from functools import wraps
+
+def requires_auth(f):
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            authenticate()
+        return f(*args, **kwargs)
+
+    return decorated
+```
+
+日志记录(logging)：
+
+```Python
+from functools import wraps
+
+def logit(func):
+
+    @wraps(func)
+    def with_logging(*args, **kwargs):
+        print(func.__name__ + " was called")
+        return func(*args, **kwargs)
+
+    return with_logging
+
+@logit
+def addition_func(x):
+   """Do some math."""
+   return x + x
+
+
+result = addition_func(4)
+# Output: addition_func was called
+```
+
+装饰器同样可以接收参数，这需要再对函数进行一层包装。相关思路需要仔细理解闭包的原理。
+
+不带有参数的装饰器实际接收了被装饰的函数对象作为参数，如果需要对装饰器传入参数，则需要通过再外一层函数来接收参数。根据函数嵌套的概念，需要先执行外部函数，然后执行内部函数。书中同样使用记录日志的程序作为示例：
+
+```Python
+from functools import wraps
+
+def logit(logfile='out.log'):
+
+    def logging_decorator(func):
+
+        @wraps(func)
+        def wrapped_function(*args, **kwargs):
+            log_string = func.__name__ + " was called"
+            print(log_string)
+            # 打开logfile，并写入内容
+            with open(logfile, 'a') as opened_file:
+                # 现在将日志打到指定的logfile
+                opened_file.write(log_string + '\n')
+            return func(*args, **kwargs)
+
+        return wrapped_function
+
+    return logging_decorator
+
+@logit()
+def myfunc1():
+    pass
+
+myfunc1()
+# Output: myfunc1 was called
+# 现在一个叫做 out.log 的文件出现了，里面的内容就是上面的字符串
+
+@logit(logfile='func2.log')
+def myfunc2():
+    pass
+
+myfunc2()
+# Output: myfunc2 was called
+# 现在一个叫做 func2.log 的文件出现了，里面的内容就是上面的字符串
+```
+
+除了使用函数以外，类也可以用来构建装饰器，即类装饰器。使用类装饰器需要实现`__init__`方法和`__call__`方法，`__init__`方法接收被装饰函数，`__call__`方法添加装饰器需要实现的功能。
+
+一个类如果没有实现`__call__`方法， 则不能直接执行，会抛出异常。但是如果实现了`__call__`方法，则可以直接调用：
+
+```Python
+In [15]: class Demo(object):
+    ...:     def __init__(self):
+    ...:         pass
+
+In [16]: demo = Demo()
+
+In [17]: demo()
+TypeError: 'Demo' object is not callable
+
+In [18]: class Demo(object):
+    ...:     def __init__(self):
+    ...:         pass
+    ...:     def __call__(self):
+    ...:         print("Now this class is callable.")
+
+In [19]: demo = Demo()
+
+In [20]: demo()
+Now this class is callable.
+```
+
+理解了类中`__call__`方法则可以理解类装饰器的原理。同样以记录日志为例，使用类装饰器：
+
+```Python
+from functools import wraps
+
+class logit(object):
+    def __init__(self, logfile='out.log'):
+        self.logfile = logfile
+
+    def __call__(self, func):
+
+        @wraps(func)
+        def wrapped_function(*args, **kwargs):
+            log_string = func.__name__ + " was called"
+            print(log_string)
+            # 打开logfile并写入
+            with open(self.logfile, 'a') as opened_file:
+                # 现在将日志打到指定的文件
+                opened_file.write(log_string + '\n')
+            # 现在，发送一个通知
+            self.notify()
+            return func(*args, **kwargs)
+
+        return wrapped_function
+
+    def notify(self):
+        # logit只打日志，不做别的
+        pass
+```
+
+此时这个类装饰器`logit`已经可以像函数装饰器一样使用`@`。同时，继承了这个类的子类也能够产生装饰器的作用，同时子类也可以在`notify()`方法中实现更多的功能。
+
+> 说说Python中的闭包[cnblogs](https://www.cnblogs.com/cicaday/p/python-closure.html)
 >
-> [详解Python的装饰器](https://www.cnblogs.com/cicaday/p/python-decorator.html)
+> 详解Python的装饰器[cnblogs](https://www.cnblogs.com/cicaday/p/python-decorator.html)
 >
-> [Python中装饰器超详细讲解,看不懂尽管来砍我!](https://blog.csdn.net/weixin_44014228/article/details/85268112?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+> python装饰器简介---这一篇也许就够了[CSDN](https://blog.csdn.net/weixin_44014228/article/details/85268112?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
 >
-> [Python装饰器的实现和万能装饰器](https://blog.csdn.net/weixin_43790276/article/details/90728864?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+> Python装饰器的通俗理解[CSDN](https://blog.csdn.net/u013471155/article/details/68960244?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
+>
+> Python装饰器的实现和万能装饰器[CSDN](https://blog.csdn.net/weixin_43790276/article/details/90728864?depth_1-utm_source=distribute.pc_relevant.none-task&utm_source=distribute.pc_relevant.none-task)
 
 ## `Global`和`Return`
 
-## 对象变动`Mutation`
+通常，函数内的变量的作用域仅在函数内部，但是如果使用`global`关键字，则会将变量的作用域修改为全局。这是一种不推荐的做法，因为会在全局作用域中引用太多冗余变量，造成不可控的后果。
+
+此外需要注意的是，在函数外部定义的变量，进入函数内部如果出现同名变量，则会被内部变量所覆盖：
+
+```Python
+In [1]: globalPara = 10
+
+In [2]: def add(x):
+    ...:     globalPara += x
+    ...:     print(globalPara)
+
+In [3]: add(1)
+UnboundLocalError: local variable 'globalPara' referenced before assignment
+```
+
+如果需要返回多个值，可以使用元组、列表、字典将多个变量组合，或者直接使用`return result1, result2, ...`，这是最好的方式。在任何情况下，尽量不要使用全局变量。
+
+## 对象变动(Mutation)
+
+Python作为解释性语言，对于每个变量的赋值，实际上是对内存块的引用。不可变性意味着当变量创建后即不能发生改变。对于可变变量，当将一个可变变量赋值给另一个变量时，新变量只是旧变量的引用，因此无论对于新旧变量的任一个进行的修改，都会同时作用于两者。
+
+使用`id`方法可以方便的确认：
+
+```Python
+# list是可变对象
+In [1]: listA = ["element 1"]
+
+In [2]: listB = listA
+
+In [3]: listB.append("element 2")
+
+In [4]: listB
+Out[4]: ['element 1', 'element 2']
+
+In [5]: listA
+Out[5]: ['element 1', 'element 2']
+
+In [6]: id(listA)
+Out[6]: 139640116124232
+
+In [7]: id(listB)
+Out[7]: 139640116124232
+```
+
+而对于不可变变量，由于创建后不能发生改变，因此修改会开辟新的内存区域存储这块数据。
+
+```Python
+# str是不可变对象
+In [8]: strA = "element 1"
+
+In [9]: strB = strA
+
+In [10]: id(strA)
+Out[10]: 139640116966384
+
+In [11]: id(strB)
+Out[11]: 139640116966384
+
+In [12]: strB += " element 2"
+
+In [13]: strA
+Out[13]: 'element 1'
+
+In [14]: strB
+Out[14]: 'element 1 element 2'
+
+In [15]: id(strA)
+Out[15]: 139640116966384
+
+In [16]: id(strB)
+Out[16]: 139640107303176
+```
+
+在这里，一开始的`strA`和`strB`是指向了相同的内存地址，但是当`strB`修改时，内存为`element 2`开辟了一块空间，接着为`element1 element2`开辟了一块空间，然后将变量`strB`指向`element1 element2`，随着`element 1`和`element2`对象不再被使用，其占用的内存被Python的垃圾回收机制销毁。
+
+此外，在Python中，`==`判断的是两个对象的值是否相等，而`is`判断的是两个对象是否指向同一个内存：
+
+```Python
+In [17]: strA = "element 1"
+
+In [18]: strB = "element 1"
+
+In [19]: id(strA)
+Out[19]: 139640107215408
+
+In [20]: id(strB)
+Out[20]: 139640107216112
+
+In [21]: strA == strB
+Out[21]: True
+
+In [22]: strA is strB
+Out[22]: False
+```
+
+基于这个，可以理解书中所说*永远不要定义可变类型的默认参数*：
+
+```Python
+In [23]: def add_to(element, target=[]):
+    ...:     target.append(element)
+    ...:     return target
+
+In [24]: add_to(1)
+Out[24]: [1]
+
+In [25]: add_to(2)
+Out[25]: [1, 2]
+
+In [26]: add_to(3)
+Out[26]: [1, 2, 3]
+```
+
+此时列表不会在每次都初始化默认参数，从而可能产生不符合预期的结果。更加合理的定义应该是：
+
+```Python
+In [27]: def add_to(element, target=None):
+    ...:     if target is None:
+    ...:         target = []
+    ...:     target.append(element)
+    ...:     return target
+
+In [28]: add_to(42)
+Out[28]: [42]
+
+In [29]: add_to(42)
+Out[29]: [42]
+
+In [30]: add_to(42)
+Out[30]: [42]
+```
 
 ## `__slots__`魔法
 
