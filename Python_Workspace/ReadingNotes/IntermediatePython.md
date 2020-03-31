@@ -4,6 +4,10 @@
 
 译者：老高 @spawnris 刘宇 @liuyu 明源 @muxueqz 大牙 @suqi 蒋委员长  @jiedo，译本已开源[GitHub](https://github.com/eastlakeside/interpy-zh)
 
+使用Python 3编程环境。
+
+读后感受：本书适合对Python有一定基础知识的读者补充一些进阶性的技巧。这些技巧通常是不常见的，甚至是没有之前没有想过的。本书每一章节都比较短小，优点是同样篇幅下涉及的知识概念较多，但是同样导致深度不足，讲解不够细致，很多示例没有连贯的逻辑，需要读者额外查阅相关资料进行理解。综上，是一本不错的小品级书籍，适当阅读即可。
+
 - [Intermediate Python by @yasoob](#intermediate-python-by-yasoob)
   - [`*args`和`**kwargs`](#args%e5%92%8ckwargs)
   - [调试(Debugging)](#%e8%b0%83%e8%af%95debugging)
@@ -669,27 +673,557 @@ Out[30]: [42]
 
 ## `__slots__`魔法
 
+当一个类需要创建大量实例时，使用`__slots__`对需要使用的属性进行声明，可以获得更快的属性访问速度和更少的内存占用，从而提升运行效率。
+
+由于在默认情况下，Python用一个字典来保存一个类的实例，这使得用户能够在某个类的实例中设定任意的新属性。
+
+但是，基于哈希表的字典创建时不能预知所需要使用的内存，因此会额外分出更多的空间以保存可能扩容的属性。当一个类下出现很多实例时，为了字典预留的空间会导致不必要的内存消耗。
+
+因此，使用`__slots__`方法，可以让Python在设置属性时不使用字典，而是只给一个固定的属性集合分配空间，从而有效节省内存使用，提升运行效率。
+
+```Python
+# 不使用__slots__
+class MyClass(object):
+    def __init__(self, name, identifier):
+        self.name = name
+        self.identifier = identifier
+        self.set_up()
+
+# 使用__slots__
+class MyClass(object):
+    __slots__ = ['name', 'identifier']
+    def __init__(self, name, identifier):
+        self.name = name
+        self.identifier = identifier
+        self.set_up()
+```
+
+> Python__slots__详解[cnblogs](https://www.cnblogs.com/rainfd/p/slots.html)
+
 ## 虚拟环境
+
+使用`virtualenv`可以为每一个项目创建独立的Python环境，而不是在全局使用所有模块。
+
+使用`conda`可以理解为使用了`pip`和`virtualenv`的结合。`pip`作为Python官方的包管理器，只能安装`PyPI`下的包，而`conda`提供了更多的第三方支持。
+
+`conda`支持联网下载所需的Python解释器，而`virtualenv`只能创建本地含有的Python解释器虚拟环境。
 
 ## 容器(Collections)
 
+除了常见的数据结构元组、列表、字典和集合之外，Python的`collections`模块提供了多种预先实现的容器数据类型：`namedtuple`，`deque`，`ChainMap`，`Counter`，`OrderedDict`，`defaultdict`。其中`deque`是一个双向链表结构，`namedtuple`是元组的拓展，其余的可以视作字典的拓展。在Python 3.4以上，提供了枚举结构`enum.Enum`。
+
+> Python 容器用法整理[cnblogs](https://www.cnblogs.com/shawnChi/p/6484591.html)
+
+- `defaultdict`
+
+  `defaultdict`是一种字典的拓展。相较于字典，`defaultdict`不需要`key`在一开始存在。
+  
+  在字典中，如果访问不存在的键，会抛出`KeyError`异常，但是如果一个字典在访问不存在的键时可以获取一个默认值而不是引发异常，则在某些场景下会获得很多便利。
+
+  `defaultdict`类类似于字典，但是需要进行初始化。这个类的初始化函数需要接受一个**类型**作为参数，确切的说是一个**工厂函数**。这个工厂函数可以是`list`，`set`，`str`，`int`等，当`key`不存在时，返回的是工厂函数的默认值。
+
+  ```Python
+  In [1]: from collections import defaultdict
+
+  In [2]: dct = defaultdict(list)
+  
+  In [3]: dct
+  Out[3]: defaultdict(list, {})
+  
+  In [4]: dct["new key1"]
+  Out[4]: []
+  
+  In [5]: dct
+  Out[5]: defaultdict(list, {'new key1': []})
+  
+  In [6]: dct["new key2"] = "append value1"
+  
+  In [7]: dct
+  Out[7]: defaultdict(list, {'new key1': [], 'new key2': 'append value1'})
+  
+  In [8]: dct["new key3"].append("append value 2")
+  
+  In [9]: dct
+  Out[9]:
+  defaultdict(list,
+              {'new key1': [],
+               'new key2': 'append value1',
+               'new key3': ['append value 2']})
+  ```
+
+  `defaultdict`类除了接受类型名称作为初始化函数的参数之外，还可以使用任何不带参数的可调用函数，而以该函数的返回结果作为默认值。例如：
+
+  ```Python
+  In [10]: def zero():
+    ...:     return 0
+
+  In [11]: dct = defaultdict(zero)
+
+  In [12]: dct
+  Out[12]: defaultdict(<function __main__.zero()>, {})
+
+  In [13]: dct["new key1"]
+  Out[13]: 0
+
+  In [14]: dct
+  Out[14]: defaultdict(<function __main__.zero()>, {'new key1': 0})
+  ```
+
+  > python中defaultdict方法的使用[CSDN](https://blog.csdn.net/real_ray/article/details/17919289)
+
+- `counter`
+  
+  `counter`是一个计数器，可以认为是一个key-int字典。通过接收一个可迭代对象、映射或关键字参数进行实例化。根据键值返回对应的统计次数：
+
+  ```Python
+  In [15]: from collections import Counter
+
+  In [16]: c = Counter("gallahad")
+  
+  In [17]: c
+  Out[17]: Counter({'a': 3, 'd': 1, 'g': 1, 'h': 1, 'l': 2})
+
+  In [18]: c['x']
+  Out[18]: 0
+  ```
+
+  `counter`提供了多种方法进行键值的修改操作。
+
+  > Python Counter()计数工具[cnblogs](https://www.cnblogs.com/nisen/p/6052895.html)
+  >
+  > Python标准库——collections模块的Counter类[Pythoner](http://www.pythoner.com/205.html)
+
+- `deque`
+
+  `deque`是一个双端队列或双向链表，可以在队列的开头或结尾添加或删除元素。但是这个容器不支持切片操作，因此无法用于替换、截取、排序等操作。
+
+- `namedtuple`
+
+  `namedtuple`和普通元组一样，是一个不可变的列表。如果需要获取元组中的数据，需要使用下标索引，但是`namedtuple`将其转变为一个有名称的容器，甚至可以理解为是一种简单的结构体，从而可以不使用整数索引而使用具体名称来访问其中的元素。创建一个`namedtuple`需要提供元组的名称和对应的字段名称：
+
+  ```Python
+  In [19]: from collections import namedtuple
+
+  In [20]: Program = namedtuple("Program", "Name, BeginYear, Version")
+
+  In [21]: py = Program(Name="Python", BeginYear=1989, Version="3.7")
+  
+  In [22]: py
+  Out[22]: Program(Name='Python', BeginYear=1989, Version='3.7')
+  
+  In [23]: py.Name
+  Out[23]: 'Python'
+  
+  In [24]: py.BeginYear
+  Out[24]: 1989
+  
+  In [25]: py.Version
+  Out[25]: '3.7'
+
+  In [26]: py[0]
+  Out[26]: 'Python'
+
+  In [27]: py[1]
+  Out[27]: 1989
+
+  In [28]: py[2]
+  Out[28]: '3.7'
+  ```
+
+  由此可见，`namedtuple`既可以使用属性来访问对应的值，也可以像普通元组一样使用下标索引访问。同时，由于`namedtuple`可以直接访问属性的特性，使得其成为一个自描述的结构，非常适合用于存储表条目。
+
+  由于`namedtuple`同样是元组，因此试图修改其属性值是非法的：
+
+  ```Python
+  In [29]: py.BeginYear = 2020
+  AttributeError: can't set attribute
+  ```
+
+  `namedtuple`支持的一些内建方法提供了诸如从转换为字典或使用可迭代对象建立`namedtuple`的功能。
+
+- `enum.Enum`
+
+  在Python 3.4之后，提供了枚举类的标准库`enum`，从而使用户可以使用枚举类型。
+
+  在没有枚举类型提供之前，要实现类似枚举的效果通常是创建一个字典或类来实现，但是这带来了可以被修改的隐患，因此引入了枚举类型：
+
+  ```Python
+  In [32]: from enum import Enum
+
+  In [33]: class Color(Enum):
+      ...:     red = 1
+      ...:     green = 2
+      ...:     blue = 3
+  
+  In [34]: Color.red
+  Out[34]: <Color.red: 1>
+  
+  In [36]: Color(1)
+  Out[36]: <Color.red: 1>
+  
+  In [37]: Color['red']
+  Out[37]: <Color.red: 1>
+  
+  In [35]: type(Color.red)
+  Out[35]: <enum 'Color'>
+  ```
+
+  枚举类型可以通过多种方式访问，不可实例化，不可更改。**成员名无法重复，成员值允许相同，相同成员值的情况下，第二个及以后的成员名被视作第一个成员名的别名**。
+
+  > Python 的枚举类型[segmentfault](https://segmentfault.com/a/1190000017327003)
+  >
+  > Python——枚举（enum）[cnblogs](https://www.cnblogs.com/-beyond/p/9777329.html)
+
 ## 枚举(Enumerate)
+
+枚举函数和上一节中的枚举类型不是一个概念。枚举函数(`enumerate()`)是用来遍历数据并构成一个序列的函数，通常在`for-loop`中使用：
+
+```Python
+my_list = ['apple', 'banana', 'grapes', 'pear']
+for counter, value in enumerate(my_list, start=1):  # 下标从1开始
+    print(counter, value)
+
+# output:
+(1, 'apple')
+(2, 'banana')
+(3, 'grapes')
+(4, 'pear')
+```
 
 ## 对象自省
 
+对象自省可以帮助用户更好的理解Python中的任一对象。
+
+- `dir`
+  
+  `dir`返回一个列表，会列出一个对象所拥有的所有的属性的方法，例如：
+
+  ```Python
+  In [1]: dir(set)
+  Out[1]:
+  ['__and__',
+   '__class__',
+   '__contains__',
+   '__delattr__',
+   '__dir__',
+   '__doc__',
+   '__eq__',
+   '__format__',
+   '__ge__',
+   '__getattribute__',
+   '__gt__',
+   '__hash__',
+   '__iand__',
+   '__init__',
+   '__ior__',
+   '__isub__',
+   '__iter__',
+   '__ixor__',
+   '__le__',
+   '__len__',
+   '__lt__',
+   '__ne__',
+   '__new__',
+   '__or__',
+   '__rand__',
+   '__reduce__',
+   '__reduce_ex__',
+   '__repr__',
+   '__ror__',
+   '__rsub__',
+   '__rxor__',
+   '__setattr__',
+   '__sizeof__',
+   '__str__',
+   '__sub__',
+   '__subclasshook__',
+   '__xor__',
+   'add',
+   'clear',
+   'copy',
+   'difference',
+   'difference_update',
+   'discard',
+   'intersection',
+   'intersection_update',
+   'isdisjoint',
+   'issubset',
+   'issuperset',
+   'pop',
+   'remove',
+   'symmetric_difference',
+   'symmetric_difference_update',
+   'union',
+   'update']
+  ```
+
+- `type`和`id`
+  
+  `type`返回对象类型，而`id`返回对象在内存中的唯一标识符。`id`在判断两个对象是否指向同一个内存地址时非常有用，可以结合`is`理解，而`==`无法做类似的判断：
+
+  ```Python
+  In [2]: str1 = "test string"
+
+  In [3]: str2 = "test string"
+  
+  In [4]: str1 == str2
+  Out[4]: True
+  
+  In [5]: str1 is str2
+  Out[5]: False
+  
+  In [6]: id(str1)
+  Out[6]: 140410587911344
+  
+  In [7]: id(str2)
+  Out[7]: 140410587575920
+  ```
+
+此外还有`inspect`模块，可以用以获取对象的信息。
+
 ## 推导式(Comprehension)
+
+推导式又称解析式，是Python的独有特性，可以通过一种数据序列构建另一种数据序列。Python支持三种推导式，分别是列表推导式，字典推导式和集合推导式。
+
+列表推导式的通常语法为
+
+```Python
+variable = [out_exp for variable in input_list if conditions]
+```
+
+当出现多层循环嵌套时，`out_exp`是最下一层，每一个`for`依次**从外向内嵌套**：
+
+```Python
+In [1]: lst = [x * y for x in range(1, 5) if x > 2 for y in range(1, 4) if y < 3]
+
+In [2]: list(lst)
+Out[2]: [3, 6, 4, 8]
+```
+
+等价于：
+
+```Python
+In [3]: lst = []
+   ...: for x in range(1, 5):
+   ...:     if x > 2:
+   ...:         for y in range(1, 4):
+   ...:             if y < 3:
+   ...:                 lst.append(x * y)
+
+In [4]: lst
+Out[4]: [3, 6, 4, 8]
+```
+
+> python 循环高级用法[cnblogs](https://www.cnblogs.com/bonelee/p/8545263.html)
+
+字典推导式和集合推导式都使用类似的方式，需要注意的是**没有元组推导式**，如果用`()`替代`[]`或`{}`会产生一个生成器，而在Python3之后，使用列表推导式也会得到一个生成器。
 
 ## 异常
 
+最常用的异常捕捉是`try/except`从句，将可能触发异常的代码放在`try`语句块里，处理异常的代码放在`except`语句块里。
+
+除了这种方式外，异常处理可以同时处理多种异常，一种是将所有可能发生的异常放在一个元组里：
+
+```Python
+try:
+    file = open('test.txt', 'rb')
+except (IOError, EOFError) as e:
+    print("An error occurred. {}".format(e.args[-1]))
+```
+
+或者在每个`except`块中处理单独的异常：
+
+```Python
+try:
+    file = open('test.txt', 'rb')
+except EOFError as e:
+    print("An EOF error occurred.")
+    raise e
+except IOError as e:
+    print("An error occurred.")
+    raise e
+```
+
+或者直接捕获所有可能的异常：
+
+```Python
+try:
+    file = open('test.txt', 'rb')
+except Exception:
+    raise
+```
+
+如果使用`try/except/finally`从句，则程序会在主程序代码或异常处理代码运行完成后，运行`finally`从句，即无论异常是否触发，`finally`语句块中的代码都会被执行。
+
+在此之外，还可以加上`else`构成`try/except/else/finally`从句。这样可以保证只有在`try`语句块中的代码才会进行异常捕获，如果有异常出现在`else`中，则不会被捕获后进入`except`语句块。`else`只会在`try`没有异常的情况下执行。
+
+因此，在`try/except/else/finally`从句中，首先执行`try`，如果没有异常则执行`else`，如果出现异常则执行`except`，最后无论如何都会执行`finally`。
+
 ## `lambda`表达式
+
+`lambda`表达式定义了一个匿名函数，只会在定义时使用一次。使用匿名函数并不会带来效率的提高，只会使代码更加简洁。如果在使用匿名函数和定义函数之间进行取舍，需要考虑的是函数的复杂程度，重用性和可读性。
 
 ## 一行式
 
+书中所谓的一行式，实际是在terminal中执行Python的一些简单命令或执行简单的脚本，
+
+在终端下使用`python -h`可以看到Python解释器支持的一些参数选项，例如：
+
+```Bash
+$ python3 -h
+usage: python3 [option] ... [-c cmd | -m mod | file | -] [arg] ...
+Options and arguments (and corresponding environment variables):
+-b     : issue warnings about str(bytes_instance), str(bytearray_instance)
+         and comparing bytes/bytearray with str. (-bb: issue errors)
+-B     : don't write .py[co] files on import; also PYTHONDONTWRITEBYTECODE=x
+-c cmd : program passed in as string (terminates option list)
+-d     : debug output from parser; also PYTHONDEBUG=x
+-E     : ignore PYTHON* environment variables (such as PYTHONPATH)
+-h     : print this help message and exit (also --help)
+-i     : inspect interactively after running script; forces a prompt even
+         if stdin does not appear to be a terminal; also PYTHONINSPECT=x
+-I     : isolate Python from the user's environment (implies -E and -s)
+-m mod : run library module as a script (terminates option list)
+-O     : optimize generated bytecode slightly; also PYTHONOPTIMIZE=x
+-OO    : remove doc-strings in addition to the -O optimizations
+-q     : don't print version and copyright messages on interactive startup
+-s     : don't add user site directory to sys.path; also PYTHONNOUSERSITE
+-S     : don't imply 'import site' on initialization
+-u     : unbuffered binary stdout and stderr, stdin always buffered;
+         also PYTHONUNBUFFERED=x
+         see man page for details on internal buffering relating to '-u'
+-v     : verbose (trace import statements); also PYTHONVERBOSE=x
+         can be supplied multiple times to increase verbosity
+-V     : print the Python version number and exit (also --version)
+-W arg : warning control; arg is action:message:category:module:lineno
+         also PYTHONWARNINGS=arg
+-x     : skip first line of source, allowing use of non-Unix forms of #!cmd
+-X opt : set implementation-specific option
+file   : program read from script file
+-      : program read from stdin (default; interactive mode if a tty)
+arg ...: arguments passed to program in sys.argv[1:]
+```
+
 ## `For` - `Else`
+
+`else`是`for`循环中的一个可选的额外分支，并不常用，甚至并不推荐使用。
+
+在常用的`for`循环中，每次执行一次循环直到循环结束，如果需要跳出循环，则使用`break`跳出循环不再执行，或使用`continue`跳出当前循环并执行下一次循环，或在函数中使用`return`直接返回结果。
+
+`else`在这个情况下提供了一个分支，即：**当且只当循环全部结束时，执行`else`内的程序**。只有正常退出循环时，`else`内的会被执行，如果使用`break`退出循环，则`else`不执行。这是使用`else`打印素数的一个示例：
+
+```Python
+for n in range(2, 10):
+    for x in range(2, n):
+        if n % x == 0:
+            print( n, 'equals', x, '*', n/x)
+            break
+    else:
+        # loop fell through without finding a factor
+        print(n, 'is a prime number')
+```
+
+注意在这里，由于`continue`没有中断循环的继续，只是跳过了某次循环，因此当循环结束时仍然算正常退出循环，`else`仍然会被执行：
+
+```Python
+In [1]: for i in "pyxxxxthon":
+   ...:     if i == 'x':
+   ...:         continue
+   ...:     print(i)
+   ...: else:
+   ...:     print("loop exited")
+p
+y
+t
+h
+o
+n
+loop exited
+```
 
 ## 使用C拓展
 
+CPython支持Python对C的调用。
+
+`ctypes`模块是最简单的Python对C调用的方式。`ctypes`模块提供了和C语言兼容了数据类型和函数来加载`.so`(Linux)或`.dll`(Windows)文件，同时在调用时不需要对源文件做任何修改。
+
+这里使用书中的示例：
+
+```C
+//sample C file to add 2 numbers - int and floats
+
+#include <stdio.h>
+
+int add_int(int, int);
+float add_float(float, float);
+
+int add_int(int num1, int num2)
+{
+    return num1 + num2;
+}
+
+float add_float(float num1, float num2)
+{
+    return num1 + num2;
+}
+```
+
+将C文件编译为`.so`（Windows下为`.dll`）文件：
+
+```Bash
+gcc -shared -Wl,-soname,adder -o adder.so -fPIC add.c
+```
+
+然后在Python代码中进行调用：
+
+```Python
+from ctypes import *
+
+#load the shared object file
+adder = CDLL('./adder.so')
+
+#Find sum of integers
+res_int = adder.add_int(4,5)
+print ("Sum of 4 and 5 = " + str(res_int))
+
+#Find sum of floats
+a = c_float(5.5)
+b = c_float(4.1)
+
+add_float = adder.add_float
+add_float.restype = c_float
+print ("Sum of 5.5 and 4.1 = ", str(add_float(a, b)))
+```
+
+这是一种最基本的方式。
+
+第二种方式为SWIG(Simplified Wrapper and Interface Generator)。这种方式需要编写额外的接口文件作为入口。通常不会采用这种方式，因为过于复杂，除非编写的C/C++代码需要被多种语言调用时才会使用。
+
+最后最常用的是`Python/C API`，不仅简单而且可以在C中操作Python对象。
+
+使用这种方法需要用特定的方式编写C代码，以供Python对代码进行调用。Python对象被一种`PyObject`的结构体描述，并在`Python.h`头文件中提供了操作函数。大部分的Python原生对象的基础函数和操作在`Python.h`头文件中都有。
+
+当编写完成后，只需要在Python中像导入包一样使用`import`即可，例如：
+
+```Python
+# Though it looks like an ordinary python import, the addList module is implemented in C
+import addList
+
+l = [1,2,3,4,5]
+print "Sum of List - " + str(l) + " = " +  str(addList.add(l))
+```
+
+关于C代码的编写和编译在书中有较为详细的解释。
+
 ## `open`函数
+
+使用`open`打开文件，首先需要保证打开的文件句柄能够正常关闭。要完成这个任务，不能简单地直接使用形如`f.close()`的语句，因为有可能会在关闭前由于异常的引发而导致`f.close()`不被调用。因此，一种方式是使用`try/except/finally`，在`finally`中关闭文件，或者使用上下文管理器`with`保证其正常关闭。
+
+`open`使用的文件打开模式需要正确确定。通常，读取使用`r`，读取并写入使用`r+`，覆盖使用`w`，追加使用`a`。确定正确的模式非常重要，因为如果选择错误的打开模式，可能会直接引发报错。
+
+例如，如果打开一个`.jpg`文件，使用`r+`就会抛出异常。因为`.jpg`并不是一个文本文件，应该使用二进制模式(`'b'`)打开，得到一个字节串，而不是使用文本模式(`'t'`)打开从而得到一个字符串。因此，打开`.jpg`文件的正确模式应该是`rb`。
+
+最后，由于编码方式的不同，打开文件最好指定编码如`UTF-8`或`GBK`等，否则可能会导致不可预知的读取错误。
 
 ## 目标Python2+3
 
