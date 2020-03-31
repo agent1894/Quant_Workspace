@@ -6,7 +6,7 @@
 
 使用Python 3编程环境。
 
-读后感受：本书适合对Python有一定基础知识的读者补充一些进阶性的技巧。这些技巧通常是不常见的，甚至是没有之前没有想过的。本书每一章节都比较短小，优点是同样篇幅下涉及的知识概念较多，但是同样导致深度不足，讲解不够细致，很多示例没有连贯的逻辑，需要读者额外查阅相关资料进行理解。综上，是一本不错的小品级书籍，适当阅读即可。
+读后感受：本书适合对Python有一定基础知识的读者补充一些进阶性的技巧。这些技巧通常是不常见的，甚至是没有之前没有想过的。本书每一章节都比较短小，优点是同样篇幅下涉及的知识概念较多，但是同样导致深度不足，讲解不够细致，很多示例没有连贯的逻辑，需要读者额外查阅相关资料进行理解。综上，是一本不错的小品级书籍，适当阅读即可。对于我个人而言，关于`__slots__`，容器，自省，协程和函数缓存的内容是我之前没有了解过的新知识。
 
 - [Intermediate Python by @yasoob](#intermediate-python-by-yasoob)
   - [`*args`和`**kwargs`](#args%e5%92%8ckwargs)
@@ -1227,7 +1227,90 @@ print "Sum of List - " + str(l) + " = " +  str(addList.add(l))
 
 ## 目标Python2+3
 
+为了兼容Python2+和Python3+，除了开发两套代码之外，可以使用一些技巧使其尽可能的兼容。
+
+第一中方法是导入`__future__`模块，可以在Python2中使用Python3的功能。
+
+例如如果需要在Python2.5中导入Python2.6开始支持的上下文管理器特性：
+
+```Python
+from __future__ import with_statement
+```
+
+在Python3中`print`成为一个函数，而在Python2中是一个关键字，如果需要使用其作为函数，也可以类似的导入：
+
+```Python
+from __future__ import print_function
+```
+
+第二种方式是使用模块别名：
+
+```Python
+try:
+    import urllib.request as urllib_request  # for Python 3
+except ImportError:
+    import urllib2 as urllib_request  # for Python 2
+```
+
+如果需要在Python2的代码确保不使用已经被Python3移除的功能，从而保证兼容性，可以使用如下方式：
+
+```Python
+from future.builtins.disabled import *
+
+apply()
+# Output: NameError: obsolete Python 2 builtin apply is disabled
+```
+
+此外也可以使用非官方支持的库为Python2提供Python3的功能。
+
 ## 协程
+
+协程(Coroutine)和多线程不同，协程是程序自身控制程序间的调度，因此不存在线程切换的开销，同时不受到GIL的影响。对于IO密集型任务，协程可以提供非常高的执行效率，而对于CPU密集型，可以使用多进程加协程的方式。
+
+在Python中，对于协程的支持通过生成器(Generators)实现，协程是遵循某些规则的生成器。
+
+当使用`yield`关键字创建一个生成器后，`yield`不仅可以用来传递数据，同时也能接收数据。实际上，在初学生成器时，将`yield`理解为`return`是很片面的。因为在`yield`中，程序并没有终止，只是暂停在了当时所在的位置，因此，`yield`不仅可以放在函数结尾，也可以放在函数中间，在执行`__next__()`方法时，从上一次`yield`停止的位置继续执行。
+
+这里推荐使用参考文章中的案例：
+
+> 理解Python的协程(Coroutine)[简书](https://www.jianshu.com/p/84df78d3225a)
+
+```Python
+In [1]: def test():
+   ...:     print("generator starts")
+   ...:     n = 1
+   ...:     while True:
+   ...:         yield_expression_value = yield n
+   ...:         print("yield_expression_value = {}".format(yield_expression_value))
+   ...:         n += 1
+
+In [2]: generator = test()
+
+In [3]: print(type(generator))
+<class 'generator'>
+
+In [4]: next_result = generator.__next__()
+generator starts
+
+In [5]: print("next_result = {}".format(next_result))
+next_result = 1
+
+In [6]: send_result = generator.send(100)
+yield_expression_value = 100
+
+In [7]: print("send_result = {}".format(send_result))
+send_result = 2
+```
+
+如果要启动生成器，需要先调用`__next__()`或`send(None)`，这将会让程序执行到`yield`所在的位置。在这个例子中，程序首先打印`generator starts`，然后将`n`对应的值传给`next_result`，从这里开始，生成器被暂停，直到下次获得调用。
+
+当使用`send()`向生成器传入一个值后，生成器恢复执行，从`yield_expression_value`出开始，接收到传入的值`100`，然后继续执行直到再次遇到`yield`为止。
+
+这种程序主动调配，中断并切换执行的方式，体现了协程的特点。随后给出的生产者-消费者模式的案例更好的说明了这个过程：
+
+```Python
+
+```
 
 ## 函数缓存
 
