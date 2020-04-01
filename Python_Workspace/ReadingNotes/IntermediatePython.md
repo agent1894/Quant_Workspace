@@ -1309,9 +1309,204 @@ send_result = 2
 这种程序主动调配，中断并切换执行的方式，体现了协程的特点。随后给出的生产者-消费者模式的案例更好的说明了这个过程：
 
 ```Python
+In [8]: def consumer():
+   ...:     print("[CONSUMER] starts")
+   ...:     r = "start"
+   ...:     while True:
+   ...:         n = yield r
+   ...:         if not n:
+   ...:             print("n is empty")
+   ...:             continue
+   ...:         print("[CONSUMER] Consumer is consuming {}".format(n))
+   ...:         r = "200 OK"
 
+In [9]: def producer(c):
+   ...:     start_value = c.send(None)
+   ...:     print(start_value)
+   ...:     n = 0
+   ...:     while n < 3:
+   ...:         n += 1
+   ...:         print("[PRODUCER] Producer is producing {}".format(n))
+   ...:         r = c.send(n)
+   ...:         print("[PRODUCER] Consumer returns {}".format(r))
+   ...:     c.close()
+
+In [10]: con = consumer()
+
+In [11]: producer(con)
+[CONSUMER] starts
+start
+[PRODUCER] Producer is producing 1
+[CONSUMER] Consumer is consuming 1
+[PRODUCER] Consumer returns 200 OK
+[PRODUCER] Producer is producing 2
+[CONSUMER] Consumer is consuming 2
+[PRODUCER] Consumer returns 200 OK
+[PRODUCER] Producer is producing 3
+[CONSUMER] Consumer is consuming 3
+[PRODUCER] Consumer returns 200 OK
 ```
+
+程序使用`c.send(None)`调用生成器，当执行到`yield`时返回结果给到消费者，消费者处理完后通过`c.send(n)`再将结果传回生产者，直到生产完成或消费者**使用`c.close()`关闭生成器**。
+
+这种方式在生产者产出结果后直接进入消费者处理结果，待消费者处理完成后再切换回生产者进行生产，有更高的效率和性能。同时由于全部由一个线程处理任务，因此不存在多线程可能的死锁问题。
 
 ## 函数缓存
 
+函数缓存是指将一个函数对于指定参数的返回值进行缓存，从而在下次调用时直接返回结果，而不是再次计算。这种方式用于会被频繁使用相同参数进行调用的函数可以节省大量时间。在Python 3.2版本后，提供了`lru_cache`装饰器，可以将一个函数的返回值快速缓存或取消缓存。
+
+使用递归计算斐波那契数列，并测试运算时间：
+
+```Python
+In [1]: def fib(n):
+    ...:     if n < 2:
+    ...:         return n
+    ...:     return fib(n - 1) + fib(n - 2)
+
+In [2]: %timeit fib(40)
+24.7 s ± 353 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+```
+
+加上`lru_cache`装饰器后测试运算时间：
+
+```Python
+In [3]: @lru_cache(None)
+    ...: def fib(n):
+    ...:     if n < 2:
+    ...:         return n
+    ...:     return fib(n - 1) + fib(n - 2)
+
+In [4]: %timeit fib(40)
+63.3 ns ± 2.12 ns per loop (mean ± std. dev. of 7 runs, 10000000 loops each)
+```
+
+发现效率上有巨大的提升。原因在于使用函数缓存之后，使用相同参数的函数不会再次运算，而是直接从缓存中读取结果使用。递归计算斐波那契数列正是重复使用一个结果的案例。
+
+`@lru_cache`装饰器接收`(maxsize=)`参数，表示最多缓存最近多少个返回值。如果设置为`None`则无限制，
+
+由于函数缓存不会再次运行函数，因此使用第二次及以后使用相同参数时，不会再次进入函数体内部，而是直接返回结果：
+
+```Python
+In [5]: def cache_test(n):
+    ...:     print(n)
+
+In [6]: cache_test(10)
+10
+
+In [7]: cache_test(10)
+10
+
+In [8]: cache_test(10)
+10
+
+In [9]: @lru_cache(None)
+    ...: def cache_test(n):
+    ...:     print(n)
+
+In [10]: cache_test(10)
+10
+
+In [11]: cache_test(10)
+
+In [12]: cache_test(10)
+```
+
+对被`lru_cache`装饰过的函数使用`cache_clear()`方法可以清空缓存，`cache_info()`可以提供缓存相关的信息：
+
+```Python
+In [13]: cache_test.cache_clear()
+
+In [14]: cache_test(10)
+10
+
+In [15]: cache_test.cache_info()
+Out[15]: CacheInfo(hits=0, misses=1, maxsize=None, currsize=1)
+```
+
+在低于Python 3.2的时候，可以自定义一个缓存装饰器的实现：
+
+```Python
+from functools import wraps
+
+def memoize(function):
+    memo = {}
+    @wraps(function)
+    def wrapper(*args):
+        if args in memo:
+            return memo[args]
+        else:
+            rv = function(*args)
+            memo[args] = rv
+            return rv
+    return wrapper
+
+@memoize
+def fibonacci(n):
+    if n < 2: return n
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+fibonacci(25)
+```
+
 ## 上下文管理器
+
+对于需要成对出现的操作，使用`with`上下文管理器可以简洁优雅地分配和释放资源。某种程度上，上下文管理器可以理解为`try/finally`的优化。
+
+上下文管理器协议指要实现对象`__enter__()`和`__exit__()`方法；上下文管理器也就是支持上下文管理器协议的对象。
+
+```Python
+class File(object):
+    def __init__(self, file_name, method):
+        self.file_obj = open(file_name, method)
+    def __enter__(self):
+        return self.file_obj
+    def __exit__(self, type, value, traceback):
+        self.file_obj.close()
+```
+
+在这个示例下，当使用`with`时，会自动调用`__enter__()`方法，当`with`内执行完毕或出现异常时，则自动执行`__exit__()`方法。
+
+`__exit__()`有三个参数`type`，`value`和`traceback`。如果出现异常，则将异常情况传入`__exit__()`并返回`False`，否则传入三个`None`并返回`True`。同时也可以指定在`__exit__()`的返回值。如果没有指定返回值，出现异常时默认返回`None`，即布尔类型为`False`，同时将异常抛出。如果进行了处理并且显式地指定了返回值为`True`，则异常不会被抛出：
+
+```Python
+class File(object):
+    def __init__(self, file_name, method):
+        self.file_obj = open(file_name, method)
+    def __enter__(self):
+        return self.file_obj
+    def __exit__(self, type, value, traceback):
+        print("Exception has been handled")
+        self.file_obj.close()
+        return True
+
+with File('demo.txt', 'w') as opened_file:
+    opened_file.undefined_function()
+
+# Output: Exception has been handled
+```
+
+在这里，由于指定了返回`True`，因此不会抛出异常。
+
+除了使用类实现上下文管理器，也可以使用生成器和装饰器来实现。Python内置了`contextlib`模块用于实现上下文管理器。使用`contextlib`中的`@contextmanager`装饰器，可以不用创建一个类并实现`__enter__()`方法和`__exit__()`方法就能实现上下文管理器：
+
+```Python
+In [1]: import contextlib
+
+In [2]: @contextlib.contextmanager
+   ...: def open_file(name):
+   ...:     print("as __enter__() function")
+   ...:     print("The input is '{}'".format(name))
+   ...:     yield
+   ...:     print("as __exit__() function")
+
+In [3]: with open_file("test input"):
+   ...:     print("This belongs to contextor")
+as __enter__() function
+The input is 'test input'
+This belongs to contextor
+as __exit__() function
+```
+
+在这里，函数中出现了`yield`因此被创建为一个生成器。由于装饰器的存在，`contextmanager`被调用并传入定义的函数（此处是`open_file`）作为参数。先输出在`yield`之前的内容，相当于`__enter__()`方法，然后`yield`转入`with`语句内的操作。当`with`内的操作执行完成或出现异常后，返回生成器并执行`yield`后的内容，相当于`__exit__()`方法。
+
+> Python---上下文管理器（contextor）[CSDN](https://blog.csdn.net/zwqjoy/article/details/91432737)
