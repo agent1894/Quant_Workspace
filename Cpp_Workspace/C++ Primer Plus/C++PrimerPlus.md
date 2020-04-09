@@ -2580,3 +2580,206 @@
     operator int();
     operator double();
     ```
+
+- 在使用类型装换时，如果没有显式强制类型装换，同时定义了多种转换形式时，可能会出现二义性问题而导致编译器报错。例如：
+
+  ```C++
+  double p_wt = poppins;
+  ```
+
+  会将`poppins`强制转换为`double`类型，但是如果使用：
+
+  ```C++
+  cout << "Poppins: " << poppins << " pounds.\n";
+  ```
+
+  则会由于`poppins`既有`operator int()`转换函数，也有`operator double()`转换函数而引发报错。但是如果类只定义了`double`转换函数，则不会出现报错，因为不存在二义性。
+
+  类似的是，在赋值中也会由于二义性的存在而导致编译器报错：
+
+  ```C++
+  long gone = poppins; // ambiguous
+  ```
+
+  因为上文中的类，`int`和`double`都可以被赋值为`long`，因此编译器使用任何一个转换函数都是合法的，从而导致二义性。但是显式强制类型转换仍然可以解决这个问题：
+
+  ```C++
+  long gone = (double) poppins; // use double conversion
+  long gone = int (poppins); // use int conversion
+  ```
+
+- 使用自动、隐式转换函数仍然存在类似转换构造函数的风险，即在用户不希望进行转换时进行转换，例如：
+
+  ```C++
+  int ar[20];
+  
+  ...
+
+  Stonewt temp(14, 4);
+
+  ...
+
+  int Temp = 1;
+
+  ...
+
+  cout << ar[temp] << "!\n"; // used temp instead of Temp
+  ```
+
+  此时，应该用作下标索引的`Temp`被误写为`temp`，尽管`temp`对应的是`Stonewt`对象，但是由于`Stonewt`类实现了`operator int()`转换函数，因此此处编译器将对象`temp`转换为`int200`并用作数组索引，从而可能导致不可预知的结果。
+
+  因此在原则上，最好使用显式转换而避免隐式转换。在C++98中，关键字`explicit`不能用于转换函数，在C++11中已经消除了这种限制，可将转换运算符声明为显式的：
+
+  ```C++
+  class Stonewt
+  {
+
+    ...
+
+    // conversion functions
+    explicit operator int() const;
+    explicit operator double() const;
+  };
+  ```
+
+  当进行这种声明后，必须使用强制类型转换才能调用这些运算符。
+
+  另一种方法是使用一个功能相同的非转换函数替换转换函数，从而在仅被显式调用时执行函数进行转换，例如：
+
+  ```C++
+  Stonewt::operator int()
+  {
+    return int (pounds + 0.5);
+  }
+  ```
+
+  替换为
+
+  ```C++
+  int Stonewt::Stone_to_Int()
+  {
+    return int (pounds + 0.5);
+  }
+  ```
+
+  从而仅在调用`poppins.Stone_to_Int()`时才进行类型转换。
+
+  书中一再强调：**应谨慎地使用隐式转换函数。通常，最好选择仅在被显式调用时才会执行的函数**。
+
+- C++为类提供了以下类型转换：
+  - **只有一个参数的类构造函数**用于将类型与该参数相同的值转换为类类型。在构造函数声明中使用关键字`explicit`可防止隐式转换，而只允许显式转换。
+  - 被称为**转换函数**的特殊类成员运算符函数，用于将类对象转换为其他类型。转换函数是类成员，**没有返回类型，没有参数，名为`operator typeName()`**。
+
+- 重载运算符时，可以使用成员函数或友元函数。在`Stonewt`类中（假定没有实现`operator double()`转换函数），可以使用成员函数实现加法：
+
+  ```C++
+  Stonewt Stonewt::operator+(const Stonewt& st) const
+  {
+    double pds = pounds + st.pounds;
+    Stonewt sum(pds);
+    return sum;
+  }
+  ```
+
+  也可以使用友元函数重载加法（注意，函数定义中不使用`friend`关键字）：
+
+  ```C++
+  Stonewt operator+(const Stonewt& st1, const Stonewt& st2)
+  {
+    double pds = st1.pounds + st2.pounds;
+    Stonewt sum(pds);
+    return sum;
+  }
+  ```
+
+  - 这两种方式都允许如下操作：
+
+    ```C++
+    Stonewt jennySt(9, 12);
+    Stonewt bennySt(12, 8);
+    Stonewt total;
+    total = jennySt + bennySt;
+    ```
+
+    这是因为`total = jennySt + bennySt`被转换为：
+
+    ```C++
+    total = jennySt.operator+(bennySt); // member function
+    // or
+    total = operator+(jennySt, bennySt); // friend function
+    ```
+
+    传入的实参和定义的形参类型匹配，没有进行类型转换。此外，成员函数重载运算符是通过`Stonewt`对象调用的。
+
+  - 如果提供了`Stonewt(double)`构造函数，也支持：
+
+    ```C++
+    Stonewt jennySt(9, 12);
+    double kennyD = 176.0;
+    Stonewt total;
+    total = jennySt + kennyD;
+    ```
+
+    此时`total = jennySt + kennyD`被转换为：
+
+    ```C++
+    total = jennySt.operator+(kennyD); // member function
+    // or
+    total = operator+(jennySt, kennyD); // friend function
+    ```
+
+    由于调用中的实参`kennyD`是`double`类型，因此调用`Stonewt(double)`构造函数，将其转换为`Stonewt`对象。此时，成员函数仍然通过`Stonewt`对象调用。但是如果同时定义了`operator double()`转换成员函数，则会导致二义性，因为编译器无法判断使用构造函数将`kennyD`转换为`Stonewt`对象并执行重载的`Stonewt`加法，还是使用转换函数将`jennySt`转换为`double`类型并使用浮点数加法。
+
+  - 最后，只有使用友元函数时才支持：
+
+    ```C++
+    Stonewt jennySt(9, 12);
+    double pennyD = 146.0;
+    Stonewt total;
+    total = pennyD + jennySt;
+    ```
+
+    因为此时`total = jennySt + kennyD`被转换为：
+
+    ```C++
+    total = operator+(pennyD, jennySt); // friend function
+    ```
+
+    调用构造函数`Stonewt(double)`将`pennyD`转换为`Stonewt`对象，而不能使用成员函数，因为这将会导致：
+
+    ```C++
+    total = pennyD.operator+(jennySt); // not meaningful
+    ```
+
+    而`pennyD`并不是`Stonewt`对象，也就无法调用只有类对象才能调用的成员函数。C++不会试图将`pennyD`转换为`Stonewt`对象。
+
+  根据以上案例可以得出，要将`double`量和`Stonewt`量相加，有两种方式，一种是使用上例中的方法，将运算符重载函数定义为友元函数，让`Stonewt(double)`构造函数将`double`类型的参数转换为`Stonewt`类型的参数：
+
+  ```C++
+  operator+(const Stonewt&, const Stonewt&)
+  ```
+
+  另一中方法是将加法运算符重载为一个显式使用`double`类型参数的函数：
+
+  ```C++
+  Stonewt operator+(double x); // member function
+  friend Stonewt operator+(double x, Stonewt& s);
+  ```
+
+  此时：
+  
+  ```C++
+  total = jennySt + kennyD; // Stonewt + double
+  ```
+  
+  将和成员函数`operator+(double x)`匹配，而：
+
+  ```C++
+  total = pennyD + jennySt; // double + Stonewt
+  ```
+  
+  将和友元函数`operator+(double x, Stonewt& s)`匹配。
+
+  第一种方法依赖于隐式转换，程序更加简短，定义的函数也更少。但是由于每次转换时都将调用转换构造函数，因此会增加时间和内存的开销。第二种方法通过增加一个显式的匹配类型的函数，增加了工作量，但是有更快的运行速度。
+
+  如果程序经常需要将两个类型相加，则重载加法更合适，如果只是偶尔使用，则依赖于自动转换更简单，同时为了保险起见，可以使用显式转换。
