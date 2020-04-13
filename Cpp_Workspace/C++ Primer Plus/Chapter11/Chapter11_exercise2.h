@@ -1,25 +1,20 @@
-// vector.h -- Vector class with <<, mode state
-#ifndef VECTOR_H_
-#define VECTOR_H_
+// 11.9.2 -- rewrite head file for Vector 11.13
+// use 11.15 (except the relying head file) to test the result which shoule be identical to the original
+#ifndef MODVECTOR_H_
+#define MODVECTOR_H_
 #include <iostream>
+
 namespace VECTOR
 {
     class Vector
     {
         public:
-            enum Mode {RECT, POL};
+            enum Mode{RECT, POL};
             // RECT for rectangular, POL for Polar modes
         private:
             double x; // horizontal value
             double y; // vertical value
-            double mag; // length of vector
-            double ang; // direction of vector in degrees
             Mode mode; // RECT or POL
-            // private methods for setting values
-            void set_mag();
-            void set_ang();
-            void set_x();
-            void set_y();
         public:
             Vector();
             Vector(double n1, double n2, Mode form = RECT);
@@ -33,14 +28,8 @@ namespace VECTOR
             {
                 return y;
             }
-            double magval() const // report magnitude
-            {
-                return mag;
-            }
-            double angval() const // report angle
-            {
-                return ang;
-            }
+            double magval() const; // report magnitude
+            double angval() const; // report angle
             void polar_mode(); // set mode to POL
             void rect_mode(); // set mode to RECT
             // operator overloading
@@ -49,7 +38,7 @@ namespace VECTOR
             Vector operator-() const;
             Vector operator*(double d) const;
             // friends
-            friend Vector operator*(double n, const Vector& a);
+            friend Vector operator*(double n , const Vector& a);
             friend std::ostream& operator<<(std::ostream& os, const Vector& v);
     };
 } // end namespace VECTOR
