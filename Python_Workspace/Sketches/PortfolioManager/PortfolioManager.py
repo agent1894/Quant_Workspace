@@ -6,7 +6,9 @@ import warnings
 from enum import Enum
 from collections import OrderedDict
 import datetime as dt
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import prettytable as pt
 
 warnings.filterwarnings("ignore")
@@ -110,7 +112,7 @@ class Portfolio(object):
             self._instrs.append(instrObj)
 
         self._check_percents()
-        self.display_instruments()
+        self._display_instruments()
 
     @property
     def stockPercent(self):
@@ -141,29 +143,34 @@ class Portfolio(object):
                 "The sum of bonds ({:.2%}) unequal to the given percent of bond ({:.2%}).".format(bondPercent,
                                                                                                   self._bondPercent))
 
-    def display_instruments(self):
+    def _display_instruments(self):
         tb = pt.PrettyTable()
         tb.field_names = ["InstrName", "InstrCode", "InstrType", "InstrPercent"]
         for instr in self._instrs:
             tb.add_row([instr.name, instr.code, instr.instrType, "{:.2%}".format(instr.percent)])
         print(tb)
 
-    def cal_pnl(self):
+    def cal_plain_pnl(self):
         for instr in self._instrs:
             self._df.loc[:, "{}_ret".format(instr.name)] = self._df.loc[:, "{}_nav".format(instr.name)] / \
                                                            self._df.iloc[0]["{}_nav".format(instr.name)] - 1.0
             self._df.loc[:, "{}_value".format(instr.name)] = instr.percent * self._initialBalance * (
                         self._df.loc[:, "{}_nav".format(instr.name)] / self._df.iloc[0]["{}_nav".format(instr.name)])
         valueColumns = [item for item in self._df.columns if item.endswith('value')]
-        returnColumns = [item for item in self._df.columns if item.endswith('ret')]
-        self._df.loc[:, "ValuePnL"] = self._df.loc[:, valueColumns].sum(axis=1)
-        self._df.loc[:, "retPnL"] = self._df.loc[:, returnColumns].sum(axis=1)
+        self._df.loc[:, "PnL"] = self._df.loc[:, valueColumns].sum(axis=1)
+        self._df.loc[:, "Ret"] = self._df.loc[:, "PnL"] / self._initialBalance - 1.0
 
     def adjust_percent(self, instr):
         pass
 
-    def plot(self):
-        pass
+    @staticmethod
+    def plot(series: pd.Series, begIndex: int = None, endIndex: int = None):
+        plt.plot(series[begIndex:endIndex])
 
-    def cal_drawdown(self):
-        pass
+    @staticmethod
+    def cal_max_drawdown(series: pd.Series):
+        """Reference: https://blog.csdn.net/tz_zs/article/details/80335238"""
+        endIndex = np.argmax(np.maximum.accumulate(series) - series)
+        begIndex = np.argmax(series[:endIndex])
+        maxDrawdown = series[begIndex] - series[endIndex]
+        return series, begIndex, endIndex, maxDrawdown
