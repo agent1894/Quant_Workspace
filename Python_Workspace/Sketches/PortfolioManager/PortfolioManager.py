@@ -98,6 +98,8 @@ class Portfolio(object):
         self._recoveryThreshold = 0.0
         self._recoveryThresholdInterval = 0
         self.__encoding = "utf-8"
+
+        # Read .csv files from Wind and keep the instruments and fields.
         try:
             with open(csv_path, encoding=self.__encoding) as f:
                 instr = f.readlines()[:2]
@@ -109,11 +111,8 @@ class Portfolio(object):
         instr = [item.split(',,,') for item in instr]
 
         orderedInstrs = OrderedDict(zip(instr[0], instr[1]))  # only for dataframe headers
-        print("*" * 10 + "Check the instrument codes: " + "*" * 10)
-        for key in orderedInstrs.keys():
-            print("Code for instrument {} is {}".format(key, orderedInstrs[key]))
-        print("*" * 48)
 
+        # Basic manipulation of compusory data.
         self._df = pd.read_csv(csv_path, encoding=self.__encoding, header=3)
         self._df.dropna(inplace=True, axis=1)
         self._numOfFields = self._df.shape[1] // 2
@@ -133,6 +132,9 @@ class Portfolio(object):
             instrObj.instrType = tempType  # InstrType[tempType]
             self._instrs.append(instrObj)
 
+        self.set_percent()
+        self.set_parameters()
+
     def set_percent(self) -> None:
         self._stockPercent = float(input("Enter the percent of stocks: "))
         assert (0.0 <= self._stockPercent <= 1.0)
@@ -143,11 +145,13 @@ class Portfolio(object):
         self._check_percents()
         self._display_instruments()
 
-    # TODO: add methods for defining thresholds
     def set_parameters(self) -> None:
         self._alarmThreshold = float(input("Enter the alarm threshold: "))
+        assert (0.0 <= self._alarmThreshold <= 1.0)
         self._recoveryThreshold = float(input("Enter the recovery threshold: "))
+        assert (0.0 <= self._recoveryThreshold <= 1.0)
         self._recoveryThresholdInterval = int(input("Enter the recovery threshold interval: "))
+        assert (isinstance(self._recoveryThresholdInterval, int))
         self._display_parameters()
 
     @property
@@ -232,19 +236,33 @@ class Portfolio(object):
         print(tb)
 
     @staticmethod
-    def plot(series: pd.Series, begIndex: int = None, endIndex: int = None) -> None:
+    def plot(series: pd.Series, begIndex: dt.datetime = None, endIndex: dt.datetime = None) -> None:
         plt.plot(series[begIndex:endIndex])
 
     @staticmethod
     def cal_max_drawdown(series: pd.Series) -> (dt.datetime, dt.datetime, float):
-        """Reference: https://blog.csdn.net/tz_zs/article/details/80335238"""
+        """Calculate max drawdown in given pd.Series.
+
+        A static method.
+        Calcluate max drawdown in the whole time series, to evaluate the performance of the portfolio.
+        Reference: https://blog.csdn.net/tz_zs/article/details/80335238
+
+        Args:
+            series: pd.Series which index is dt.datetime
+
+        Returns:
+            begIndex: the start index of the drawdown
+            endIndex: the end index of the drawdown
+            maxDrawdown: the calculation of the max drawdown
+        """
         endIndex = np.argmax(np.maximum.accumulate(series) - series)
         begIndex = np.argmax(series[:endIndex])
         maxDrawdown = series[begIndex] - series[endIndex]
         return begIndex, endIndex, maxDrawdown
 
-    def _alarm_drawdown_index(self, series: pd.Series) -> dt.datetime:
-        index = series[(np.maximum.accumulate(series) - series) >= self._alarmThreshold].index[0]
+    def alarm_drawdown_index(self, series: pd.Series, idx: dt.datetime = None) -> dt.datetime:
+        temp = series.loc[idx:]
+        index = temp[(np.maximum.accumulate(temp) - temp) >= self._alarmThreshold].index[0]
         return index
 
     def update_pnl(self, idx: dt.datetime = None) -> (pd.Series, pd.Series):
@@ -269,9 +287,58 @@ class Portfolio(object):
         self._df.loc[:, "TotRet"] = self._df.loc[:, "PnL"] / self._initialBalance - 1.0
         return deepcopy(self._df.PnL), deepcopy(self._df.TotRet)
 
-    def _recovery_index(self, series: pd.Series) -> dt.datetime:
-        pass
+    def recovery_index(self, series: pd.Series, idx: dt.datetime) -> dt.datetime:
+        temp = series.loc[idx:]
+        index = temp[(temp > temp.iloc[0] + self._recoveryThreshold)
+                     & (temp.index >= idx + dt.timedelta(days=self._recoveryThresholdInterval))].index[0]
+        return index
 
 
 if __name__ == "__main__":
-    pass
+    # TODO: just demo, still need to pack and make sure it satistifies as many scenarios as possible.
+    obj = Portfolio('./RawData_Wind.csv')
+    pnl, ret = obj.update_pnl()
+    obj.plot(pnl)
+    begIndexOrigin, endIndexOrigin, maxDrawdownOrigin = obj.cal_max_drawdown(ret)
+    print("Max Drawdown: {}".format(maxDrawdownOrigin))
+    obj.plot(pnl, begIndexOrigin, endIndexOrigin)
+    simulation = bool(int(input("Simulation? (1 for Yes, 0 for No): ")))
+    restartIndex = None
+    idx = obj.alarm_drawdown_index(ret, restartIndex)
+    print("Enter the new percentage after cutting down the stocks: ")
+    obj.set_percent()
+    pnl, ret = obj.update_pnl(idx)
+    obj.plot(pnl)
+    begIndexOrigin, endIndexOrigin, maxDrawdownOrigin = obj.cal_max_drawdown(ret)
+    print("Max Drawdown: {}".format(maxDrawdownOrigin))
+    obj.plot(pnl, begIndexOrigin, endIndexOrigin)
+    idx = obj.recovery_index(ret, idx)
+    print("Enter the new percentage after recoverying up the stocks: ")
+    obj.set_percent()
+    pnl, ret = obj.update_pnl(idx)
+    obj.plot(pnl)
+    begIndexOrigin, endIndexOrigin, maxDrawdownOrigin = obj.cal_max_drawdown(ret)
+    print("Max Drawdown: {}".format(maxDrawdownOrigin))
+    obj.plot(pnl, begIndexOrigin, endIndexOrigin)
+    # while simulation:
+    #     try:
+    #         idx = obj.alarm_drawdown_index(ret, restartIndex)
+    #         print("Enter the new percentage after cutting down the stocks: ")
+    #         obj.set_percent()
+    #         pnl, ret = obj.update_pnl(idx)
+    #         obj.plot(pnl)
+    #         begIndexOrigin, endIndexOrigin, maxDrawdownOrigin = obj.cal_max_drawdown(ret)
+    #         print("Max Drawdown: {}".format(maxDrawdownOrigin))
+    #         obj.plot(pnl, begIndexOrigin, endIndexOrigin)
+    #         idx = obj.recovery_index(ret, idx)
+    #         print("Enter the new percentage after recoverying up the stocks: ")
+    #         obj.set_percent()
+    #         pnl, ret = obj.update_pnl(idx)
+    #         obj.plot(pnl)
+    #         begIndexOrigin, endIndexOrigin, maxDrawdownOrigin = obj.cal_max_drawdown(ret)
+    #         print("Max Drawdown: {}".format(maxDrawdownOrigin))
+    #         obj.plot(pnl, begIndexOrigin, endIndexOrigin)
+    #     except IndexError:
+    #         print("Simulation ended.")
+    #         break
+    plt.show()
