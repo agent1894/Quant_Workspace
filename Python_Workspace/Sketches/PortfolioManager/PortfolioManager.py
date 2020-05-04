@@ -10,6 +10,7 @@ In future, this project should be compatible with Wind API.
 """
 
 from math import isclose
+from copy import deepcopy
 import warnings
 from enum import Enum
 from collections import OrderedDict
@@ -132,7 +133,7 @@ class Portfolio(object):
             instrObj.instrType = tempType  # InstrType[tempType]
             self._instrs.append(instrObj)
 
-    def set_percent(self):
+    def set_percent(self) -> None:
         self._stockPercent = float(input("Enter the percent of stocks: "))
         assert (0.0 <= self._stockPercent <= 1.0)
         self._bondPercent = 1.0 - self._stockPercent
@@ -143,8 +144,11 @@ class Portfolio(object):
         self._display_instruments()
 
     # TODO: add methods for defining thresholds
-    def set_parameters(self):
-        pass
+    def set_parameters(self) -> None:
+        self._alarmThreshold = float(input("Enter the alarm threshold: "))
+        self._recoveryThreshold = float(input("Enter the recovery threshold: "))
+        self._recoveryThresholdInterval = int(input("Enter the recovery threshold interval: "))
+        self._display_parameters()
 
     @property
     def stockPercent(self):
@@ -194,7 +198,7 @@ class Portfolio(object):
     def recoveryThresholdInterval(self, value: int):
         self._recoveryThresholdInterval = value
 
-    def _check_percents(self):
+    def _check_percents(self) -> None:
         stockPercent = 0.0
         bondPercent = 0.0
         for instr in self._instrs:
@@ -209,14 +213,14 @@ class Portfolio(object):
             raise ValueError("The sum of bonds ({:.2%}) unequal to the given percent of bond ({:.2%}).".format(
                 bondPercent, self._bondPercent))
 
-    def _display_instruments(self):
+    def _display_instruments(self) -> None:
         tb = pt.PrettyTable()
         tb.field_names = ["InstrName", "InstrCode", "InstrType", "InstrPercent"]
         for instr in self._instrs:
             tb.add_row([instr.name, instr.code, instr.instrType, "{:.2%}".format(instr.percent)])
         print(tb)
 
-    def _display_parameters(self):
+    def _display_parameters(self) -> None:
         tb = pt.PrettyTable()
         tb.field_names = ["Parameter", "Value"]
         tb.add_row(["Stock Percent", "{:.2%}".format(self._stockPercent)])
@@ -228,7 +232,7 @@ class Portfolio(object):
         print(tb)
 
     @staticmethod
-    def plot(series: pd.Series, begIndex: int = None, endIndex: int = None):
+    def plot(series: pd.Series, begIndex: int = None, endIndex: int = None) -> None:
         plt.plot(series[begIndex:endIndex])
 
     @staticmethod
@@ -243,7 +247,7 @@ class Portfolio(object):
         index = series[(np.maximum.accumulate(series) - series) >= self._alarmThreshold].index[0]
         return index
 
-    def update_pnl(self, idx: dt.datetime = None) -> pd.DataFrame:
+    def update_pnl(self, idx: dt.datetime = None) -> (pd.Series, pd.Series):
         if idx is None:
             balance = self._initialBalance
             for instr in self._instrs:
@@ -251,22 +255,22 @@ class Portfolio(object):
                                                             self._df.iloc[0]["{}_nav".format(instr.name)] - 1.0
                 self._df.loc[:, "{}_value".format(instr.name)] = balance * instr.percent * (
                     self._df.loc[:, "{}_ret".format(instr.name)] + 1.0)
-                # (
-                #     df.loc[:, "{}_nav".format(instr.name)] / df.iloc[0]["{}_nav".format(instr.name)])
         else:
             prevIdx = self._df.index[np.argwhere(self._df.index == idx) - 1][0]
-            balance = self._df.loc[prevIdx, "PnL"].sum()
+            balance = self._df.loc[prevIdx, "PnL"].values[
+                0]  # Note: without .values[0], it will return a pd.Series and cause error
             for instr in self._instrs:
                 self._df.loc[idx:, "{}_ret".format(instr.name)] = self._df.loc[
                     idx:, "{}_nav".format(instr.name)] / self._df.loc[idx]["{}_nav".format(instr.name)] - 1.0
                 self._df.loc[idx:, "{}_value".format(instr.name)] = balance * instr.percent * (
-                    self._df.loc[:, "{}_ret".format(instr.name)] + 1.0)
-                # = balance * instr.percent * (
-                #     df.loc[:, "{}_nav".format(instr.name)] / df.iloc[0]["{}_nav".format(instr.name)])
+                    self._df.loc[idx:, "{}_ret".format(instr.name)] + 1.0)
         self._df.loc[:, "PnL"] = self._df.loc[:,
                                               [item for item in self._df.columns if item.endswith('value')]].sum(axis=1)
         self._df.loc[:, "TotRet"] = self._df.loc[:, "PnL"] / self._initialBalance - 1.0
-        return self._df.PnL, self._df.TotRet
+        return deepcopy(self._df.PnL), deepcopy(self._df.TotRet)
+
+    def _recovery_index(self, series: pd.Series) -> dt.datetime:
+        pass
 
 
 if __name__ == "__main__":
