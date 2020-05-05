@@ -40,20 +40,21 @@ class InstrType(Enum):
 
 
 class Instrument(object):
-    """Define instrument class for portfolio
-
-    When the portfolio has to change the positions of the instruments in it,
-    giving these instruments an abstract class may improved the performance.
-
-    Attributes:
-        name (Chinese): string, for users output and display.
-        code: string, which corresponds to the instrument, usually for double check.
-        instrType: InstrType, most of the time, the portfolio is constructed from some stocks and bonds funds.
-            this attribute can help check the corresponding type.
-        percnet: float, define the percentage of the instrument in the portfolio.
-    """
     def __init__(self, name: str, code: str, instrType=InstrType.Stock, percent: float = 0.0):
-        """The default constructor for Instrument gives the Stock type and 0% percent."""
+        """Define instrument class for portfolio.
+        When the portfolio has to change the positions of the instruments in it,
+        giving these instruments an abstract class may improved the performance.
+        The default constructor for Instrument gives the Stock type and 0% percent.
+
+        :param name: Chinese, for users output and display.
+        :type name: str
+        :param code: which corresponds to the instrument, usually for double check.
+        :type code: str
+        :param instrType: InstrType, most of the time, the portfolio is constructed from some stocks and bonds funds.
+        :type instrType: InstrType
+        :param percent: define the percentage of the instrument in the portfolio.
+        :type percent: float
+        """
         self.__name = name
         self.__code = code
         self.__type = instrType
@@ -89,6 +90,11 @@ class Instrument(object):
 
 class Portfolio(object):
     def __init__(self, csv_path: str):
+        """
+
+        :param csv_path:
+        :type csv_path:
+        """
         self.__path = csv_path
         self._stockPercent = 0.0
         self._bondPercent = 0.0
@@ -112,7 +118,7 @@ class Portfolio(object):
 
         orderedInstrs = OrderedDict(zip(instr[0], instr[1]))  # only for dataframe headers
 
-        # Basic manipulation of compusory data.
+        # Basic manipulation of compulsory data.
         self._df = pd.read_csv(csv_path, encoding=self.__encoding, header=3)
         self._df.dropna(inplace=True, axis=1)
         self._numOfFields = self._df.shape[1] // 2
@@ -244,7 +250,7 @@ class Portfolio(object):
         """Calculate max drawdown in given pd.Series.
 
         A static method.
-        Calcluate max drawdown in the whole time series, to evaluate the performance of the portfolio.
+        Calculate max drawdown in the whole time series, to evaluate the performance of the portfolio.
         Reference: https://blog.csdn.net/tz_zs/article/details/80335238
 
         Args:
@@ -295,7 +301,7 @@ class Portfolio(object):
 
 
 if __name__ == "__main__":
-    # TODO: just demo, still need to pack and make sure it satistifies as many scenarios as possible.
+    # TODO: just demo, still need to pack and make sure it satisfies as many scenarios as possible.
     obj = Portfolio('./RawData_Wind.csv')
     pnl, ret = obj.update_pnl()
     obj.plot(pnl)
@@ -313,7 +319,7 @@ if __name__ == "__main__":
     print("Max Drawdown: {}".format(maxDrawdownOrigin))
     obj.plot(pnl, begIndexOrigin, endIndexOrigin)
     idx = obj.recovery_index(ret, idx)
-    print("Enter the new percentage after recoverying up the stocks: ")
+    print("Enter the new percentage after recovering up the stocks: ")
     obj.set_percent()
     pnl, ret = obj.update_pnl(idx)
     obj.plot(pnl)
@@ -331,7 +337,7 @@ if __name__ == "__main__":
     #         print("Max Drawdown: {}".format(maxDrawdownOrigin))
     #         obj.plot(pnl, begIndexOrigin, endIndexOrigin)
     #         idx = obj.recovery_index(ret, idx)
-    #         print("Enter the new percentage after recoverying up the stocks: ")
+    #         print("Enter the new percentage after recovering up the stocks: ")
     #         obj.set_percent()
     #         pnl, ret = obj.update_pnl(idx)
     #         obj.plot(pnl)
