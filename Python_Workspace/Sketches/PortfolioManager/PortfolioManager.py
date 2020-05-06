@@ -474,7 +474,8 @@ if __name__ == "__main__":
                 obj.set_percent()
                 pnl, ret = obj.update_pnl(restartIndex)
                 table.add_row(
-                    [restartIndex.strftime("%Y-%m-%d"), "{:.2%}".format(obj.stockPercent), "{:.2%}".format(obj.bondPercent),
+                    [restartIndex.strftime("%Y-%m-%d"), "{:.2%}".format(obj.stockPercent),
+                     "{:.2%}".format(obj.bondPercent),
                      "Reach alarm drawdown threshold. The drawdown rate is {:.2%}".format(drawdown)])
             else:
                 break
@@ -485,7 +486,8 @@ if __name__ == "__main__":
                 obj.set_percent()
                 pnl, ret = obj.update_pnl(restartIndex)
                 table.add_row(
-                    [restartIndex.strftime("%Y-%m-%d"), "{:.2%}".format(obj.stockPercent), "{:.2%}".format(obj.bondPercent),
+                    [restartIndex.strftime("%Y-%m-%d"), "{:.2%}".format(obj.stockPercent),
+                     "{:.2%}".format(obj.bondPercent),
                      "Reach recovery threshold. The recovery rate is {:.2%}".format(recovery)])
             else:
                 break
@@ -493,10 +495,10 @@ if __name__ == "__main__":
         begIndexFinal, endIndexFinal, maxDrawdownFinal = obj.cal_max_drawdown(ret)
         obj.plot(pnl, begIndexFinal, endIndexFinal, "Updated Drawdown")
         plt.annotate("Drawdown starts", xy=(begIndexFinal, pnl[begIndexFinal]),
-                     xytext=(begIndexFinal, pnl[begIndexFinal] + 200000.0),
+                     xytext=(begIndexFinal + dt.timedelta(days=30), pnl[begIndexFinal] + 200000.0),
                      arrowprops=dict(arrowstyle='->'))
         plt.annotate("Drawdown ends", xy=(endIndexFinal, pnl[endIndexFinal]),
-                     xytext=(endIndexFinal - 100.0, pnl[endIndexFinal] - 200000.0),
+                     xytext=(endIndexFinal - dt.timedelta(days=30), pnl[endIndexFinal] - 200000.0),
                      arrowprops=dict(arrowstyle='->'))
         print("*" * 50, "Final Result", "*" * 50)
         print("Naive Portfolio Max Drawdown: {:.2%}".format(maxDrawdownOrigin))
