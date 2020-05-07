@@ -23,6 +23,7 @@
 **/*.hdf5
 **/*.npy
 **/*.npz
+ReadingNotes/*.html
 !**/.vscode/*
 !.gitignore
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
