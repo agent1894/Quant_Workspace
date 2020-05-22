@@ -45,7 +45,7 @@ class TimeConvert(object):
     '''
     def __init__(self):
         self.__morningStart = dt.datetime.strptime("093000.001", "%H%M%S.%f")
-        self.__afternoonStart = dt.datetime.strptime("130000.001", "%H%M%S.%f")
+        self.__afternoonStart = dt.datetime.strptime("130000.000", "%H%M%S.%f")
 
     def time_to_tk(self, time):
         '''
