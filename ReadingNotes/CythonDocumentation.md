@@ -26,26 +26,6 @@
     - [Working with Python arrays](#working-with-python-arrays)
     - [Further reading](#further-reading)
     - [Related work](#related-work)
-  - [Users Guide](#users-guide)
-    - [Language Basics](#language-basics)
-    - [Extension Types](#extension-types)
-    - [Special Methods of Extension Types](#special-methods-of-extension-types)
-    - [Sharing Declarations Between Cython Modules](#sharing-declarations-between-cython-modules)
-    - [Interfacing with External C Code](#interfacing-with-external-c-code)
-    - [Source Files and Compilation](#source-files-and-compilation)
-    - [Early Binding for Speed](#early-binding-for-speed)
-    - [Using C++ in Cython](#using-c-in-cython)
-    - [Fused Types (Templates)](#fused-types-templates)
-    - [Porting Cython code to PyPy](#porting-cython-code-to-pypy)
-    - [Migrating from Cython 0.29 to 3.0](#migrating-from-cython-029-to-30)
-    - [Limitations](#limitations)
-    - [Differences between Cython and Pyrex](#differences-between-cython-and-pyrex)
-    - [Typed Memoryviews](#typed-memoryviews)
-    - [Implementing the buffer protocol](#implementing-the-buffer-protocol)
-    - [Using Parallelism](#using-parallelism)
-    - [Debugging your Cython program](#debugging-your-cython-program)
-    - [Cython for NumPy users](#cython-for-numpy-users)
-    - [Pythran as a NumPy backend](#pythran-as-a-numpy-backend)
 
 ## Getting Started
 
@@ -492,6 +472,200 @@ Time costs: 4296 us
 
 ### Calling C functions
 
+Cython同样可以很简单的调用C标准库的函数，只需要使用`from libc.stdlib cimport`即可，这种方式同样可以导入C++标准库。
+
+同时，Cython也提供了C数学库的声明，可以直接调用：
+
+```Python
+from libc.math cimport sin
+
+cdef double f(double x):
+    return sin(x * x)
+```
+
+在某些环境下，`libc.math`可能没有创建动态链接，因此需要配置动态库。同时，对于一些没有默认提供声明的C/C++代码，需要自行声明。在这里文档讲述的比较模糊，查找资料后详细分析如下：
+
+首先，需要对静态库和动态库有一个基本的理解，静态库的台吗在编译过程中被直接载入可执行文件，因此速度快，体积大；动态库则在可执行文件运行时才被载入，在编译过程中仅作为引用，因此体积小，速度慢。
+
+先试着使用C++写一个简单的函数：
+
+```C++
+// Filename: userFunc.h
+double addSquare(double x, double y);
+void sayHello();
+void sayBye();
+
+// Filename: userFunc.cpp
+#include <iostream>
+#include "userFunc.h"
+
+double addSquare(double x, double y)
+{
+    return x * x + y * y;
+}
+
+void sayHello()
+{
+    std::cout << "Hello World!" << std::endl;
+}
+
+void sayBye()
+{
+    std::cout << "Bye!" << std::endl;
+}
+// Filename: main.cpp
+#include "userFunc.h"
+#include <iostream>
+
+int main()
+{
+    sayHello();
+    double x, y;
+    std::cout << "Enter x: ";
+    std::cin >> x;
+    std::cout << "Enter y: ";
+    std::cin >> y;
+    double result = addSquare(x, y);
+    std::cout << "The sum of x^2 and y^2 is: " << result << std::endl;
+    sayBye();
+
+    return 0;
+}
+```
+
+这个程序当然可以简单的直接编译链接并生成可执行文件：
+
+```Bash
+$ g++ userFunc.cpp main.cpp -o main_simple.bin
+$ ./main_simple.bin
+Hello World!
+Enter x: 2
+Enter y: 5
+The sum of x^2 and y^2 is: 29
+Bye!
+$ rm main_simple.bin
+```
+
+但是如果需要将源码生成动态链接，则不能这样操作，而应该先进行单独编译：
+
+```Bash
+g++ -fPIC -shared userFunc.cpp -o libuserFunc.so
+```
+
+在这里，`-fPIC`表示生成与位置无关代码，`-shared`表示制作动态库，如果不加上则无法进行链接。所谓与位置无关的代码（PIC: Position Independent Code）是指产生的代码不包含对函数和变量具体内存位置的引用，因为编译动态库的当下是不知道使用这段代码的程序会将其链接至哪一段内存空间。
+
+需要注意的是，无论动态库还是静态库，都有命名规范，即以`lib`为前缀，紧接库名，如果是静态库则扩展名为`.a`，如果是动态库则扩展名为`.so`。
+
+创建完成动态库后，就可以链接动态库并生成可执行文件：
+
+```Bash
+$ g++ main.cpp -L . -I . -l userFunc -o execute.bin
+$ ./execute.bin
+./execute.bin: error while loading shared libraries: libuserFunc.so: cannot open shared object file: No such file or directory
+```
+
+链接时，`-L`指出动态库的路径，`-L .`即说明动态库路径可能在当前目录下，`-I`指出头文件的路径，同样`-I .`说明头文件路径可能在当前目录下，`-l`指出动态库名称，注意需要去掉前缀的`lib`和扩展名`.so`。
+
+当成功生成可执行文件`execute.bin`后，运行时发现报错，显示并没有这个库。此时可以使用`ldd`命令查看某个可执行文件所链接的动态库：
+
+```Bash
+$ ldd execute.bin
+linux-vdso.so.1 (0x00007ffffeeb9000)
+libuserFunc.so => not found
+libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007fc8206b0000)
+libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fc8204b0000)
+libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fc820361000)
+/lib64/ld-linux-x86-64.so.2 (0x00007fc8208b5000)
+libgcc_s.so.1 => /lib/x86_64-linux-gnu/libgcc_s.so.1 (0x00007fc820340000)
+```
+
+发现确实是`libuserFunc.so`这个库没有找到。导致这个问题的原因在于，程序在执行时，会查找需要的动态库文件，如果找到则载入动态库，否则报错。系统内动态库默认搜索路径为`/usr/lib/`和`/lib`，显然，最简单的方式是将刚刚生成的动态库移动到该目录下。但是由于这个操作需要`sudo`权限且风险较大，因此不推荐使用这种方式。
+
+除此以外，编译器会查找环境变量`LD_LIBRARY_PATH`所指定的目录，因此，将当前路径加入这个环境变量即可解决这个问题：
+
+```Bash
+export LD_LIBRARY_PATH=$(pwd)
+```
+
+这种方法只在当前终端下有效，如果希望永久有效，将其写入`.bashrc`中。
+
+另一种方式是将`.so`文件的绝对路径追加如`/etc/ld.so.conf`文件中并使用`sudo ldconfig -v`更新，但是同样需要`sudo`权限。
+
+最后一种方式是直接在编译时指定所需要的查找路径，在编译时加入参数`-Wl,-rpath=.`即可完成这个任务，同时不需要修改环境变量：
+
+```Bash
+$ g++ main.cpp -L . -I . -l userFunc -Wl,-rpath=. -o execute.bin
+$ ./execute.bin
+Hello World!
+Enter x: 2
+Enter y: 3
+The sum of x^2 and y^2 is: 13
+Bye!
+```
+
+需要特别注意的是，`-Wl,-rpath=.`中间没有空格，后面没有`,`，如果不小心加入逗号，会出现`/usr/bin/ld: cannot find : No such file or directory`报错。
+
+理解了以上的内容之后，便可以使用Cython编译自己的C/C++程序：
+
+```Python
+# Filename: user.pyx
+# distutils:language = c++
+
+cdef extern from "userFunc.h":
+    cpdef double addSquare(double x, double y)
+```
+
+`setup.up`相当于`makefile`，指导Cython的编译过程，因此内容为：
+
+```Python
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
+
+ext_modules = [
+    Extension(
+        name='generate',
+        sources=['user.pyx'],
+        include_dirs=['.'],  # gcc -I
+        library_dirs=['.'],  # gcc -L
+        libraries=['userFunc'],  # gcc -l
+        language='c++',
+        extra_link_args=['-Wl,-rpath=.'])
+]
+
+setup(ext_modules=cythonize(ext_modules))
+```
+
+如注释所说，`include_dirs`相当于编译时的`-I`，`library_dirs`相当于编译时的`-L`，`libraries`相当于编译时的`-l`。这里需要特别注意的是，指定动态库查找路径的参数并不是`extra_compile_args`而是**`extra_link_args`**。
+
+因为`.pyx`脚本中使用了`cpdef`关键字，因此运行后得到的`.so`文件就可以在Python中正常使用：
+
+```Python
+>>> import generate
+>>> generate.addSquare(2, 5)
+29.0
+```
+
+回过来看到文档中提到的对于数学库的动态链接，此时可以明白，由于数学库的动态库名称为`libm.so`，因此当没有支持链接时，需要加入`libraries=["m"]`参数进行编译，否则会出现无法找到动态库的错误。
+
+参考资料：
+
+> Linux基础——gcc编译、静态库与动态库（共享库）[CSDN](https://blog.csdn.net/daidaihema/article/details/80902012)
+>
+> Linux下gcc生成和使用静态库和动态库详解[CSDN](https://blog.csdn.net/CSqingchen/article/details/51546784)
+>
+> Linux共享库和动态链接[CSDN](https://blog.csdn.net/zd845101500/article/details/95891335)
+>
+> cython的使用[CSDN](https://blog.csdn.net/daniel_ustc/article/details/77622895)
+>
+> Cython 基本用法[知乎](https://zhuanlan.zhihu.com/p/24311879?utm_medium=social&utm_source=wechat_session&from=singlemessage&isappinstalled=1)
+>
+> I don't understand -Wl,-rpath -Wl, [StackOverflow](https://stackoverflow.com/questions/6562403/i-dont-understand-wl-rpath-wl)
+>
+> /usr/bin/ld: cannot find : No such file or directory [StackOverflow](https://stackoverflow.com/questions/20616961/usr-bin-ld-cannot-find-no-such-file-or-directory)
+>
+> Linux动态库(.so)搜索路径[cnblogs](http://www.cnitblog.com/windone0109/archive/2008/04/23/42653.html#2108)
+
 ### Using C libraries
 
 ### Extension types (aka. cdef classes)
@@ -517,43 +691,3 @@ Time costs: 4296 us
 ### Further reading
 
 ### Related work
-
-## Users Guide
-
-### Language Basics
-
-### Extension Types
-
-### Special Methods of Extension Types
-
-### Sharing Declarations Between Cython Modules
-
-### Interfacing with External C Code
-
-### Source Files and Compilation
-
-### Early Binding for Speed
-
-### Using C++ in Cython
-
-### Fused Types (Templates)
-
-### Porting Cython code to PyPy
-
-### Migrating from Cython 0.29 to 3.0
-
-### Limitations
-
-### Differences between Cython and Pyrex
-
-### Typed Memoryviews
-
-### Implementing the buffer protocol
-
-### Using Parallelism
-
-### Debugging your Cython program
-
-### Cython for NumPy users
-
-### Pythran as a NumPy backend
