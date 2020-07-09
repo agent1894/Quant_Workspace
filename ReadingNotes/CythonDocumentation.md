@@ -485,7 +485,7 @@ cdef double f(double x):
 
 在某些环境下，`libc.math`可能没有创建动态链接，因此需要配置动态库。同时，对于一些没有默认提供声明的C/C++代码，需要自行声明。在这里文档讲述的比较模糊，查找资料后详细分析如下：
 
-首先，需要对静态库和动态库有一个基本的理解，静态库的台吗在编译过程中被直接载入可执行文件，因此速度快，体积大；动态库则在可执行文件运行时才被载入，在编译过程中仅作为引用，因此体积小，速度慢。
+首先，需要对静态库和动态库有一个基本的理解，静态库的代码在编译过程中被直接载入可执行文件，因此速度快，体积大；动态库则在可执行文件运行时才被载入，在编译过程中仅作为引用，因此体积小，速度慢。
 
 先试着使用C++写一个简单的函数：
 
@@ -667,6 +667,60 @@ setup(ext_modules=cythonize(ext_modules))
 > Linux动态库(.so)搜索路径[cnblogs](http://www.cnitblog.com/windone0109/archive/2008/04/23/42653.html#2108)
 
 ### Using C libraries
+
+除了编写代码更快以外，Cython的一个主要功能就是在Python中调用外部C库。因为Cython会将代码编译为C，因此直接调用C函数非常方便。文档中举出一个案例，需要在一个FIFO的队列中存储整型数值，因为要考虑内存问题同时这个数值来自于C，因此无法在Python列表或队列中存储`int`类型，所以需要考虑C的队列实现。
+
+在CAlg(C-algorithms)库中有相应实现，可以将其封装在Python扩展类型中。
+
+首先确定队列的C实现API，在头文件`c-algorithms/src/queue.h`中可以看到其定义：
+
+```C
+/* queue.h */
+
+typedef struct _Queue Queue;
+typedef void *QueueValue;
+
+Queue *queue_new(void);
+void queue_free(Queue *queue);
+
+int queue_push_head(Queue *queue, QueueValue data);
+QueueValue queue_pop_head(Queue *queue);
+QueueValue queue_peek_head(Queue *queue);
+
+int queue_push_tail(Queue *queue, QueueValue data);
+QueueValue queue_pop_tail(Queue *queue);
+QueueValue queue_peek_tail(Queue *queue);
+
+int queue_is_empty(Queue *queue);
+```
+
+要在Cython中使用，首先要创建`.pxd`文件并对C API重新定义。例如创建`cqueue.pxd`：
+
+```Python
+# cqueue.pxd
+
+cdef extern from "c-algorithms/src/queue.h":
+    ctypedef struct Queue:
+        pass
+    ctypedef void* QueueValue
+
+    Queue* queue_new()
+    void queue_free(Queue* queue)
+
+    int queue_push_head(Queue* queue, QueueValue data)
+    QueueValue  queue_pop_head(Queue* queue)
+    QueueValue queue_peek_head(Queue* queue)
+
+    int queue_push_tail(Queue* queue, QueueValue data)
+    QueueValue queue_pop_tail(Queue* queue)
+    QueueValue queue_peek_tail(Queue* queue)
+
+    bint queue_is_empty(Queue* queue)
+```
+
+可以看见，`.pxd`中的声明和`.h`头文件中的声明基本是一致的，同时，也不需要提供所有头文件中的声明，只要声明代码中需要的即可。
+
+在上述声明中需要注意的是第一行中结构体`Queue`的声明。
 
 ### Extension types (aka. cdef classes)
 
