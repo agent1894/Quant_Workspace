@@ -720,7 +720,15 @@ cdef extern from "c-algorithms/src/queue.h":
 
 可以看见，`.pxd`中的声明和`.h`头文件中的声明基本是一致的，同时，也不需要提供所有头文件中的声明，只要声明代码中需要的即可。
 
-在上述声明中需要注意的是第一行中结构体`Queue`的声明。
+在上述声明中需要注意的是第一行中结构体`Queue`的声明。在头文件`.h`中，`Queue`结构体是一个不透明句柄，即使用了`typedef`将实现放在`.c`源文件中，从而将结构体的实现细节进行隐藏，只有被调用的库知道具体实现。由于在Cython中的代码不需要知道结构体的内容，因此不需要对其进行声明，只需要使用一个空的定义即可。
+
+`cdef struct Queue: pass`和`ctypedef struct Queue: pass`存在细微差别。前者在C中被因为用`struct Queue`，后者在C中被引用为`Queue`，通常后者更为常用。
+
+另一个例外是最后一行。`queue_is_empty()`函数返回的是一个C的布尔值以表示队列是否为空。这个类型在Cython中最好使用`bint`类型表示，这在C中使用的是普通的`int`类型，但是在转换Python对象时会将其对应为Python的布尔值`True/False`。
+
+对于每一个使用的库，都应该对应定义一个`.pxd`文件，甚至如果API很大的情况下，每个头文件都要对应一个`.pxd`文件。
+
+如果需要使用C标准库中的文件，或直接从CPython中调用C-API函数，对于这类常见的需求，Cython附带了一组标准的`.pxd`文件。主要的包为`cpython`，`libc`和`libcpp`。NumPy还提供了一个`.pxd`文件`numpy`。
 
 ### Extension types (aka. cdef classes)
 
