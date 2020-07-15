@@ -730,6 +730,24 @@ cdef extern from "c-algorithms/src/queue.h":
 
 如果需要使用C标准库中的文件，或直接从CPython中调用C-API函数，对于这类常见的需求，Cython附带了一组标准的`.pxd`文件。主要的包为`cpython`，`libc`和`libcpp`。NumPy还提供了一个`.pxd`文件`numpy`。
 
+在声明了C库的API之后，就需要在`.pyx`中实现对`Queue`类的包装。需要格外注意的是，`.pyx`文件的名称必须与声明C库API的`.pxd`文件不同，在上文中，是`cqueue.pxd`，因此这里文件为`queue.pyx`。因为和`.pyx`同名的`.pxd`文件（通常自动生成）定义了对`.pyx`文件中声明，而`cqueue.pxd`则是包含了对C库的声明，因此必须使用不同的文件名。
+
+对于`Queue`类的声明开始为：
+
+```Python
+# queue.pyx
+
+cimport cqueue
+
+cdef class Queue:
+    cdef cqueue.Queue* _c_queue
+
+    def __cinit__(self):
+        self._c_queue = cqueue.queue_new()
+```
+
+注意这里使用的是`__cinit__(self)`而不是常见的`__init__(self)`。`__init__`是可以使用的，但是有时候`__init__`并不会得到调用，例如在创建子类时没有调用父类的构造函数。但是，如果不初始化C指针会导致Python解释器的崩溃，为了解决这个问题，Cython提供的`__cinit__`会始终在构造实例时调用，甚至早于调用`__init__`，这样可以保证在新的实例初始化`cdef`字段。但是，由于`__cinit__`在对象创建时调用，此时`self`还没有完成创建，因此必须避免任何对`self`的操作，而应该对`cdef`定义的字段进行赋值。
+
 ### Extension types (aka. cdef classes)
 
 ### pxd files
