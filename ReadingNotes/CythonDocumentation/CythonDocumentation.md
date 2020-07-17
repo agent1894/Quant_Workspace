@@ -304,146 +304,7 @@ def primes(unsigned int nb_primes):
     return p
 ```
 
-基于示例，尝试自己写了Python, Cython(C++)和C++的实现如下：
-
-```Python
-# Filename: prime.py
-def primes_1(num):
-    i = 2
-    lst = []
-    while len(lst) < num:
-        if 2 > i // 2 + 1:
-            limit = i
-        else:
-            limit = i // 2 + 1
-        for d in range(2, limit):
-            if i % d == 0:
-                break
-        else:
-            lst.append(i)
-        i += 1
-    # print(lst)
-
-
-def primes_2(num):  # According to documentation's example
-    i = 2
-    lst = []
-    while len(lst) < num:
-        for d in lst:
-            if i % d == 0:
-                break
-        else:
-            lst.append(i)
-        i += 1
-    # print(lst)
-```
-
-```Python
-# Filename: prime_cpp.pyx
-from libcpp.vector cimport vector
-
-def prime_cpp(unsigned int num):
-    cdef unsigned int i = 2
-    cdef vector[int] lst
-    cdef unsigned int lim = 0
-    cdef unsigned int d
-    while lst.size() < num:
-        if 2 > i // 2 + 1:
-            lim = i
-        else:
-            lim = i // 2 + 1
-        for d in range(2, lim):
-            if i % d == 0:
-                break
-        else:
-            lst.push_back(i)
-        i += 1
-    # print(lst)
-```
-
-```C++
-#include <iostream>
-#include <vector>
-#include <chrono>
-
-class PRIME
-{
-    public:
-        PRIME();
-        PRIME(unsigned int n);
-        ~PRIME(){};
-        void calculate();
-        void show();
-    private:
-        std::vector<unsigned int> list;
-        unsigned int num;
-};
-
-PRIME::PRIME(unsigned int n)
-{
-    num = n;
-}
-
-void PRIME::calculate()
-{
-    unsigned int i = 2;
-    unsigned int limit;
-    bool test = true;
-    while (list.size() < num)
-    {
-        if (2 > i / 2 + 1)
-        {
-            limit = i;
-        }
-        else
-        {
-            limit = i / 2 + 1;
-        }
-        for (unsigned int d = 2; d < limit; ++d)
-        {
-            if (i % d == 0)
-            {
-                test = false;
-                break;
-            }
-            else
-            {
-                test = true;
-            }
-        }
-        if (test)
-        {
-            list.push_back(i);
-        }
-        i++;
-    }
-}
-
-void PRIME::show()
-{
-    for (long unsigned int i = 0; i < list.size(); ++i)
-    {
-        std::cout << list[i] << " ";
-    }
-    std::cout << std::endl;
-}
-
-int main()
-{
-    std::cout << "Enter the numbers of primes: ";
-    unsigned int num;
-    std::cin >> num;
-    auto start = std::chrono::system_clock::now();
-    PRIME data = PRIME(num);
-    data.calculate();
-    // data.show();
-    auto end = std::chrono::system_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-    std::cout << "Time costs: " << duration.count()  << " us" << std::endl;
-}
-```
-
-分别编译执行后可以看到结果如下：
+基于示例，尝试自己写了Python, Cython(C++)和C++的实现，分别编译执行后可以看到结果如下：
 
 原生Python代码：
 
@@ -452,18 +313,25 @@ $ python3 -m timeit -s "from prime import primes_1" "primes_1(1000)"
 5 loops, best of 5: 83.3 msec per loop
 ```
 
-Cython代码：
+Cython编译为C代码：
 
 ```Bash
-$ python3 -m timeit -s "from prime_cpp import prime_cpp" "prime_cpp(1000)"
+$ python3 -m timeit -s "from prime_cython_c import primes" "primes(1000)"
+200 loops, best of 5: 1.38 msec per loop
+```
+
+Cython编译为C++代码：
+
+```Bash
+$ python3 -m timeit -s "from prime_cython_cpp import primes" "primes(1000)"
 50 loops, best of 5: 4.22 msec per loop
 ```
 
 C++代码：
 
 ```Bash
-$ g++ prime.cpp -o prime
-$ ./prime
+$ g++ prime.cpp main.cpp -o prime.bin
+$ ./prime.bin
 Enter the numbers of primes: 1000
 Time costs: 4296 us
 ```
@@ -487,63 +355,18 @@ cdef double f(double x):
 
 首先，需要对静态库和动态库有一个基本的理解，静态库的代码在编译过程中被直接载入可执行文件，因此速度快，体积大；动态库则在可执行文件运行时才被载入，在编译过程中仅作为引用，因此体积小，速度慢。
 
-先试着使用C++写一个简单的函数：
-
-```C++
-// Filename: userFunc.h
-double addSquare(double x, double y);
-void sayHello();
-void sayBye();
-
-// Filename: userFunc.cpp
-#include <iostream>
-#include "userFunc.h"
-
-double addSquare(double x, double y)
-{
-    return x * x + y * y;
-}
-
-void sayHello()
-{
-    std::cout << "Hello World!" << std::endl;
-}
-
-void sayBye()
-{
-    std::cout << "Bye!" << std::endl;
-}
-// Filename: main.cpp
-#include "userFunc.h"
-#include <iostream>
-
-int main()
-{
-    sayHello();
-    double x, y;
-    std::cout << "Enter x: ";
-    std::cin >> x;
-    std::cout << "Enter y: ";
-    std::cin >> y;
-    double result = addSquare(x, y);
-    std::cout << "The sum of x^2 and y^2 is: " << result << std::endl;
-    sayBye();
-
-    return 0;
-}
-```
+先试着使用C++写一个简单的函数`userFunc`用于相加两个数的平方：
 
 这个程序当然可以简单的直接编译链接并生成可执行文件：
 
 ```Bash
-$ g++ userFunc.cpp main.cpp -o main_simple.bin
-$ ./main_simple.bin
+$ g++ userFunc.cpp main.cpp -o userFunc.bin
+$ ./userFunc.bin
 Hello World!
 Enter x: 2
 Enter y: 5
 The sum of x^2 and y^2 is: 29
 Bye!
-$ rm main_simple.bin
 ```
 
 但是如果需要将源码生成动态链接，则不能这样操作，而应该先进行单独编译：
@@ -559,9 +382,9 @@ g++ -fPIC -shared userFunc.cpp -o libuserFunc.so
 创建完成动态库后，就可以链接动态库并生成可执行文件：
 
 ```Bash
-$ g++ main.cpp -L . -I . -l userFunc -o execute.bin
-$ ./execute.bin
-./execute.bin: error while loading shared libraries: libuserFunc.so: cannot open shared object file: No such file or directory
+$ g++ main.cpp -L . -I . -l userFunc -o userFunc_dynamic.bin
+$ ./userFunc_dynamic.bin
+./userFunc_dynamic.bin: error while loading shared libraries: libuserFunc.so: cannot open shared object file: No such file or directory
 ```
 
 链接时，`-L`指出动态库的路径，`-L .`即说明动态库路径可能在当前目录下，`-I`指出头文件的路径，同样`-I .`说明头文件路径可能在当前目录下，`-l`指出动态库名称，注意需要去掉前缀的`lib`和扩展名`.so`。
@@ -569,7 +392,7 @@ $ ./execute.bin
 当成功生成可执行文件`execute.bin`后，运行时发现报错，显示并没有这个库。此时可以使用`ldd`命令查看某个可执行文件所链接的动态库：
 
 ```Bash
-$ ldd execute.bin
+$ ldd userFunc_dynamic.bin
 linux-vdso.so.1 (0x00007ffffeeb9000)
 libuserFunc.so => not found
 libstdc++.so.6 => /lib/x86_64-linux-gnu/libstdc++.so.6 (0x00007fc8206b0000)
@@ -594,8 +417,8 @@ export LD_LIBRARY_PATH=$(pwd)
 最后一种方式是直接在编译时指定所需要的查找路径，在编译时加入参数`-Wl,-rpath=.`即可完成这个任务，同时不需要修改环境变量：
 
 ```Bash
-$ g++ main.cpp -L . -I . -l userFunc -Wl,-rpath=. -o execute.bin
-$ ./execute.bin
+$ g++ main.cpp -L . -I . -l userFunc -Wl,-rpath=. -o userFunc_dynamic.bin
+$ ./userFunc_dynamic.bin
 Hello World!
 Enter x: 2
 Enter y: 3
@@ -605,44 +428,13 @@ Bye!
 
 需要特别注意的是，`-Wl,-rpath=.`中间没有空格，后面没有`,`，如果不小心加入逗号，会出现`/usr/bin/ld: cannot find : No such file or directory`报错。
 
-理解了以上的内容之后，便可以使用Cython编译自己的C/C++程序：
-
-```Python
-# Filename: user.pyx
-# distutils:language = c++
-
-cdef extern from "userFunc.h":
-    cpdef double addSquare(double x, double y)
-```
-
-`setup.up`相当于`makefile`，指导Cython的编译过程，因此内容为：
-
-```Python
-from distutils.core import setup
-from distutils.extension import Extension
-from Cython.Build import cythonize
-
-ext_modules = [
-    Extension(
-        name='generate',
-        sources=['user.pyx'],
-        include_dirs=['.'],  # gcc -I
-        library_dirs=['.'],  # gcc -L
-        libraries=['userFunc'],  # gcc -l
-        language='c++',
-        extra_link_args=['-Wl,-rpath=.'])
-]
-
-setup(ext_modules=cythonize(ext_modules))
-```
-
-如注释所说，`include_dirs`相当于编译时的`-I`，`library_dirs`相当于编译时的`-L`，`libraries`相当于编译时的`-l`。这里需要特别注意的是，指定动态库查找路径的参数并不是`extra_compile_args`而是**`extra_link_args`**。
+理解了以上的内容之后，便可以使用Cython编译自己的C/C++程序，`setup.up`相当于`makefile`，指导Cython的编译过程，`include_dirs`相当于编译时的`-I`，`library_dirs`相当于编译时的`-L`，`libraries`相当于编译时的`-l`。这里需要特别注意的是，指定动态库查找路径的参数并不是`extra_compile_args`而是**`extra_link_args`**。
 
 因为`.pyx`脚本中使用了`cpdef`关键字，因此运行后得到的`.so`文件就可以在Python中正常使用：
 
 ```Python
->>> import generate
->>> generate.addSquare(2, 5)
+>>> import userFunc_cython_cpp
+>>> userFunc_cython_cpp.addSquare(2, 5)
 29.0
 ```
 
@@ -747,6 +539,100 @@ cdef class Queue:
 ```
 
 注意这里使用的是`__cinit__(self)`而不是常见的`__init__(self)`。`__init__`是可以使用的，但是有时候`__init__`并不会得到调用，例如在创建子类时没有调用父类的构造函数。但是，如果不初始化C指针会导致Python解释器的崩溃，为了解决这个问题，Cython提供的`__cinit__`会始终在构造实例时调用，甚至早于调用`__init__`，这样可以保证在新的实例初始化`cdef`字段。但是，由于`__cinit__`在对象创建时调用，此时`self`还没有完成创建，因此必须避免任何对`self`的操作，而应该对`cdef`定义的字段进行赋值。
+
+但是仅仅实现以上部分并不安全。因为如果在`queue_new()`的调用中出现问题，在后续的运行中会出现程序崩溃。`queue_new()`函数返回的是一个指向`Queue`结构体的指针，根据文档，如果出现这个问题则原因为内存不足，此时将返回`NULL`空指针。在Python中处理这个问题的方式是抛出`MemoryError`异常，因此，`__init__`函数可以修改为：
+
+```Python
+# queue_cython.pyx
+
+cimport cqueue
+
+cdef class Queue:
+    cdef cqueue.Queue* _c_queue
+
+    def __cinit__(self):
+        self._c_queue = cqueue.queue_new()
+        if self._c_queue is NULL:
+            raise MemoryError()
+```
+
+如果成功进行了实例化，在`Queue`实例不再被使用时需要清理内存。在这里，CPython为Cython作为特殊方法的回调函数`__dealloc__()`。在这个示例中，只需要释放`C Queue`即可：
+
+```Python
+def __dealloc__(self):
+    if self._c_queue is not NULL:
+        cqueue.queue_free(self._c_queue)
+```
+
+当这些基础功能实现之后，就有了一个可以运行的Cython模块。同样，需要配置一个`setup.py`脚本进行编译：
+
+```Python
+from distutils.core import setup
+from distutils.extension import Extension
+from Cython.Build import cythonize
+setup(ext_modules = cythonize([Extension("queue", ["queue.pyx"])]))
+```
+
+正如在上一节所说，如果需要使用外部C库，需要确保Cython可以正确找到这个库，通常有静态链接和动态链接两种方式。
+
+- 静态链接
+
+    如果要使用静态链接，需要直接在`.pyx`中包含编译器指令，即告诉`distutils`在哪里找到C库源码：
+
+    ```Python
+    # distutils: sources = c-algorithms/src/queue.c
+    # distutils: include_dirs = c_algorithms/src
+    ```
+
+    加入编译指令之后，就可以进行编译并测试程序运行正确：
+
+    ```Bash
+    python3 setup.py build_ext --inplace
+    python3 -c "import queue; Q = queue.Queue()"
+    ```
+
+- 动态链接
+
+    如果需要使用的库已经打包安装在系统中，则使用动态链接会很有用。如果要使用动态链接，首先需要在系统中安装c-algorithm库：
+
+    ```Bash
+    cd c-algorithms
+    sh autogen.sh
+    ./configure
+    make
+    make install
+    ```
+
+    编译完成后可以找到`/usr/local/lib/libcalg.so`动态库文件。
+
+    在`setup.py`脚本中，需要告诉脚本进行外部库的链接，因此将其进行拓展：
+
+    ```Python
+    # setup(ext_modules=cythonize([Extension("queue_cython", ["queue_cython.pyx"])]))
+    setup(ext_modules=cythonize([Extension("queue_cython", ["queue_cython.pyx"], libraries=["calg"])]))
+    ```
+
+    之后正常编译即可：
+
+    ```Bash
+    python3 setup.py build_ext --inplace
+    ```
+
+    如果`libcalg`没有安装在常见的位置上，可以在编译时通过提供外部参数进行修改，例如：
+
+    ```Bash
+    CFLAGS="-I/usr/local/otherdir/calg/include"  \
+    LDFLAGS="-L/usr/local/otherdir/calg/lib"     \
+    python setup.py build_ext -i
+    ```
+
+    同时，还需要确保`libcalg`在`LD_LIBRARY_PATH`环境变量中，因此还需要设置：
+
+    ```Bash
+    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+    ```
+
+    这种方法等同于上一节写的编译方式，可以看到只是通过不同的方式对外部库等路径参数进行了指定，结果是相同的。
 
 ### Extension types (aka. cdef classes)
 

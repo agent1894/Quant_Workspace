@@ -20,6 +20,9 @@
 **/*.spec
 **/*.log
 **/*.exe
+**/*.bin
+**/*.so
+**/*.dll
 **/*.hdf5
 **/*.npy
 **/*.npz
@@ -27,6 +30,7 @@ ReadingNotes/*.html
 !**/.vscode/*
 !.gitignore
 /Cpp_Workspace/C++ Primer Plus/Chapter*/*
+!**/*.c
 !**/*.cpp
 !**/*.md
 !**/*.txt
