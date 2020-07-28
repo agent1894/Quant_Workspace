@@ -26,6 +26,11 @@
 **/*.hdf5
 **/*.npy
 **/*.npz
+**/*.aux
+**/*.out
+**/*.pdf
+**/*.toc
+**/*.gz
 ReadingNotes/*.html
 !**/.vscode/*
 !.gitignore
