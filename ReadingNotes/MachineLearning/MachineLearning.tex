@@ -3,7 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amsthm}
-\usepackage{graphfig}
+\usepackage{graphicx}
 \usepackage{theorem}
 \usepackage{hyperref}
 \usepackage[a4paper, left=2cm, top=2cm, total={170mm, 257mm}]{geometry}
@@ -11,12 +11,14 @@
 \usepackage{listings}
 \usepackage{fontspec}
 \usepackage{color}
+\usepackage{caption}
+\usepackage{float}
 \setsansfont{Consolas}
 \setmonofont{Fira Code}
 \setCJKmainfont{Sarasa UI SC}
 \setCJKsansfont{Sarasa Term SC}
 \setCJKmonofont{Sarasa Mono SC}
-\title{吴恩达 机器学习 \\ Machine Learning by Andrew Ng}
+\title{吴恩达机器学习读书笔记 \\ Machine Learning by Andrew Ng}
 \author{Zhaorui.Zhan}
 \date{}
 \begin{document}
@@ -78,7 +80,7 @@
                 \item $\theta_1=0.5$
                 \begin{align*}
                     &h_\theta(x) = 0.5x \\
-                    &J(0) = \frac{1}{2*3}(-0.5^2+-0.5^2+-0.5^2) = \frac{3}{4}
+                    &J(0) = \frac{1}{2*3}(-0.5^2+-1^2+-1.5^2) = \frac{3.5}{6}
                 \end{align*}
                 \item $\theta_1=1$
                 \begin{align*}
@@ -87,6 +89,14 @@
                 \end{align*}
                 \item $\dots$
             \end{enumerate}
+
+            \begin{figure}[H]
+                \includegraphics[width=1\textwidth]{OneParameterCostFunction.eps}
+            \end{figure}
+
+            将这些点连在一起形成的曲线，就构成了一个参数下的代价函数曲线。实际上，将三个样本点带入后，可以得到这里的代价函数$J(\theta_1)$的解析式为$J(\theta_1)=\frac{14}{6}(\theta_1-1)^2$。
+
+            
 
 
     \section{线性代数回顾 Linear Algebra Review}
