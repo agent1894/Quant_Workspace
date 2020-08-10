@@ -3,6 +3,15 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amsthm}
+% English theorem environment
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{definition}{Definition}
+\newtheorem*{remark}{Remark}
+\newtheorem*{example}{Example}
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
 \usepackage{ulem}
 \usepackage{cancel}
 \usepackage{graphicx}
@@ -445,6 +454,52 @@ print("theta_0={:.4f}, theta_1={:.4f}".format(reg.intercept_, reg.coef_[0])))
 除了使用梯度下降进行迭代的算法以外，同样可以有解析的方式一次性解出$\Theta$而不需要反复迭代。
 
 在一个标准的线性回归问题中，对于$\Theta\in\mathbb{R}^{n+1}$，需要最小化代价函数$J(\theta_0,\theta_1,\dots,\theta_n)=\frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2$时，微积分的方式是对$J(\Theta)$中的每个参数求偏导，并令所有参数的偏导数为0时得到$\Theta$的值，即对每个$\theta$，$\frac{\partial}{\partial\theta_j}J(\Theta)=0$。
+
+最终可以解出向量$\Theta=(X^TX)^{-1}X^Ty$。以下是推导过程：
+
+\textbf{Note}：约定$X=(x_1, x_2,\dots,x_N)^T$
+\begin{align*}
+    \frac{\partial a}{\partial X}     & = 0                           \\
+    \frac{\partial X}{\partial X}     & = I                           \\
+    \frac{\partial AX}{\partial X}    & = A^T                         \\
+    \frac{\partial X^TA}{\partial X}  & = A                           \\
+    \frac{\partial X^TAX}{\partial X} & = (A+A^T)X                    \\
+    \frac{\partial X^TAX}{\partial X} & = 2AX \text{(A is symmetric)}
+\end{align*}
+
+因此：
+\begin{align*}
+    J(\Theta) & = \frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2       \\
+              & = \frac{1}{2m}(X\Theta-y)^2                                     \\
+              & = \frac{1}{2m}(X\Theta-y)^T(X\Theta-y)                          \\
+              & = \frac{1}{2m}(\Theta^TX^T-y^T)(X\Theta-y)                      \\
+              & = \frac{1}{2m}(\Theta^TX^TX\Theta-\Theta^TX^Ty-y^TX\Theta+y^Ty)
+\end{align*}
+
+代价函数对$\Theta$求偏导并等于0：
+\begin{align*}
+    \frac{\partial J(\Theta)}{\partial\Theta} & = \frac{1}{2m}(2X^TX\Theta-X^Ty-X^Ty+0) \\
+                                              & = \frac{1}{2m}(2X^TX\Theta-2X^Ty) = 0   \\
+                                              & \Rightarrow X^TX\Theta-X^Ty=0           \\
+\end{align*}
+
+从而可以得出$\Theta=(X^TX)^{(-1)}X^Ty$
+
+这种方法对于奇异矩阵无效，因为无法计算矩阵的逆。在Numpy中，可以使用数值算法计算广义逆矩阵。
+
+\begin{lstlisting}[language=Python]
+    import numpy as np
+    # 非奇异矩阵
+    inv = np.linalg.inv(np.array)
+    # 对于Matrix对象
+    # inv = np.matrix.I
+    # 奇异矩阵求伪逆（广义逆矩阵）
+    inv = np.linalg.pinv(np.array)
+\end{lstlisting}
+
+显然，在正规方程计算中可以不需要使用特征缩放。
+
+正规方程方法在特征值较少的情况下可以通过一次运算得出，效率较高，但是当特征数量较多时，由于计算逆矩阵的时间复杂度为$O(n^3)$，因此当有超过10000个特征时，使用正规方程方法就较为不合适。同时，正规方程法只适用于线性模型而对其他模型无效，梯度下降法的适用范围更广。‘
 
 \section{逻辑回归 Logistic Regression}
 
