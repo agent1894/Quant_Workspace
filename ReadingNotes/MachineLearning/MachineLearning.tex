@@ -503,6 +503,87 @@ print("theta_0={:.4f}, theta_1={:.4f}".format(reg.intercept_, reg.coef_[0])))
 
 \section{逻辑回归 Logistic Regression}
 
+\subsection{分类问题}
+
+在分类问题中，预测的变量$y$是离散值。在最基础的二元分类问题中，因变量$y$只有两个结果，分别称为负向类(negative class)和正向类(positive class)，即因变量$y\in\{0, 1\}$。假定阈值设置为0.5，如果预测值超过阈值则判定为正向，否则判定为负向。
+
+如果使用线性回归对其进行预测，会出现两个显著的问题：
+
+\begin{enumerate}
+    \item 分类问题只有两个可能，0或1，但线性回归得到的输出值可能远大于1或远小于0，即使训练样本的$y$都等于0或1。
+    \item 如果训练集中有离群点，会扭曲回归的假设函数，使之前设定的阈值（例如0.5）显得不再合适，从而导致预测能力下降。
+\end{enumerate}
+
+因此，对于分类问题使用新的算法：逻辑回归。逻辑回归尽管名称中带有“回归”二字，但是却是一个分类算法。逻辑回归可以保证输出值永远在0到1之间。
+
+给出分类问题的定义：
+
+\begin{itemize}
+    \item Classification: $y\in\{0, 1\}$
+    \item Want: $0\leq h_\theta(x)\leq 1$
+    \item Hypothesis: $h_\theta(x)=g(\theta^Tx)$
+    \item Sigmoid Function: $g(z)=\frac{1}{1+e^{-z}}$
+\end{itemize}
+
+即：
+
+\begin{equation*}
+    h_\theta(x)=\frac{1}{1+e^{-\theta^Tx}}
+\end{equation*}
+
+$h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当于$h_\theta(x)=\mathbb{P}(y=1|x; \theta)$。
+
+\subsection{决策边界}
+
+在逻辑回归中，设定阈值0.5，预测当$h_\theta(x)\geq 0.5$时，$y=1$，否则$y=0$。
+
+根据逻辑回归中的函数$g(z)=\frac{1}{1+e^{-z}}$图像，可以知道当$z>0$时$g(z)>0.5$，否则$g(z)<0.5$，又因为$z=\theta^Tx$，即$\theta^Tx\geq 0$时，预测$y=1$，否则预测$y=0$。在这里，$z$对应的就是决策边界。
+
+假定一个模型：
+\begin{equation*}
+    h_\theta(x)=g(\theta_0+\theta_1x_1+\theta_2x_2)
+\end{equation*}
+
+已知参数：
+
+\begin{equation*}
+    \theta=\left[
+        \begin{matrix}
+            -3 \\
+            1  \\
+            1
+        \end{matrix}
+        \right]
+\end{equation*}
+
+则当$x_1+x_2\geq 3$时，模型预测$y=1$，这里，$x_1+x_2\geq 3$形成的分界线就是这个模型的决策边界，将预测为1和预测为0的区域进行了分隔。
+
+决策边界同样可以是非线性的，例如模型
+
+\begin{equation*}
+    h_\theta(x)=g(\theta_0+\theta_1x_1+\theta_2x_2+\theta_3x_1^2+\theta_4x_2^2)
+\end{equation*}
+
+其对应的参数
+
+\begin{equation*}
+    \theta=\left[
+        \begin{matrix}
+            -1 \\
+            0  \\
+            0  \\
+            1  \\
+            1
+        \end{matrix}
+        \right]
+\end{equation*}
+
+可以得到决策边界为一个圆心为原点，半径为1的圆：$x_1^2+x_2^2=1$。
+
+决策边界可以非常复杂，可以用复杂的模型$z$来适应复杂的决策边界。
+
+\subsection{代价函数}
+
 \section{正则化 Regularization}
 
 \section{神经网络：表述 Neural Networks: Representation}
