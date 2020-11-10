@@ -611,7 +611,7 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 
 \begin{align*}
     J(\theta) & = \frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2 \\
-    & = \mathtt{Cost}(h_\theta(x^{(i)}, y))
+              & = \mathtt{Cost}(h_\theta(x^{(i)}, y))
 \end{align*}
 
 理论来说，逻辑回归同样可以使用类似的代价函数。但是，如果将$h_\theta(x)=\frac{1}{1+e^{-\theta^Tx}}$代入这个代价函数中时，代价函数会是一个非凸函数(non-convex function)。这意味着代价函数会有许多局部最小值，从而影响梯度下降算法寻找全局最小值。
@@ -621,12 +621,91 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 \begin{equation*}
     \mathtt{Cost}(h_\theta(x), y) = 
     \begin{cases}
-        -\log(h_\theta(x)), & y = 1\\
+        -\log(h_\theta(x)),   & y = 1 \\
         -\log(1-h_\theta(x)), & y = 0
     \end{cases}
 \end{equation*}
 
 这样构建的代价函数有良好的性质，当实际$y=1$且$h_\theta(x)=1$时，误差为0，当$y=1$但$h_\theta(x)$不为1时，误差随$h_\theta(x)$变小而变大，并趋向于正无穷$\infty$，相反时也是一样。
+
+以上函数可以简化为如下更为紧凑的形式：
+
+\begin{equation*}
+    \mathtt{Cost}(h_{\theta}(x), y) = -y\log(h_\theta(x)) - (1-y)\log(1-h_\theta(x))
+\end{equation*}
+
+因此，代价函数最后为：
+
+\begin{align*}
+    J(\theta) & = \frac{1}{m}\sum^{m}_{i=1}\mathtt{Cost}(h_\theta(x^{(i)}), y^{(i)})                                 \\
+              & = -\frac{1}{m}[\sum^{m}_{i=1}y^{(i)}\log h_\theta(x^{(i)}) + (1 - y^{(i)})\log(1-h_\theta(x^{(i)}))]
+\end{align*}
+
+找到参数$\theta$即最小化代价函数$J(\theta)$。
+
+同样找到参数$\theta$的方式是使用梯度下降算法：
+
+\begin{equation*}
+    \theta_j:=\theta_j-\alpha\frac{\partial}{\partial\theta_j}J(\theta)
+\end{equation*}
+
+同样要对每个$j=0,\dots,n$同步更新$\theta$。
+
+要计算$\frac{\partial}{\partial\theta_j}J(\theta)$，需要使用复合函数求导的链式法则：
+
+\begin{equation*}
+    \frac{d}{dx}g(f(x)) = g'(f(x))f'(x)
+\end{equation*}
+
+或者写作
+
+\begin{equation*}
+    \frac{du}{dx} = \frac{du}{dy}\cdot\frac{dy}{dx}
+\end{equation*}
+
+同时，$h_\theta(x^i) = g(\theta^Tx)$，sigmoid函数$g(z) = \frac{1}{1+e^{-z}}$的导数为：
+
+\begin{align*}
+    \frac{d}{dz}g(z) & = \frac{d}{dz}\frac{1}{1+e^{-z}} \\
+    & = -\frac{-e^{-z}}{(1+e^{-z})^2}\\
+    & = \frac{e^{-z}}{(1+e^{-z})^2} \\
+    & = \frac{1}{1+e^{-z}}\frac{e^{-z}}{1+e^{-z}}\\
+    & = g(z)(1-g(z))
+\end{align*}
+
+根据以上可以得出
+
+\begin{align*}
+    \frac{\partial}{\partial\theta_j}J(\theta) =&-\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log h_\theta(x^{(i)})+(1-y^{(i)})\log(1-h_\theta(x^{(i)})))\\
+     =&-\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log g(\theta^Tx)+(1-y^{(i)})\log(1-g(\theta^Tx)))\\
+     =&-\frac{1}{m}\sum_{i=1}^{m}(\frac{\partial}{\partial\theta_j}y^{(i)}\log g(\theta^Tx) + \frac{\partial}{\partial\theta_j}(1-y^{(i)})\log(1-g(\theta^Tx))) \\
+     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{\partial}{\partial g(\theta^Tx)}\log g(\theta^Tx)\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx\\
+     &+(1-y^{(i)})\frac{\partial}{\partial g(\theta^Tx)}\log(1-g(\theta^Tx))\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx) \\
+     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{1}{g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j \\
+     &+(1-y^{(i)})\frac{-1}{1-g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j) \\
+     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}-g(\theta^Tx))x_j \\
+     =&\frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j
+\end{align*}
+
+因此，
+
+\begin{equation*}
+    \theta_j:=\theta_j-\alpha\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j^{(i)}
+\end{equation*}
+
+显然，这个梯度下降算法和线性回归时使用的梯度下降算法公式完全相同，但是由于$h_\theta(x)$在这里的值为$\frac{1}{1+e^{-\theta^Tx}}$而在线性回归中$h_\theta(x)$为$\theta^Tx$，因此，尽管更新$\theta$的方法相同，但是这两个梯度下降算法并不相同。
+
+\subsection{高级优化与多元分类}
+
+除了梯度下降算法之外，还有很多其他高级优化方法可以使用，例如共轭梯度法（Conjugate gradient），变尺度法（BFGS），限制变尺度法（L-BFGS）等。这些方法通常有更快的收敛速度，对于更大的特征也有更好的表现，同时有些（例如这三种）不需要手动选择学习速率$\alpha$，但是这些算法也意味着更加复杂，更加难以调试。
+
+当$y$有超过两个分类（0/1）时，就构成一个多分类问题。为了解决这种问题，可以将其中一类作为正向类1，其余所有分类作为负向类0，随后将另一个分类作为正向类1，其余所有分类作为负向类0并以此类推，直到得到一系列的模型：
+
+\begin{equation*}
+    h_\theta^{(i)}(x) = \mathbb{P}(y=i|x; \theta), i=(1,2,3,\dots,k)
+\end{equation*}
+
+当需要做出预测时，将所有的分类机运行一遍，对每个分类输入变量，然后选择最高可能性的输出变量，即$\mathop{max}\limits_ih_\theta^{(i)}(x)$。
 
 \section{正则化 Regularization}
 
