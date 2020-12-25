@@ -637,8 +637,8 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 因此，代价函数最后为：
 
 \begin{align*}
-    J(\theta) & = \frac{1}{m}\sum^{m}_{i=1}\mathtt{Cost}(h_\theta(x^{(i)}), y^{(i)})                                 \\
-              & = -\frac{1}{m}[\sum^{m}_{i=1}y^{(i)}\log h_\theta(x^{(i)}) + (1 - y^{(i)})\log(1-h_\theta(x^{(i)}))]
+    J(\theta) & = \frac{1}{m}\sum^{m}_{i=1}\mathtt{Cost}(h_\theta(x^{(i)}), y^{(i)})                                            \\
+              & = -\frac{1}{m}\left[\sum^{m}_{i=1}y^{(i)}\log h_\theta(x^{(i)}) + (1 - y^{(i)})\log(1-h_\theta(x^{(i)}))\right]
 \end{align*}
 
 找到参数$\theta$即最小化代价函数$J(\theta)$。
@@ -666,25 +666,25 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 同时，$h_\theta(x^i) = g(\theta^Tx)$，sigmoid函数$g(z) = \frac{1}{1+e^{-z}}$的导数为：
 
 \begin{align*}
-    \frac{d}{dz}g(z) & = \frac{d}{dz}\frac{1}{1+e^{-z}} \\
-    & = -\frac{-e^{-z}}{(1+e^{-z})^2}\\
-    & = \frac{e^{-z}}{(1+e^{-z})^2} \\
-    & = \frac{1}{1+e^{-z}}\frac{e^{-z}}{1+e^{-z}}\\
-    & = g(z)(1-g(z))
+    \frac{d}{dz}g(z) & = \frac{d}{dz}\frac{1}{1+e^{-z}}            \\
+                     & = -\frac{-e^{-z}}{(1+e^{-z})^2}             \\
+                     & = \frac{e^{-z}}{(1+e^{-z})^2}               \\
+                     & = \frac{1}{1+e^{-z}}\frac{e^{-z}}{1+e^{-z}} \\
+                     & = g(z)(1-g(z))
 \end{align*}
 
 根据以上可以得出
 
 \begin{align*}
-    \frac{\partial}{\partial\theta_j}J(\theta) =&-\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log h_\theta(x^{(i)})+(1-y^{(i)})\log(1-h_\theta(x^{(i)})))\\
-     =&-\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log g(\theta^Tx)+(1-y^{(i)})\log(1-g(\theta^Tx)))\\
-     =&-\frac{1}{m}\sum_{i=1}^{m}(\frac{\partial}{\partial\theta_j}y^{(i)}\log g(\theta^Tx) + \frac{\partial}{\partial\theta_j}(1-y^{(i)})\log(1-g(\theta^Tx))) \\
-     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{\partial}{\partial g(\theta^Tx)}\log g(\theta^Tx)\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx\\
-     &+(1-y^{(i)})\frac{\partial}{\partial g(\theta^Tx)}\log(1-g(\theta^Tx))\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx) \\
-     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{1}{g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j \\
-     &+(1-y^{(i)})\frac{-1}{1-g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j) \\
-     =&-\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}-g(\theta^Tx))x_j \\
-     =&\frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j
+    \frac{\partial}{\partial\theta_j}J(\theta) = & -\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log h_\theta(x^{(i)})+(1-y^{(i)})\log(1-h_\theta(x^{(i)})))                                                             \\
+    =                                            & -\frac{1}{m}\sum_{i=1}^{m}\frac{\partial}{\partial\theta_j}(y^{(i)}\log g(\theta^Tx)+(1-y^{(i)})\log(1-g(\theta^Tx)))                                                                       \\
+    =                                            & -\frac{1}{m}\sum_{i=1}^{m}(\frac{\partial}{\partial\theta_j}y^{(i)}\log g(\theta^Tx) + \frac{\partial}{\partial\theta_j}(1-y^{(i)})\log(1-g(\theta^Tx)))                                    \\
+    =                                            & -\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{\partial}{\partial g(\theta^Tx)}\log g(\theta^Tx)\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx \\
+                                                 & +(1-y^{(i)})\frac{\partial}{\partial g(\theta^Tx)}\log(1-g(\theta^Tx))\cdot\frac{\partial}{\partial\theta^Tx}g(\theta^Tx)\cdot\frac{\partial}{\partial\theta_j}\theta^Tx)                   \\
+    =                                            & -\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}\frac{1}{g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j                                                                                         \\
+                                                 & +(1-y^{(i)})\frac{-1}{1-g(\theta^Tx)}\cdot g(\theta^Tx)(1-g(\theta^Tx))\cdot x_j)                                                                                                           \\
+    =                                            & -\frac{1}{m}\sum_{i=1}^{m}(y^{(i)}-g(\theta^Tx))x_j                                                                                                                                         \\
+    =                                            & \frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j
 \end{align*}
 
 因此，
@@ -708,6 +708,52 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 当需要做出预测时，将所有的分类机运行一遍，对每个分类输入变量，然后选择最高可能性的输出变量，即$\mathop{max}\limits_ih_\theta^{(i)}(x)$。
 
 \section{正则化 Regularization}
+
+\subsection{过拟合}
+
+当有太多的特征时，如果过于强调拟合原始数据，就会导致预测无法泛化（generalize），从而导致过拟合。
+
+画图是检测过拟合的好方法，但是当特征增加后，很难用可视化的方式去判断是否发生了过拟合或欠拟合。通常，有两种方式可以解决过拟合的问题：
+
+\begin{enumerate}
+    \item 减少特征数量。可以手动选择保留的特征，也可以使用模型选择算法帮助选择。但是缺点是舍弃了一些特征，也就舍弃了一定的信息量。
+    \item 正则化。正则化会保留所有的特征，但是减少参数$\theta_j$的量级或大小。这种方式对每个特征都能对$y$产生一定贡献的时候较为有用。
+\end{enumerate}
+
+\subsection{代价函数}
+
+在一个回归问题中，模型为$h_\theta(x) = \theta_0 + \theta_1x_1 + \theta_2x_2^2 + \theta_3x_3^3 + \theta_4x_4^4$，如果一个比较好的模型是二次函数关系，显然，高次项会导致过拟合的发生。如果能将高次项的系数调整为接近$0$，则可以获得更好的拟合效果。
+
+因此，正则化的基本方法就是在一定程度上减小参数$\theta$的值。更小的参数意味着更简单的模型，更不容易出现过拟合。
+
+例如，原本的代价函数为：
+
+\begin{equation*}
+    \mathop{min}\limits_\theta\frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2
+\end{equation*}
+
+如果决定减小$\theta_3$和$\theta_4$，那么需要做的就是修改代价函数，在代价函数中对$\theta_3$和$\theta_4$进行一定的惩罚，这样在最小化代价函数时将考虑惩罚项，从而导致选择较小的$\theta_3$和$\theta_4$。
+加入惩罚项之后为，例如给的惩罚参数为1000，优化目标就变为：
+
+\begin{equation*}
+    \mathop{min}\limits_\theta\frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2+1000\theta_3^2+1000\theta_4^2
+\end{equation*}
+
+这种情况下会尽量让$\theta_3$和$\theta_4$的值小，从而让模型接近于二次函数。
+
+如果特征数量很大，很难事先选出相关性较低的特征，因此无从对特定的特征进行惩罚，可以对所有的特征进行惩罚，从而让代价函数缩小所有的参数。因此，代价函数为（根据惯例，不对$\theta_0$进行惩罚，因此$\lambda$部分是从1到n求和，而不是从0到n求和）：
+
+\begin{equation*}
+    J(\theta) = \frac{1}{2m}\left[\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2 + \lambda\sum_{j=1}^n\theta_j^2\right]
+\end{equation*}
+
+其中$\lambda\sum_{j=1}^n\theta_j^2$被称为正则项，$\lambda$被称为正则化参数。$\lambda$的作用是控制两个不同目标之间的取舍。第一个目标由目标函数$J(\theta)$的第一部分确定，目的是更好的拟合数据，第二个目标则是要尽可能的让$\theta$的参数足够小，由正则项确定。 
+
+如果正则化参数$\lambda$过大，为了使$J(\theta)$足够小，会将所有的参数都最小化至趋近于0，导致模型变为$h_\theta(x)=\theta_0$，即一条直线，使得模型欠拟合。
+
+\subsection{正则化线性回归}
+
+\subsection{正则化逻辑回归}
 
 \section{神经网络：表述 Neural Networks: Representation}
 
