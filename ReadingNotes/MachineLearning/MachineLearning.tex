@@ -55,7 +55,7 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}    
+\begin{abstract}
     基于吴恩达在Coursera上的公开课Machine Learning做的笔记。对定性部分进行了一些省略，重点关注算法的使用与逻辑推导。
 \end{abstract}
 
@@ -75,15 +75,15 @@
 对于回归问题的标记，通常定义为：
 
 \begin{enumerate}
-    \item 
+    \item
           $m$：训练集中实例的数量（有多少个样本）
-    \item 
+    \item
           $y$：特征/输入变量
-    \item 
+    \item
           $(x, y)$：目标变量/输出变量
-    \item 
+    \item
           $(x^{(i)}, y^{(i)})$：第$i$个观测实例
-    \item 
+    \item
           $h$：学习算法的函数，也称为假设\textit{hypothesis}
 \end{enumerate}
 
@@ -110,31 +110,31 @@
 对于这个简化的模型，可以选择无数个$\theta_1$进行模拟：
 
 \begin{enumerate}
-    \item 
+    \item
           $\theta_1=0$
-          
+
           \begin{align*}
                & h_\theta(x) = 0                                     \\
                & J(0) = \frac{1}{2*3}(-1^2+-2^2+-3^2) = \frac{14}{6}
           \end{align*}
-          
-    \item 
+
+    \item
           $\theta_1=0.5$
-          
+
           \begin{align*}
                & h_\theta(x) = 0.5x                                       \\
                & J(0) = \frac{1}{2*3}(-0.5^2+-1^2+-1.5^2) = \frac{3.5}{6}
           \end{align*}
-          
-    \item 
+
+    \item
           $\theta_1=1$
-          
+
           \begin{align*}
                & h_\theta(x) = x                       \\
                & J(0) = \frac{1}{2*3}(0^2+0^2+0^2) = 0
           \end{align*}
-          
-    \item 
+
+    \item
           $\dots$
 \end{enumerate}
 
@@ -214,9 +214,9 @@ ax2.set_title('Cost Function')
 仍然使用之前的示例，尝试进行线性回归并验算结果：
 
 \begin{enumerate}
-    \item 
+    \item
           首先导入必要的Python库并构造数据集：
-          
+
           \begin{lstlisting}[language=Python]
 import numpy as np
 # 指定使用的随机数种子
@@ -226,91 +226,83 @@ np.random.seed(0)
 x = np.arange(0, 10, 0.05)
 y = x + np.random.rand(len(x)) * 2
                \end{lstlisting}
-          
-    \item 
+
+    \item
           进行梯度下降算法：
-          
+
           使用矩阵计算代价函数对于参数$\theta$的偏导：
-          
+
           \begin{align*}
               \theta_j & :=\theta_j-\alpha\frac{\partial}{\partial\theta_j}J(\theta)                                         \\
               \theta_j & :=\theta_j-\alpha\frac{\partial}{\partial\theta_j}(\frac{1}{2m}\sum_{i=1}^{m}(h_\theta(x^i)-y^i))^2 \\
               \theta_j & :=\theta_j-\frac{\alpha}{m}\sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots-y^i)\cdot x_j^i
           \end{align*}
-          
+
           对于一个$(m\times j)$的矩阵$X$，$m$为样本数量，$j$为特征$x$的数量，有对应的系数为$(1\times j)$的矩阵$\Theta$及$(m\times 1)$的因变量矩阵$Y$，可以将代价函数的导数部分化简为：
-          
+
           \begin{align*}
-              X \times \Theta^T & = 
-              \left[
-                  \begin{matrix}
-                      x_0^1  & x_1^1  & \cdots & x_j^1  \\
-                      x_0^2  & x_1^2  & \cdots & x_j^2  \\
-                      \vdots & \vdots & \ddots & \vdots \\
-                      x_0^m  & x_1^m  & \cdots & x_j^m
-                  \end{matrix}
-                  \right]
-              \left[
-                  \begin{matrix}
-                      \theta_0 \\
-                      \theta_1 \\
-                      \cdots   \\
-                      \theta_j  
-                  \end{matrix}
-                  \right]            \\
-                                & = 
-              \left[
-                  \begin{matrix}
-                      \theta_0x_0^1+\theta_1x_1^1+\dots+\theta_jx_j^1 \\
-                      \vdots                                          \\
-                      \theta_0x_0^m+\theta_1x_1^m+\dots+\theta_jx_j^m \\
-                  \end{matrix}
-                  \right]
+              X \times \Theta^T & =
+              \begin{bmatrix}
+                  x_0^1  & x_1^1  & \cdots & x_j^1  \\
+                  x_0^2  & x_1^2  & \cdots & x_j^2  \\
+                  \vdots & \vdots & \ddots & \vdots \\
+                  x_0^m  & x_1^m  & \cdots & x_j^m
+              \end{bmatrix}
+              \begin{bmatrix}
+                  \theta_0 \\
+                  \theta_1 \\
+                  \cdots   \\
+                  \theta_j
+              \end{bmatrix}
+              \\
+                                & =
+              \begin{bmatrix}
+                  \theta_0x_0^1+\theta_1x_1^1+\dots+\theta_jx_j^1 \\
+                  \vdots                                          \\
+                  \theta_0x_0^m+\theta_1x_1^m+\dots+\theta_jx_j^m \\
+              \end{bmatrix}
           \end{align*}
-          
+
           因此：
-          
+
           \begin{align*}
-                & \left[
-                  \begin{matrix}
-                       & \sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots+\theta_jx_j^i-y^i)\cdot x_0^i \\
-                       & \vdots                                                                         \\
-                       & \sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots+\theta_jx_j^i-y^i)\cdot x_j^i \\
-                  \end{matrix}
-                  \right] \\
-              = & 
-              \left[
-                  \begin{matrix}
-                      x_0^1  & \cdots & x_0^m  \\
-                      \vdots & \ddots & \vdots \\
-                      x_j^1  & \cdots & x_j^m
-                  \end{matrix}
-                  \right]
-              \left(\left[
-                  \begin{matrix}
-                      \theta_0x_0^1+\theta_1x_1^1+\dots+\theta_jx_j^1 \\
-                      \vdots                                          \\
-                      \theta_0x_0^m+\theta_1x_1^m+\dots+\theta_jx_j^m \\
-                  \end{matrix}
-                  \right]-
-              \left[
-                  \begin{matrix}
-                      y^1    \\
-                      \vdots \\
-                      y^m
-                  \end{matrix}
-                  \right]\right)
+                &
+              \begin{bmatrix}
+                   & \sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots+\theta_jx_j^i-y^i)\cdot x_0^i \\
+                   & \vdots                                                                         \\
+                   & \sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots+\theta_jx_j^i-y^i)\cdot x_j^i \\
+              \end{bmatrix}
+              \\
+              = &
+              \begin{bmatrix}
+                  x_0^1  & \cdots & x_0^m  \\
+                  \vdots & \ddots & \vdots \\
+                  x_j^1  & \cdots & x_j^m
+              \end{bmatrix}
+              \left(
+              \begin{bmatrix}
+                  \theta_0x_0^1+\theta_1x_1^1+\dots+\theta_jx_j^1 \\
+                  \vdots                                          \\
+                  \theta_0x_0^m+\theta_1x_1^m+\dots+\theta_jx_j^m \\
+              \end{bmatrix}
+              -
+              \begin{bmatrix}
+                  y^1    \\
+                  \vdots \\
+                  y^m
+              \end{bmatrix}
+              \right)
           \end{align*}
-          
+
           即：
-          
+
           \begin{align*}
               \theta_j          & :=\theta_j-\frac{\alpha}{m}\sum_{i=1}^{m}(\theta_0x_0^i+\theta_1x_1^i+\dots-y^i)\cdot x_j^i \\
               \Rightarrow\Theta & :=\Theta-\frac{\alpha}{m}X^T(X\times \Theta^T-Y)
           \end{align*}
-          
+
           当只有两个参数$\theta_0,\theta_1$时，由于$\theta_0$对应的是截距项，因此可以对$x$增加全为1的列作为$x_0$，使其可以进行矩阵运算，同时设定学习速率$\alpha$和初始点：
-          
+
           \begin{lstlisting}[language=Python]
 X = np.stack((np.ones(len(x)), x), axis=1)
 Y = y
@@ -330,12 +322,12 @@ while not (np.isclose(gradient[0], 0) and np.isclose(gradient[1], 0)):
 print("Iteration: {}, theta_0={:.4f}, theta_1={:.4f}".format(len(costs), theta[0], theta[1]))
 # Iteration: 4974, theta_0=1.0283, theta_1=0.9945
                \end{lstlisting}
-          
+
           在迭代4974次后$\theta$变化量约等于0，迭代结束，得到计算出的$\theta$值。
-          
-    \item 
+
+    \item
           使用scikit-learn进行线性回归，校验梯度下降得出的结果：
-          
+
           \begin{lstlisting}[language=Python]
 from sklearn import linear_model
 reg = linear_model.LinearRegression()
@@ -343,24 +335,24 @@ reg.fit(x.reshape(-1, 1), y)
 print("theta_0={:.4f}, theta_1={:.4f}".format(reg.intercept_, reg.coef_[0])))
 # theta_0=1.0283, theta_1=0.9945
                \end{lstlisting}
-          
+
           结果一致。
 \end{enumerate}
 
 \section{线性代数回顾 Linear Algebra Review}
 
 \begin{enumerate}
-    \item 
+    \item
           矩阵乘法不服从交换律：$A\times B\neq B\times A$。
-    \item 
+    \item
           矩阵乘法服从结合律：$A\times(B\times C) = (A\times B)\times C$。
-    \item 
+    \item
           单位矩阵$I$类似于数乘中的1，$I$是一个方阵，满足$AA^{-1}=A^{-1}A=I$。对于任意矩阵，$AI=IA=A$，这里两个单位矩阵的维度不一定是相同的，其维度隐含在$A$的维度中。
-    \item 
+    \item
           只有方阵才有逆矩阵，但不是所有方阵都有逆矩阵。没有逆矩阵的矩阵称为奇异矩阵。
-    \item 
+    \item
           矩阵转置的基本性质：
-          
+
           \begin{align*}
                & (A\pm B)^T = A^T\pm B^T       \\
                & (A\times B)^T = B^T\times A^T \\
@@ -392,22 +384,22 @@ print("theta_0={:.4f}, theta_1={:.4f}".format(reg.intercept_, reg.coef_[0])))
 在这里：
 
 \begin{equation*}
-    X=\left[
-        \begin{matrix}
-            x_0    \\
-            x_1    \\
-            \vdots \\
-            x_n
-        \end{matrix}
-        \right]\in\mathbb{R}^{n+1}\quad
-    \Theta=\left[
-        \begin{matrix}
-            \theta_0 \\
-            \theta_1 \\
-            \vdots   \\
-            \theta_n
-        \end{matrix}
-        \right]\in\mathbb{R}^{n+1}
+    X=
+    \begin{bmatrix}
+        x_0    \\
+        x_1    \\
+        \vdots \\
+        x_n
+    \end{bmatrix}
+    \in\mathbb{R}^{n+1}\quad
+    \Theta=
+    \begin{bmatrix}
+        \theta_0 \\
+        \theta_1 \\
+        \vdots   \\
+        \theta_n
+    \end{bmatrix}
+    ]\in\mathbb{R}^{n+1}
 \end{equation*}
 
 从而有：
@@ -547,13 +539,12 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 已知参数：
 
 \begin{equation*}
-    \theta=\left[
-        \begin{matrix}
-            -3 \\
-            1  \\
-            1
-        \end{matrix}
-        \right]
+    \theta=
+    \begin{bmatrix}
+        -3 \\
+        1  \\
+        1
+    \end{bmatrix}
 \end{equation*}
 
 则当$x_1+x_2\geq 3$时，模型预测$y=1$，这里，$x_1+x_2\geq 3$形成的分界线就是这个模型的决策边界，将预测为1和预测为0的区域进行了分隔。
@@ -571,15 +562,14 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 其对应的参数
 
 \begin{equation*}
-    \theta=\left[
-        \begin{matrix}
-            -1 \\
-            0  \\
-            0  \\
-            1  \\
-            1
-        \end{matrix}
-        \right]
+    \theta=
+    \begin{bmatrix}
+        -1 \\
+        0  \\
+        0  \\
+        1  \\
+        1
+    \end{bmatrix}
 \end{equation*}
 
 可以得到决策边界为一个圆心为原点，半径为1的圆：$x_1^2+x_2^2=1$。
@@ -597,14 +587,14 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 \begin{align*}
      & \mathbf{Training\ set}: \{(x^{(1)}, y^{(1)}), (x^{(2)}, y^{(2)}), \dots, (x^{(m)}, y^{m})\} \\
      & \mathbf{Hypothesis}: h_\theta(x)=\frac{1}{1+e^{-\theta^Tx}}                                 \\
-     & \mathbf{Given\ examples}: x\in\left[
-        \begin{matrix}
-            x_0   \\
-            x_1   \\
-            \dots \\
-            x_n
-        \end{matrix}
-        \right] x_0=1, y\in\{0, 1\}
+     & \mathbf{Given\ examples}: x\in
+    \begin{bmatrix}
+        x_0   \\
+        x_1   \\
+        \dots \\
+        x_n
+    \end{bmatrix}
+    x_0=1, y\in\{0, 1\}
 \end{align*}
 
 对于线性回归模型，定义的代价函数是模型误差的平方和：
@@ -619,7 +609,7 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 因此，在逻辑回归中，定义新的代价函数为：
 
 \begin{equation*}
-    \mathtt{Cost}(h_\theta(x), y) = 
+    \mathtt{Cost}(h_\theta(x), y) =
     \begin{cases}
         -\log(h_\theta(x)),   & y = 1 \\
         -\log(1-h_\theta(x)), & y = 0
@@ -747,11 +737,46 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
     J(\theta) = \frac{1}{2m}\left[\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})^2 + \lambda\sum_{j=1}^n\theta_j^2\right]
 \end{equation*}
 
-其中$\lambda\sum_{j=1}^n\theta_j^2$被称为正则项，$\lambda$被称为正则化参数。$\lambda$的作用是控制两个不同目标之间的取舍。第一个目标由目标函数$J(\theta)$的第一部分确定，目的是更好的拟合数据，第二个目标则是要尽可能的让$\theta$的参数足够小，由正则项确定。 
+其中$\lambda\sum_{j=1}^n\theta_j^2$被称为正则项，$\lambda$被称为正则化参数。$\lambda$的作用是控制两个不同目标之间的取舍。第一个目标由目标函数$J(\theta)$的第一部分确定，目的是更好的拟合数据，第二个目标则是要尽可能的让$\theta$的参数足够小，由正则项确定。
 
 如果正则化参数$\lambda$过大，为了使$J(\theta)$足够小，会将所有的参数都最小化至趋近于0，导致模型变为$h_\theta(x)=\theta_0$，即一条直线，使得模型欠拟合。
 
 \subsection{正则化线性回归}
+
+正则化线性回归的代价函数为：
+
+\begin{equation*}
+    J(\theta)=\frac{1}{2m}\sum_{i=1}^{m}\left[\left(h_\theta(x^{(i)})-y^{(i)}\right)^2+\lambda\sum_{j=1}^{n}\theta_j^2\right]
+\end{equation*}
+
+加入正则化后，梯度下降的算法为：
+
+\begin{align*}
+    \theta_0 & :=\theta_0-\alpha\frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_0^{(i)}                                        \\
+    \theta_j & :=\theta_j-\alpha\left[\frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j^{(i)}+\frac{\lambda}{m}\theta_j\right]
+\end{align*}
+
+区分$\theta_0$和$\theta_1\dots n$的原因为，在正则化中，默认不对$\theta_0$进行惩罚。
+
+对于$\theta_j$的梯度下降，又可以变形为：
+
+\begin{equation*}
+    \theta_j:=\theta_j(1-\alpha\frac{\lambda}{m})-\alpha\frac{1}{m}\sum_{i=1}^{m}(h_\theta(x^{(i)})-y^{(i)})x_j^{(i)}
+\end{equation*}
+
+可以看出，$\theta_j$的迭代过程可以分为两部分，后一部分和之前的梯度下降完全相同，区别就在与第一部分的$\theta_j(1-\alpha\frac{\lambda}{m})$。这实际上是在原有算法更新规则的基础上，每次迭代令$\theta$减少了一个额外的值。
+
+同样，可以使用正规方程的方式求解正则化线性回归方程。
+
+在不进行正则化的时候，向量$\Theta=(X^TX)^{-1}X^Ty$，在加入正则化之后，结果为：
+
+\begin{equation*}
+    \Theta=\left(X^TX+\lambda\begin{bmatrix}0 & & & &\\ & 1 & & &\\ & & 1 & &\\ & & & \ddots & \\ & & & & 1\end{bmatrix}\right)^{-1}X^Ty
+\end{equation*}
+
+在上式中，矩阵的大小为$(n+1)*(n+1)$，其中$n$为特征的数量。
+
+不加入正则项化时，当样本量($\#$samples) $m$小于特征量($\#$features) $n$时，会出现矩阵$X^TX$不可逆的问题。但是通过加入了正则化，当$\lambda>0$时，$(X^TX+\lambda[ ]^{-1})$一定不是奇异矩阵，即一定可逆。因此，使用正则化也可以解决使用正规方程下矩阵不可逆的问题。
 
 \subsection{正则化逻辑回归}
 
