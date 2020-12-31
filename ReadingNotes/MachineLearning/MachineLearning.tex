@@ -780,6 +780,12 @@ $h_\theta(x)$表示，在给定输入$x$时，预测$y=1$的概率，也相当�
 
 \subsection{正则化逻辑回归}
 
+在逻辑回归中进行正则处理，同样是给代价函数增加一个正则化的表达式：
+
+\begin{equation*}
+    J(\theta)=\frac{1}{m}\sum_{i=1}^{m}\left[-y^{(i)}\log\left(h_\theta(x^{(i)})\right)-(1-y^{(i)})\log\left(1-h_\theta(x^{(i)})\right)\right]+\frac{\lambda}{2m}\sum_{j=1}^{n}\theta_j^2
+\end{equation*}
+
 \section{神经网络：表述 Neural Networks: Representation}
 
 \section{神经网络：学习 Neural Networks: Learning}
