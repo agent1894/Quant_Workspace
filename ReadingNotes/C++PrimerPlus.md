@@ -2,7 +2,7 @@
 
 - [C++ Primer Plus 6th Edition by Stephen Prata (Pearson)](#c-primer-plus-6th-edition-by-stephen-prata-pearson)
   - [Chapter2 开始学习C++](#chapter2-开始学习c)
-    - [Section 4 函数](#section-4-函数)
+    - [Section4 函数](#section4-函数)
   - [Chapter3 处理数据](#chapter3-处理数据)
     - [Section1 简单变量](#section1-简单变量)
     - [Section2 `const`限定符](#section2-const限定符)
@@ -76,7 +76,7 @@
 
 ## Chapter2 开始学习C++
 
-### Section 4 函数
+### Section4 函数
 
 - **C++程序中应当为程序中使用的每个函数提供原型 (Function Prototype)。**
   - 由于在使用函数前，C++编译器必须知道函数的参数类型和返回值类型，因此需要使用函数原型语句显性地声明。函数原型之于函数相当于变量声明之于变量。
