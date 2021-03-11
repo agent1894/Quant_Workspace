@@ -50,6 +50,7 @@
     - [Section7 指针和多维数组](#section7-指针和多维数组)
     - [Section8 变长数组（VLA）](#section8-变长数组vla)
     - [Section9 复合字面量](#section9-复合字面量)
+    - [补充：`const`和指针](#补充const和指针)
   - [Chapter11 字符串和字符串函数](#chapter11-字符串和字符串函数)
   - [Chapter12 存储类别、链接和内存管理](#chapter12-存储类别链接和内存管理)
   - [Chapter13 文件输入/输出](#chapter13-文件输入输出)
@@ -321,6 +322,29 @@
   ```
 
 - 循环体中的行为可以改变循环头中的表达式。例如`for (n = 1; n < 10000; n = n + delta)`。如果循环体中有命令，可以在运行时改变`delta`的大小。
+- 第一个表达式在首次循环前执行，因此可以使用类似如下代码：
+
+  ```C
+  int i, sum;
+
+  for (i = 0, sum = 0; i < 5; ++i)
+  ```
+
+  也可以在第一个表达式中声明计数变量，例如：
+
+  ```C
+  for (int i = 0; i < 5; ++i)
+  ```
+
+  但是，如果使用类似的用法，**会出现错误**：
+
+  ```C
+  double sum;
+
+  for (int i = 0, sum = 0; i < 5; ++i)
+  ```
+
+  因为这种方式在`for`循环体内部声明了一个`int`类型的值`sum`，而不是使用在循环体外部声明的`double`类型的`sum`，从而导致使用未初始化的值，产生不可预知的结果。
 
 ### Section6 其他赋值运算符：`+=, -=, *=, /=, %=`
 
@@ -829,9 +853,27 @@
 ### Section8 变长数组（VLA）
 
 - C99新增了变长数组(variable-length array, VLA)，允许使用变量表示数组的维度。
-- 变长数组有一定的限制，必须是自动存储类编，不能使用`static`或`extern`存储类表说明符，而且不能在声明中初始化。
+- 变长数组有一定的限制，必须是自动存储类编，不能使用`static`或`extern`存储类表说明符，而且**不能在声明中初始化**。
 - C11把变长数组作为一个可选特性，而不是必须实现的特性。
 - 变长数组**不能改变大小**。这里的变长只可以在创建数组时使用变量指定数组的维度。
+- C99/11标准允许在声明变长数组时使用`const`变量。该数组的定义必须是声明在块中的自动存储类别数组。
+- 声明一个带二维变长数组参数的函数，需要使用如下形式：
+  
+  ```C
+  int sum2d(int rows, int cols, int ar[rows][cols]);  // ar是一个变长数组(VLA)
+  ```
+
+  形参`rows`和`cols`用作形参`ar`的维度。因为`ar`的声明要使用`rows`和`cols`，所以在形参列表中必须在声明`ar`前声明这两个形参，因此如下原型是错误的：
+
+  ```C
+  int sum2d(int ar[rows][cols], int rows, int cols);  // 无效的顺序
+  ```
+
+  C99/C11标准规定，可以省略原型中的形参名，但这种情况下必须用星号代替省略的维度：
+
+  ```C
+  int sum2d(int, int, int ar[*][*]);  // ar是一个变长数组(VLA)，省略维度形参名
+  ```
 
 ### Section9 复合字面量
 
@@ -863,6 +905,37 @@
   ```
 
 - 复合字面量是提供只临时需要的值的一种手段。复合字面量具有块作用域，一旦离开复合字面量的块，程序将无法保证该字面量的存在。
+
+### 补充：`const`和指针
+
+在理解指针和`const`方面，有两篇很好的回答，附录于此作为参考：
+
+- [在定义指针的时候，写成「int* p;」和「int *p;」哪个更好？](https://www.zhihu.com/question/21136956/answer/1668990148)
+  
+  > 推荐使用`int *p`的写法。
+  >
+  > 相比直接将`int*`理解为指针，上面的“运算式”写法**避免了对`*`符号理解的二义性**，即可以**永远将`*`理解为“按址取值”的一个运算符**，“`p`类型为指针”的结论由**编译器根据“`*p`为`int`类型”这个声明反推出来**。更重要的是这个理解方式可以应用到更加复杂的类型声明语句中。
+  >
+  > 例如典型的：`char *argv[];`，要声明的变量名`argv`按照既定的运算顺序（一元运算符优先级最高，且遵循**从右向左**的结合顺序），**先执行数组索引运算，再执行按址取值运算，最终得到`char`类型**，那么就可以反推出：**`argv[i]`为指向`char`的指针**，从而**`argv`为一个由`char`指针组成的数组**。
+  >
+  > 又例如：`int (*p)[N];`，**`p`在这里先执行按址取值运算，再执行数组索引运算，最终得到`int`类型**，从而反推出 **`*p`为一个长度为`N`的`int`数组，从而`p`为指向这个数组的一个指针**。
+
+- [C++里 const int* 与 int const* 有什么区别？](https://www.zhihu.com/question/443195492/answer/1723886545)
+
+  [Const before or const after?](https://stackoverflow.com/questions/5503352/const-before-or-const-after)
+
+  > **const默认作用于其左边的东西，否则作用于其右边的东西**。
+  >
+  > 例如`const int *`，`const`只有右边有东西，所以`const`修饰`int`成为常量整型，然后`*`再作用于常量整型。所以这是 a pointer to a constant integer（指向一个整型，不可通过该指针改变其指向的内容，但可改变指针本身所指向的地址）。
+  >
+  > 再如`int const *`，`const`左边有东西，所以`const`作用于`int`，`*`再作用于`int const`所以这还是 a pointer to a constant integer。
+  >
+  > 如果`int * const`，`const`的左边是`*`，所以`const`作用于指针（不可改变指向的地址），所以这是 a constant pointer to an integer，可以通过指针改变其所指向的内容但只能指向该地址，不可指向别的地址。
+  >
+  > 如果`const int * const`，左边的`const`的左边没东西，右边有`int`，那么此`const`修饰`int`。右边的`const`作用于`*`使得指针本身变成`const`（不可改变指向地址），那么这个是 a constant pointer to a constant integer，不可改变指针本身所指向的地址也不可通过指针改变其指向的内容。
+  >
+  > 以此类推，`int const * const`仍然是 a constant pointer to a constant integer；`int const * const *`，a pointer to a constant pointer to a constant integer；`int const * const * const`，a constant pointer to a constant pointer to a constant integer。
+  > 从代码可读性易维护性出发，强烈推荐把`const`写在右边，可以跟指针的作用范围很好地统一起来不至于混乱。
 
 ## Chapter11 字符串和字符串函数
 
