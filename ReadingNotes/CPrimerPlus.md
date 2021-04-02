@@ -52,6 +52,15 @@
     - [Section9 复合字面量](#section9-复合字面量)
     - [补充：`const`和指针](#补充const和指针)
   - [Chapter11 字符串和字符串函数](#chapter11-字符串和字符串函数)
+    - [Section1 字符串和字符串函数](#section1-字符串和字符串函数)
+    - [Section2 字符串输入](#section2-字符串输入)
+    - [Section3 字符串输出](#section3-字符串输出)
+    - [Section4 自定义输入/输出函数](#section4-自定义输入输出函数)
+    - [Section5 字符串函数](#section5-字符串函数)
+    - [Section6 字符串示例：字符串排序](#section6-字符串示例字符串排序)
+    - [Section7 `ctype.h`字符函数和字符串](#section7-ctypeh字符函数和字符串)
+    - [Section8 命令行参数](#section8-命令行参数)
+    - [Section9 把字符串转换为数字](#section9-把字符串转换为数字)
   - [Chapter12 存储类别、链接和内存管理](#chapter12-存储类别链接和内存管理)
   - [Chapter13 文件输入/输出](#chapter13-文件输入输出)
   - [Chapter14 结构和其他数据形式](#chapter14-结构和其他数据形式)
@@ -187,7 +196,7 @@
       return 0;
   }
 
-  /*
+  /* Output:
   3.0e+00 3.0e+00 -5.5e+303 3.2e-319
   2000000000 1234567890
   2000000000 1234567890 0 0
@@ -469,8 +478,7 @@
       return 0;
   }
 
-
-  /*
+  /* Output:
   1 31
   2 29
   3 0
@@ -588,7 +596,7 @@
       return 0;
   }
 
-  /*
+  /* Output:
       *p1 = 100,   *p2 = 100,     *p3 = 300
     *p1++ = 100, *++p2 = 200, (*p3)++ = 300
       *p1 = 200,   *p2 = 200,     *p3 = 301
@@ -648,7 +656,7 @@
       return 0;
   }
 
-  /*
+  /* Output:
   pointer value, dereferenced pointer, pointer address:
   ptr1 = 0x7ffe481ce180, *ptr1 = 100, &ptr1 = 0x7ffe481ce168
 
@@ -938,6 +946,368 @@
   > 从代码可读性易维护性出发，强烈推荐把`const`写在右边，可以跟指针的作用范围很好地统一起来不至于混乱。
 
 ## Chapter11 字符串和字符串函数
+
+### Section1 字符串和字符串函数
+
+- `puts()`函数也属于`stdiio.h`系列的输入输出函数。但是`puts()`函数只显示字符串，而且自动在显示的字符串末尾加上换行符。
+- 用双引号括起来的内容称为字符串字面量(string literal)，也叫做字符串常量(string constant)。双引号中的字符和编译器自动加入末尾的`\0`字符，都作为字符串储存在内存中。
+- 在字符串内部使用双引号需要转义`\`。
+- 字符串常量属于静态存储类别(static storage class)。这说明如果在函数中使用字符串常量，**该字符串只会被储存一次，在整个程序的生命周期内存在**。
+- 用双引号括起来的内容被视为指向该字符串存储位置的指针。
+- 在指定数组大小时，要确保数组的元素个数至少比字符串长度多1，用于容纳空字符`\0`。所有未被使用的元素都被自动初始化为`\0`。
+- 字符数组名和其他数组名一样，是该数组首字母的地址。
+- 可以使用数组形式和指针形式创建字符串，例如：
+
+  ```C
+  char const *pt1 = "Something is pointing at me.";
+  char const ar1[] = "Something is pointing at me.";
+  ```
+
+  以上两种形式几乎相同，但是并不完全相同。
+
+  - 数组形式`ar1[]`在内存中分配一个内含29个元素的数组（一个元素对应一个字符，再加上末尾的空字符`'\0`）。程序载入内存时，也载入了程序中的字符串，字符串储存在静态存储区(static memory)中。但是，程序在开始运行时才为该数组分配内存，此时才将字符串拷贝到数组中。此时字符串有两个副本，一个是在静态内存中的字符串字面量，一个是储存在`ar1`数组中的字符串。
+
+    此后，编译器将数组名`ar1`识别为该数组首元素地址`&ar1[0]`的别名。**在数组形式中，`ar1`是地址常量**，不能更改`ar1`，如果改变了`ar1`则意味着改变了数组的存储位置（即地址）。可以进行类似`ar1 + 1`的操作，标识数组的下一个元素，但是不允许进行`++ar1`的操作。递增运算符只能用于可修改的左值，不能用于常量。
+
+  - 指针形式`*pt1`也使编译器为字符串在静态存储区预留29个元素的空间。另外，一旦开始执行程序，编译器会为**指针变量`pt1`**留出一个储存位置，并把字符串的地址储存在指针变量中。该变量最初指向该字符串的首字符，但是值可以改变，因此可以使用递增运算符。
+  
+    字符串字面量被视为`const`数据。由于`pt1`指向这个`const`数据，所以应该把`pt1`声明为指向`const`数据的指针。如果把一个字符串字面量拷贝给一个数组，就可以随意改变数据，除非把数组名声明为`const`。经过测试，如果不将指针声明为指向`const`数据的指针，并尝试使用指针修改字符串字面量，则会通过编译，但在运行时报错。
+
+  - 总之，**初始化数组把静态存储区的字符串拷贝到数组中，而初始化指针只把字符串的地址拷贝给指针**。如下例：
+
+    ```C
+    #define MSG "I'm special"
+      
+    #include <stdio.h>
+    int main()
+    {
+        char ar[] = MSG;
+        const char *pt = MSG;
+        printf("address of \"I'm special\": %p \n", "I'm special");
+        printf("              address ar: %p\n", ar);
+        printf("              address pt: %p\n", pt);
+        printf("          address of MSG: %p\n", MSG);
+        printf("address of \"I'm special\": %p \n", "I'm special");
+
+        return 0;
+    }
+
+    /* Output:
+    address of "I'm special": 0x55852b51f008 
+                  address ar: 0x7ffc2044882c
+                  address pt: 0x55852b51f008
+              address of MSG: 0x55852b51f008
+    address of "I'm special": 0x55852b51f008 
+    */
+    ```
+
+    上例说明：
+    1. `pt`和`MSG`地址相同，而`ar`的地址不同。
+    2. 虽然字符串字面里`"I'm special"`在程序的两个`printf()`函数中出现了两次，但是编译器只使用了一个存储位置，而且与`MSG`的地址相同。编译器可以把多次使用的相同的字面里存储在一处或多处，另一个编译器可能在不同的位置存储3个`"I'm special"`。
+    3. 静态数据使用的内存与`ar`使用的动态内存不同。不仅值不同，特定编译器甚至使用不同的位数表示两种内存。
+
+- 给出如下两个声明：
+
+  ```C
+  char heart[] = "I love Tillie!";
+  char const *head = "I love Millie!";
+  ```
+
+  最主要的区别是，数组名`heart`是常量而指针名`head`是变量。
+
+  在实际使用中，两者都可以使用数组表示法和指针加法：
+
+  ```C
+  // 数组表示法
+  for (i = 0; i < 6; i++)
+  {
+      putchar(heart[i]);
+  }
+  putchar('\n');
+
+  for (i = 0; i < 6; i++)
+  {
+      putchar(head[i]);
+  }
+  putchar('\n');
+
+  // 指针加法
+  for (i = 0; i < 6; i++)
+  {
+      putchar(*(heart + i));
+  }
+  putchar('\n');
+  for (i = 0; i < 6; i++)
+  {
+      putchar(*(head + i));
+  }
+  putchar('\n');
+  ```
+
+  但是只有指针表示法可以使用递增操作：
+
+  ```C
+  while (*(head) != '\0)  // 在字符串末尾处停止
+  {
+    putchar(*(head++));  // 打印字符，指向下一个位置
+  }
+
+  可以让`head`指针指向`heart`数组的首元素，但是不能反过来：
+
+  ```C
+  head = heart;  // head现在指向数组heart
+  heart = head;  // 非法构造
+  ```
+
+  这类似于`x = 3`和`3 = x`的情况。赋值运算符的左边必须是可修改的左值。此外`head = heart`不会导致`head`指向的字符串消失，只是改变了储存在`head`中的地址，但是除非保存了`"I love Millie!"`的地址，否则当`head`指向别处时，就无法访问该字符串。
+
+  可以改变`heart`数组中元素的信息：`heart[7] = 'M'`或`*(heart + 7) = 'M'`。因为数组的元素是变量（除非被声明为`const`），但是数组名不是变量。
+
+- 如果未使用`const`限定符的指针初始化：`char *word = "frame";` 如果使用指针修改这个字符串： `word[1] = 'l';`编译器可能允许，但是对当前的C标准来说，**这个行为是未定义的**。这样的语句可能会导致内存访问错误。因为编译器在内存中使用一个副本表示所有完全相同的字符串字面量。例如书中给出的例子：
+
+  ```C
+  char *p1 = "Klingon";
+  p1[0] = 'F';
+  printf("Klingon");
+  printf(": Beware the %ss!\n", "Klingon");
+  ```
+
+  在书中的编译器，所有相同的字符串字面量都使用同一个地址，因此允许`p1[0]`修改字符，将影响所有使用这个字符串字面量的代码，所以打印结果会变成：`Flingon: Beware the Flingons!`。在测试中可以正常通过编译，但执行会出现异常中断。因此，建议在把指针初始化为字符串字面量时使用`const`限定符：`char const *p1 = "Klingon";`。
+
+  如果把非`const`数组初始化为字符串字面量不会导致类似的问题，因为**数组获得的时原始字符串的副本。**
+
+  因此，如果不修改字符串，不要用指针指向字符串字面量。
+
+- 可以使用两种方式创建字符串数组，指向字符串的指针数组和`char`类型数组的数组。书中给出如下示例：
+  
+  ```C
+  #include <stdio.h>
+  #define SLEN 40
+  #define LIM 5
+  int main(void)
+  {
+      char const *mytalents[LIM] = {
+          "Adding numbers swiftly",
+          "Multiplying accurately", "Stashing data",
+          "Following instructions to the letter",
+          "Understanding the C language"
+      };
+      char yourtalents[LIM][SLEN] = {
+          "Walking in a straight line",
+          "Sleeping", "Watching television",
+          "Mailing letters", "Reading email"
+      };
+      int i;
+
+      puts("Let's compare talents.");
+      printf("%-36s %-25s\n", "My Talents", "Your Talents");
+      for (i = 0; i < LIM; i++)
+      {
+          printf("%-36s %-25s\n", mytalents[i], yourtalents[i]);
+      }
+      printf("\nsizeof mytalents: %zd, sizeof yourtalents: %zd\n", sizeof(mytalents), sizeof(yourtalents));
+
+      return 0;
+  }
+
+  /* Output
+  Let's compare talents.
+  My Talents                           Your Talents             
+  Adding numbers swiftly               Walking in a straight line
+  Multiplying accurately               Sleeping                 
+  Stashing data                        Watching television      
+  Following instructions to the letter Mailing letters          
+  Understanding the C language         Reading email            
+
+  sizeof mytalents: 40, sizeof yourtalents: 200
+  */
+  ```
+
+  使用指向字符串的指针数组`mytalents`和`char`类型数组的数组`yourtalents`差别不大：都代表5个字符串，使用一个下标时表示一个字符串，使用两个下标时表示一个字符，初始化的方式也相同。
+
+  但是仍然有区别。`mytalents`数组是一个内含5个指针的数组，共占用了40个字节，而`yourtalents`是一个内含5个数组的数组，每个数组内含40个`char`类型的值，共占用200字节。所以，虽然`mytalents[0]`和`yourtalents[0]`都表示一个字符串，但是`mytalents`和`yourtalents`的类型并不相同。`mytalents`的指针指向初始化时所用的字符串字面量的位置，这些字符串字面量被储存在静态内存中；而`yourtalents`中的数组储存字符串字面量的副本，所以每个字符被储存了两次。此外，为字符串数组分配内存的使用率更低，因为每个元素大小必须相同，而且必须是能储存最长字符串的大小。
+
+  因此，如果要用数组表示一系列待显示的字符串，使用指针数组，因为会比二维数组的效率高。但是，指针数组指向的字符串字面量不能更改，而二维字符数组的内容可以修改。所以如果要改变字符串或为字符串输入预留空间，不要使用指向字符串字面量的指针。
+
+- 字符串的绝大多数操作都是通过指针完成的。书中给出如下示例：
+
+  ```C
+  #include <stdio.h>
+  int main(void)
+  {
+      char const *mesg = "Don't be a fool!";
+      char const *copy;
+
+      copy = mesg;
+      printf("%s\n", copy);
+      printf("mesg = %s; &mesg = %p; value = %p\n", mesg, &mesg, mesg);
+      printf("copy = %s; &copy = %p; value = %p\n", copy, &copy, copy);
+
+      return 0;
+  }
+
+  /* Output:
+  Don't be a fool!
+  mesg = Don't be a fool!; &mesg = 0x7ffd05321738; value = 0x55c95505f008
+  copy = Don't be a fool!; &copy = 0x7ffd05321740; value = 0x55c95505f008
+  */
+  ```
+
+  通过最后的`printf()`的输出可以看出：
+  1. `%s`以字符串形式输出没有问题。
+  2. 指针`mesg`和`copy`分别储存在地址为`0x7ffd05321738`和`0x7ffd05321740`的内存中。
+  3. 最后一项显示指针的值。指针的值就是指针存储的地址，这里`mesg`和`copy`的值都是`0x55c95505f008`，说明指向同一个位置。因此，程序并为拷贝字符串。语句`copy = mesg;`把`mesg`的值赋给`copy`，即让`copy`也指向`mesg`指向的字符串。
+
+  这样做的好处是拷贝地址的效率高于拷贝整个数组。
+
+### Section2 字符串输入
+
+- 如果需要将字符串读入程序，必须预留储存该字符串的空间，因此要做的第一件事是分配空间，以储存稍后读入的字符串。类似如下的代码：
+
+  ```C
+  char *name;
+  scanf("%s", name);
+  ```
+
+  因为`scanf()`要把信息拷贝至参数指定的地址上，而`name`是一个未初始化的指针，可能指向任何地方。因此在读入`name`时，`name`可能会擦写掉程序中的数据和代码，从而导致程序异常终止。
+
+  因此最简单的方式是在声明时显式指明数组的大小，如`char name[81]`。另一种方式是使用C库函数分配内存。
+
+- 在读取字符串时，`scanf()`和转换说明`%s`只能读取一个单词。在历史上，`gets()`函数用于读取一整行输入，直到遇到换行符，然后丢弃换行符，储存其余字符，并在字符末尾添加一个空字符使其成为一个C字符串。
+
+  但是在更加现代的编译器中，使用`gets()`函数会出现警告，原因在于`gets()`的唯一参数是数组，无法检查数组是否装得下输入行。因为数组名会被转换成数组首元素的地址，因此`gets()`函数只知道数组的开始，而不知道数组的结尾。如果输入的字符串过长，就会导致缓冲区溢出(buffer overflow)，即多余的字符超出了指定的目标空间。如果这些多余的字符只是占用了尚未使用的内存，不会立即出现问题，如果擦写掉程序中其他的数据，则会导致程序异常终止。例如常见的报错`Segmentation fault`表明程序试图访问未分配的内存。
+
+  C11标准废除了`gets()`函数。
+
+- 过去使用`fgets()`代替`gets()`，C11标准新增了`gets_s()`函数也可以代替`gets()`，但是因为是`stdio.h`中的可选扩展，因此不是所有支持C11标准的编译器都支持`gets_s()`函数。
+- `fgets()`函数的第二个参数指明了读入字符的最大数量，如果参数是`n`，则读入`n-1`个字符，或读到遇到的第一个换行符为止。**读入`n-1`个字符后，会在结尾添加一个空字符**，随后存入数组中。
+- `fgets()`读到的换行符会储存在字符中，而不是像`gets()`丢弃换行符。
+- `fgets()`函数的第三个参数指明了要读入的文件。如果读入从键盘输入的数据，则以`stdin`（标准输入）作为参数。该标识符定义在`stdio.h`中。
+- 因为`fgets()`把换行符放在字符串末尾，因为通常与`fputs()`函数配对使用。`fputs()`函数的第二个参数指明要写入的文件，如果显示在显示器上，则使用`stdout`（标准输出）作为参数。`puts()`函数会在待输出字符串末尾添加一个换行符，而`fputs()`不会这么做。
+- `fputs()`函数返回指向`char`的指针。如果一切顺利，函数返回的地址与传入的第一个参数相同。如果函数读到文件结尾，会返回一个特殊的指针：空指针(null pointer)。空指针保证不会指向有效的数据，所以可用于标识这种情况。
+- 在书中给出的一个例子中：
+
+  ```C
+  #include <stdio.h>
+  #define STLEN 10
+
+  int main(void)
+  {
+      char words[STLEN];
+
+      puts("Enter strings (empty line to quit):");
+      while (fgets(words, STLEN, stdin) != NULL && words[0] != '\n')
+      {
+          fputs(words, stdout);
+      }
+      puts("Done.");
+
+      return 0;
+  }
+
+  /* Output:
+  Enter strings (empty line to quit):
+  By the way, the gets() function
+  By the way, the gets() function
+  also retuns a null pointer if it
+  also retuns a null pointer if it
+  encounters end-of-file.
+  encounters end-of-file.
+
+  Done.
+  */
+  ```
+
+  可以看到尽管`STLEN`被设置为10，但是程序在执行时没有受到过长输入的影响。原因是`fgets()`会读入`STLEN - 1`个字符（程序中为10-1=9个字符），所以一开始只读取了`"By the wa"`，并储存为`"By the wa\0"`，接着由`fputs()`函数打印该字符串，但是因为`fputs()`不会在结尾处增加换行符，因此没有换行，随`while`进入下一轮迭代，`fgets()`从输入中继续读取数据，直至一行的结束。
+
+- 空字符`\0`是用于标记C字符串末尾的字符。空指针`NULL`有一个值，这个值不会与任何数据的有效地址对应。通常，函数使用它返回一个有效地址表示某些特殊情况发生，例如遇到文件末尾或未能按预期执行。空字符是整数类型，占1个字节，而空指针是指针类型，通常占4个字节。
+- C11新增的`gets_s()`函数和`fgets()`类似，用一个参数限制读入的字符数。`gets_s()`与`fgets()`的区别为：
+
+  1. `gets_s()`只从标准输入中读取数据，所以不需要第三个参数。
+  2. `gets_s()`读到换行符会丢弃。
+  3. 如果`gets_s()`读到最大字符数都没有读到换行符，则首先把目标数组中的首字符设置为空字符，读取并丢弃随后的输入直至读到换行符或文件结尾，然后返回空指针。接着调用依赖实现的处理函数，可能会中止或退出程序。
+
+- 当输入与预期不符时，`gets_s()`没有`fgets()`方便灵活。因此`fgets()`通常是处理类似情况的最佳选择。
+- `scanf()`和`%s`转换说明读取字符串，而`scanf()`和`gets()`或`fgets()`的区别在于如何确定字符串的末尾：`scanf()`更像是获取单词的函数。`scanf()`的典型用法是读取并转换混合数据类型为某种标准形式。
+- 在`scanf()`中，`%s`转换说明使用字段宽度可以防止溢出。
+
+### Section3 字符串输出
+
+- 使用`puts()`只需要将字符串的地址作为参数传递即可。这个地址标识`puts()`从哪里开始输出。`puts()`在遇到空字符时会停止输出，因此必须确保有空字符，否则`puts()`会一直打印内存中的内容，直到遇到空字符为止。因此：类似`char dont[] = {'W', 'O', 'W', '!'};`不能直接使用，因为`dont`没有空字符结尾，所以不是一个字符串，
+- 如果混合使用`fgets()`输入和`puts()`输出，会导致每个待显示的字符串后有两个换行符。因此需要注意`puts()`和`gets()`配对使用，`fputs()`与`fgets()`配对使用。
+
+### Section4 自定义输入/输出函数
+
+- 可以基于`getchar()`和`putchar()`自定义输入输出函数。例如书中给出的不自动添加换行符的`puts()`函数：
+
+  ```C
+  #include <stdio.h>
+  void put1(char const *string)  // 不会改变字符串
+  {
+      while (*string != '\0')  // 使用while(*string)更加简洁
+      {
+          putchar(*string++);  // ++的优先级高于*，因此打印string指向的值，递增string本身
+      }
+  }
+  ```
+
+  其中形参使用的是`char const *string`，因为处理字符串，实参可以是数组名，用字符串字面量，或声明为`char *`类型的变量。用`char const *string`可以提醒用户实参不一定是数组。
+
+### Section5 字符串函数
+
+- ANSI C将处理字符串的函数原型放在`string.h`头文件中。
+- `strlen()`函数：统计字符串的长度。书中给出一个缩短字符串的示例：
+
+  ```C
+  #include <stdio.h>
+  #include <string.h>
+  void fit(char *, unsigned int);
+
+  int main(void)
+  {
+      char mesg [] = "Things should be as simple as possible," " but not simpler.";
+
+      puts(mesg);
+      fit(mesg, 38);
+      puts(mesg);
+      puts("Let's look at some more of the string.");
+      puts(mesg + 39);
+
+      return 0;
+  }
+
+  void fit(char *string, unsigned int size)
+  {
+      if (strlen(string) > size)
+      {
+          string[size] = '\0';
+      }
+  }
+
+  /* Output:
+  Things should be as simple as possible, but not simpler.
+  Things should be as simple as possible
+  Let's look at some more of the string.
+   but not simpler.
+  */
+  ```
+
+  可以只修改`string[size]`为空字符的原因是`puts()`只会读到空字符为止。剩余的部分留存在缓冲区中，在下一次使用`puts()`时继续输出直到原字符串最后的空字符。
+
+- `strcat()`函数：拼接字符串，接收两个字符串作为参数，把第二个字符串的备份附加在第一个字符串的末尾，并把拼接后形成的新字符串作为第一个字符串，第二个字符串保持不变。`strcat()`函数返回第一个参数，即拼接第二个字符串后的第一个字符串的地址。
+- `strncat()`函数：`strcat()`函数无法检查第一个数组是否能容纳第二个字符串。如果分配给第一个数组的空间不够，则多出的字符溢出同样会带来问题。使用`strncat()`函数，在第三个参数指定了最大添加字符数。
+- `strcmp()`函数：无法直接比较两个字符串，因为这相当于比较两个指针。由于两个字符串会储存在不同的地址，因为比较指针的结果永远为假。因此比较字符串内容需要使用`strcmp()`函数，如果字符串相同则返回`0`，如果不相同，根据ASCII标准，在字母表中，如果第一个字符串在第二个字符串前，则返回负数，如果第一个字符串在第二个字符串后面，则返回正数。不同编译器可能会返回`1/-1`或字符ASCII码之差。由于`strcmp()`函数比较的是字符串不是字符，因此参数应该是字符串如`"apples"`或`"A"`，而不是字符如`'A'`。由于`char`类型实际上是整数类型，因此可以用关系运算符进行比较如`ch == 'q'`。
+- `strncmp()`函数：`strcmp()`函数会一直比较到字符串的结尾，使用`strncmp()`函数可以只比较第三个参数指定的字符数。
+- `strcpy()`和`strncpy()`函数
+- `sprintf()`函数
+
+### Section6 字符串示例：字符串排序
+
+### Section7 `ctype.h`字符函数和字符串
+
+### Section8 命令行参数
+
+### Section9 把字符串转换为数字
 
 ## Chapter12 存储类别、链接和内存管理
 
